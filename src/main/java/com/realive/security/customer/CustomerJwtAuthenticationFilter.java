@@ -2,11 +2,14 @@ package com.realive.security.customer;
 
 import java.io.IOException;
 
+import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.realive.dto.common.ApiResponse;
 import com.realive.dto.customer.member.MemberLoginDTO;
 
 import jakarta.servlet.FilterChain;
@@ -25,13 +28,14 @@ public class CustomerJwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtTokenProvider jwtTokenProvider;
     private final CustomUserDetailsService customUserDetailsService;
+    private final ObjectMapper objectMapper;
 
     @Override
     protected void doFilterInternal(HttpServletRequest request,
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        log.info("[CustomerJwtAuthenticationFilter] doFilterInternal 호출, URI: {}", request.getRequestURI());
+        log.info("[CustomerJwtAuthenticationFilter] doFilterInternal 호출, URI: {}", request.getRequestURI());                                
         String token = resolveToken(request);
         log.info("JWT 토큰 추출: {}", token);
 
@@ -49,20 +53,24 @@ public class CustomerJwtAuthenticationFilter extends OncePerRequestFilter {
 
             SecurityContextHolder.getContext().setAuthentication(auth);
             log.info("SecurityContextHolder에 인증 객체 등록 완료");
-        }else {
+            
+            filterChain.doFilter(request, response);
+        } else {
             log.info("토큰이 없거나 유효하지 않음");
+            response.setStatus(HttpStatus.UNAUTHORIZED.value());
+            response.setContentType("application/json;charset=UTF-8");
+            response.getWriter().write(
+                objectMapper.writeValueAsString(
+                    ApiResponse.error(HttpStatus.UNAUTHORIZED.value(), "인증이 필요합니다.")
+                )
+            );
         }
-
-        filterChain.doFilter(request, response);
     }
 
     private String resolveToken(HttpServletRequest request) {
         String bearerToken = request.getHeader("Authorization");
-        log.info("Authorization 헤더: {}", bearerToken);
         if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            String token = bearerToken.substring(7); // "Bearer " 이후 토큰만 추출
-            log.info("추출된 토큰: {}", token);
-            return token;
+            return bearerToken.substring(7); // "Bearer " 이후 토큰만 추출
         }
         return null;
     }

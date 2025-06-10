@@ -37,7 +37,7 @@ public class BidServiceImpl implements BidService {
     @Override
     @Transactional
     public BidResponseDTO placeBid(BidRequestDTO requestDto, Long customerId) {
-        log.info("입찰 요청 처리 시작 - CustomerId: {}, AuctionId: {}, BidPrice: {}", 
+        log.info("입찰 요청 처리 시작 - CustomerId: {}, AuctionId: {}, BidPrice: {}",
                 customerId, requestDto.getAuctionId(), requestDto.getBidPrice());
 
         // 1. 경매 정보 조회 및 상태 검증
@@ -67,19 +67,19 @@ public class BidServiceImpl implements BidService {
         // 3. 입찰 단위 및 최소 입찰가 검증
         int tickSize = TickSizeCalculator.calculateTickSize(auction.getStartPrice());
         int minBidPrice = TickSizeCalculator.calculateMinBidPrice(
-            auction.getCurrentPrice(), 
-            auction.getStartPrice()
+                auction.getCurrentPrice(),
+                auction.getStartPrice()
         );
 
         if (requestDto.getBidPrice() % tickSize != 0) {
             throw new IllegalArgumentException(
-                String.format("입찰가는 %d원 단위로만 가능합니다.", tickSize)
+                    String.format("입찰가는 %d원 단위로만 가능합니다.", tickSize)
             );
         }
 
         if (requestDto.getBidPrice() < minBidPrice) {
             throw new IllegalArgumentException(
-                String.format("최소 입찰가는 %d원입니다.", minBidPrice)
+                    String.format("최소 입찰가는 %d원입니다.", minBidPrice)
             );
         }
 
@@ -97,7 +97,7 @@ public class BidServiceImpl implements BidService {
         auction.setCurrentPrice(requestDto.getBidPrice());
         auctionRepository.save(auction);
 
-        log.info("입찰 성공 - BidId: {}, AuctionId: {}, CustomerId: {}, BidPrice: {}", 
+        log.info("입찰 성공 - BidId: {}, AuctionId: {}, CustomerId: {}, BidPrice: {}",
                 savedBid.getId(), savedBid.getAuctionId(), savedBid.getCustomerId(), savedBid.getBidPrice());
 
         return BidResponseDTO.fromEntity(savedBid);
