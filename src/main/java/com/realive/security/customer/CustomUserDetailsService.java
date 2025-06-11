@@ -33,11 +33,13 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .orElseThrow(() -> new UsernameNotFoundException("이메일이 존재하지 않습니다: " + username));
 
         // MemberLoginDTO로 변환해서 리턴
-        return new MemberLoginDTO(
+        MemberLoginDTO memberLoginDTO = new MemberLoginDTO(
                 customer.getEmail(),
                 customer.getPassword()
         );
+        memberLoginDTO.setId(customer.getId());
 
+        return memberLoginDTO;
     }
     
 }
