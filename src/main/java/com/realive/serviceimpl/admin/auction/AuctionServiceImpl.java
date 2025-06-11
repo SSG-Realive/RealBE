@@ -66,11 +66,10 @@ public class AuctionServiceImpl implements AuctionService {
                 .orElseThrow(() -> new NoSuchElementException("관리자 상품 목록에서 해당 상품을 찾을 수 없습니다. Product ID: " + requestDto.getProductId()));
 
         // 3. 현재 진행 중인 경매 확인
-        Optional<Auction> existingActiveAuction = auctionRepository.findByProductIdAndStatusNot(requestDto.getProductId(), AuctionStatus.COMPLETED);
-        if (existingActiveAuction.isPresent()) {
-            Auction existingAuction = existingActiveAuction.get();
-            if (existingAuction.getStatus() != AuctionStatus.CANCELLED) {
-                throw new IllegalStateException("이미 해당 상품으로 진행 중인 다른 경매가 있습니다. Product ID: " + requestDto.getProductId());
+        List<Auction> existingAuctions = auctionRepository.findByProductId(requestDto.getProductId());
+        for (Auction existingAuction : existingAuctions) {
+            if (existingAuction.getStatus() == AuctionStatus.PROCEEDING) {
+                throw new IllegalStateException("이미 해당 상품으로 진행 중인 경매가 있습니다. Product ID: " + requestDto.getProductId());
             }
         }
 
