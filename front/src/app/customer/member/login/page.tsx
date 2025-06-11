@@ -2,6 +2,7 @@ import LoginForm from '@/components/customer/LoginComponent';
 import { Suspense } from 'react';
 
 
+
 export default function LoginPage() {
   return (
     <div className="min-h-screen flex items-center justify-center p-4">
