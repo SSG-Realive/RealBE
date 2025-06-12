@@ -1,9 +1,8 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
-
 
 export default function LoginForm() {
   const router = useRouter();
@@ -14,6 +13,14 @@ export default function LoginForm() {
     password: '',
   });
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    // URL에서 에러 파라미터 확인
+    const errorParam = searchParams?.get('error');
+    if (errorParam === 'kakao_login_failed') {
+      setError('카카오 로그인에 실패했습니다. 다시 시도해주세요.');
+    }
+  }, [searchParams]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -28,7 +35,9 @@ export default function LoginForm() {
     setError('');
 
     try {
-      const response = await fetch('/api/auth/login', {
+      console.log('Attempting login with:', formData); // 디버깅용
+
+      const response = await fetch('/api/customer/login', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -36,10 +45,16 @@ export default function LoginForm() {
         body: JSON.stringify(formData),
       });
 
+      console.log('Login response status:', response.status); // 디버깅용
+
       const data = await response.json();
+      console.log('Login response data:', data); // 디버깅용
 
       if (!response.ok) {
-        throw new Error(data.message || '로그인에 실패했습니다.');
+        // 서버에서 반환한 에러 메시지가 있으면 사용, 없으면 기본 메시지 사용
+        const errorMessage = data.message || data.error || '로그인에 실패했습니다.';
+        setError(errorMessage);
+        return;
       }
 
       if (data.success && data.data?.token) {
@@ -51,11 +66,23 @@ export default function LoginForm() {
         console.log('Redirecting to:', redirectTo); // 디버깅용
         router.push(redirectTo || '/');
       } else {
-        throw new Error('토큰이 없습니다.');
+        setError('로그인 응답이 올바르지 않습니다.');
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : '로그인 중 오류가 발생했습니다.');
+      console.error('Login error:', err);
+      setError('로그인 처리 중 오류가 발생했습니다.');
     }
+  };
+
+  const handleKakaoLogin = () => {
+    // 현재 URL에서 redirectTo 파라미터 가져오기
+    const redirectTo = searchParams?.get('redirectTo') || '/';
+    
+    // redirectTo 파라미터를 state로 전달
+    const state = encodeURIComponent(JSON.stringify({ redirectTo }));
+    
+    // Spring Security OAuth2 엔드포인트로 리다이렉트 (state 파라미터 포함)
+    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/oauth2/authorization/kakao?state=${state}`;
   };
 
   return (
@@ -98,6 +125,37 @@ export default function LoginForm() {
         className="w-full bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
       >
         로그인
+      </button>
+      
+      <div className="relative my-4">
+        <div className="absolute inset-0 flex items-center">
+          <div className="w-full border-t border-gray-300"></div>
+        </div>
+        <div className="relative flex justify-center text-sm">
+          <span className="px-2 bg-white text-gray-500">또는</span>
+        </div>
+      </div>
+
+      <button
+        type="button"
+        onClick={handleKakaoLogin}
+        className="w-full bg-[#FEE500] text-[#000000] py-2 px-4 rounded-md hover:bg-[#FDD835] flex items-center justify-center gap-2"
+      >
+        <svg
+          width="20"
+          height="20"
+          viewBox="0 0 24 24"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <path
+            fillRule="evenodd"
+            clipRule="evenodd"
+            d="M12 3C6.477 3 2 6.463 2 10.702c0 2.682 1.76 5.035 4.4 6.4-.19.882-.74 3.22-.85 3.72-.13.55.2.53.37.39.14-.11 2.2-1.51 2.2-1.51 1.17.17 2.38.26 3.58.26 5.523 0 10-3.463 10-7.702S17.523 3 12 3z"
+            fill="#000000"
+          />
+        </svg>
+        카카오로 로그인
       </button>
     </form>
   );
