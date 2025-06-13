@@ -3,6 +3,7 @@ package com.realive.config;
 import com.realive.security.AdminJwtAuthenticationFilter;
 import com.realive.security.SellerJwtAuthenticationFilter;
 import com.realive.security.customer.CustomerJwtAuthenticationFilter;
+import com.realive.security.customer.CustomAuthorizationRequestResolver;
 import com.realive.security.customer.CustomLoginSuccessHandler;
 
 import lombok.RequiredArgsConstructor;
@@ -148,13 +149,16 @@ public class SecurityConfig {
     // === Customer oauth2 Security Chain ===
     @Bean
     @Order(4)
-    public SecurityFilterChain oauth2SecurityFilterChain(HttpSecurity http) throws Exception {
+    public SecurityFilterChain oauth2SecurityFilterChain(HttpSecurity http, CustomAuthorizationRequestResolver customResolver) throws Exception {
         http
             .securityMatcher("/oauth2/**", "/login/oauth2/**")
             .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
-            .csrf(csrf -> csrf.disable()) 
+            .csrf(csrf -> csrf.disable())
             .oauth2Login(config -> config
-                .successHandler(customLoginSuccessHandler) // 성공 핸들러
+                .authorizationEndpoint(endpoint -> endpoint
+                    .authorizationRequestResolver(customResolver)
+                )
+                .successHandler(customLoginSuccessHandler)
                 .failureHandler((request, response, exception) -> {
                     log.error("OAuth2 로그인 실패: {}", exception.getMessage(), exception);
                     response.sendRedirect("/login?error=kakao_login_failed");
