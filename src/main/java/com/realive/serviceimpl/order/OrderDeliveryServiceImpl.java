@@ -12,12 +12,15 @@ import com.realive.repository.order.SellerOrderDeliveryRepository;
 import com.realive.repository.product.ProductRepository;
 import com.realive.service.order.OrderDeliveryService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class OrderDeliveryServiceImpl implements OrderDeliveryService {
@@ -63,7 +66,7 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
             product.setStock(product.getStock() - item.getQuantity());
         }
     }
-
+        // 배송중으로 변경 시 송장번호, 배송사 설정
         if (newStatus == DeliveryStatus.DELIVERY_IN_PROGRESS) {
             if (dto.getTrackingNumber() != null) {
                 delivery.setTrackingNumber(dto.getTrackingNumber());
@@ -72,16 +75,32 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
                 delivery.setCarrier(dto.getCarrier());
             }
         }
-
+          // 상태 업데이트
         delivery.setStatus(newStatus);
 
+        // 배송중 시작일 설정
         if (newStatus == DeliveryStatus.DELIVERY_IN_PROGRESS && delivery.getStartDate() == null) {
             delivery.setStartDate(LocalDateTime.now());
         }
 
+        // 배송완료 완료일 설정 + 🚩 isActive 처리 추가
         if (newStatus == DeliveryStatus.DELIVERY_COMPLETED && delivery.getCompleteDate() == null) {
             delivery.setCompleteDate(LocalDateTime.now());
         }
+
+        Long orderIdForItems = delivery.getOrder().getId();
+        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderIdForItems);
+
+        for (OrderItem item : orderItems) {
+            Product product = productRepository.findByIdForUpdate(item.getProduct().getId());
+
+            // 🚩 재고가 0 인 경우에만 isActive = false 처리
+            if (product.getStock() == 0 && product.isActive()) {
+                product.setActive(false);
+                log.info("Product {} 비활성화 처리됨", product.getId());
+            }
+        }
+
     }
 
     @Override
