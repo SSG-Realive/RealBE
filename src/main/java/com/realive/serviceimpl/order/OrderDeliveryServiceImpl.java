@@ -39,33 +39,44 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
         DeliveryStatus currentStatus = delivery.getStatus();
         DeliveryStatus newStatus = dto.getDeliveryStatus();
 
-        boolean validTransition =
-                (currentStatus == null && newStatus == DeliveryStatus.DELIVERY_PREPARING) || // 처음 PREPARING 으로 변경
-                (currentStatus == DeliveryStatus.DELIVERY_PREPARING && newStatus == DeliveryStatus.DELIVERY_IN_PROGRESS) ||
-                (currentStatus == DeliveryStatus.DELIVERY_IN_PROGRESS && newStatus == DeliveryStatus.DELIVERY_COMPLETED);
+        boolean validTransition = (currentStatus == DeliveryStatus.INIT
+                && newStatus == DeliveryStatus.DELIVERY_PREPARING) || // 처음 PREPARING 으로 변경
+                (currentStatus == DeliveryStatus.DELIVERY_PREPARING && newStatus == DeliveryStatus.DELIVERY_IN_PROGRESS)
+                ||
+                (currentStatus == DeliveryStatus.DELIVERY_IN_PROGRESS
+                        && newStatus == DeliveryStatus.DELIVERY_COMPLETED) ||
+                (currentStatus == DeliveryStatus.DELIVERY_IN_PROGRESS && newStatus == DeliveryStatus.DELIVERY_IN_PROGRESS);
 
         if (!validTransition) {
             throw new IllegalStateException("유효하지 않은 배송 상태 전이입니다.");
         }
 
-        //배송 준비되면 stock 차감 로직 
+        // 상태 업데이트
+        delivery.setStatus(newStatus);
+
+        // 배송 준비되면 stock 차감 로직
         if (newStatus == DeliveryStatus.DELIVERY_PREPARING && currentStatus != DeliveryStatus.DELIVERY_PREPARING) {
-            
+
             Long orderIdForItems = delivery.getOrder().getId();
 
             List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderIdForItems);
 
-
             for (OrderItem item : orderItems) {
-            Product product = productRepository.findByIdForUpdate(item.getProduct().getId());
+                Product product = productRepository.findByIdForUpdate(item.getProduct().getId());
 
-            if (product.getStock() < item.getQuantity()) {
-                throw new IllegalStateException("재고가 부족하여 배송 준비 상태로 변경할 수 없습니다." + product.getName());
+                if (product.getStock() < item.getQuantity()) {
+                    throw new IllegalStateException("재고가 부족하여 배송 준비 상태로 변경할 수 없습니다." + product.getName());
+                }
+
+                product.setStock(product.getStock() - item.getQuantity());
             }
 
-            product.setStock(product.getStock() - item.getQuantity());
+            // 🚩 INIT → PREPARING 에서만 startDate 찍기
+            if (currentStatus == DeliveryStatus.INIT && newStatus == DeliveryStatus.DELIVERY_PREPARING) {
+                delivery.setStartDate(LocalDateTime.now());
+            }
         }
-    }
+
         // 배송중으로 변경 시 송장번호, 배송사 설정
         if (newStatus == DeliveryStatus.DELIVERY_IN_PROGRESS) {
             if (dto.getTrackingNumber() != null) {
@@ -74,13 +85,6 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
             if (dto.getCarrier() != null) {
                 delivery.setCarrier(dto.getCarrier());
             }
-        }
-          // 상태 업데이트
-        delivery.setStatus(newStatus);
-
-        // 배송중 시작일 설정
-        if (newStatus == DeliveryStatus.DELIVERY_IN_PROGRESS && delivery.getStartDate() == null) {
-            delivery.setStartDate(LocalDateTime.now());
         }
 
         // 배송완료 완료일 설정 + 🚩 isActive 처리 추가
