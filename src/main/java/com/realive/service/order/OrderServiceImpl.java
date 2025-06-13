@@ -443,8 +443,11 @@ public class OrderServiceImpl implements OrderService {
 
         OrderDelivery orderDelivery = OrderDelivery.builder()
                 .order(order)
-                .status(DeliveryStatus.DELIVERY_PREPARING) // 현재 enum에 있는 '배송준비중' 상태 사용
-                .startDate(LocalDateTime.now())
+                .status(DeliveryStatus.INIT) // 현재 enum에 있는 '판매자 대기' 상태 사용
+                .startDate(null)             
+                .completeDate(null)
+                .trackingNumber(null)
+                .carrier(null)
                 .build();
         orderDeliveryRepository.save(orderDelivery);
 
