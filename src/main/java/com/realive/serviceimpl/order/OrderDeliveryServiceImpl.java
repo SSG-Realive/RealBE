@@ -1,12 +1,15 @@
 package com.realive.serviceimpl.order;
 
 import com.realive.domain.common.enums.DeliveryStatus;
+import com.realive.domain.order.Order;
 import com.realive.domain.order.OrderDelivery;
 import com.realive.domain.order.OrderItem;
+import com.realive.domain.product.Product;
 import com.realive.dto.order.DeliveryStatusUpdateDTO;
 import com.realive.dto.order.OrderDeliveryResponseDTO;
 import com.realive.repository.order.OrderItemRepository;
 import com.realive.repository.order.SellerOrderDeliveryRepository;
+import com.realive.repository.product.ProductRepository;
 import com.realive.service.order.OrderDeliveryService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -21,6 +24,7 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
 
     private final SellerOrderDeliveryRepository sellerOrderDeliveryRepository;
     private final OrderItemRepository orderItemRepository;
+    private final ProductRepository productRepository;
 
     @Override
     @Transactional
@@ -33,12 +37,32 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
         DeliveryStatus newStatus = dto.getDeliveryStatus();
 
         boolean validTransition =
+                (currentStatus == null && newStatus == DeliveryStatus.DELIVERY_PREPARING) || // 처음 PREPARING 으로 변경
                 (currentStatus == DeliveryStatus.DELIVERY_PREPARING && newStatus == DeliveryStatus.DELIVERY_IN_PROGRESS) ||
                 (currentStatus == DeliveryStatus.DELIVERY_IN_PROGRESS && newStatus == DeliveryStatus.DELIVERY_COMPLETED);
 
         if (!validTransition) {
             throw new IllegalStateException("유효하지 않은 배송 상태 전이입니다.");
         }
+
+        //배송 준비되면 stock 차감 로직 
+        if (newStatus == DeliveryStatus.DELIVERY_PREPARING && currentStatus != DeliveryStatus.DELIVERY_PREPARING) {
+            
+            Long orderIdForItems = delivery.getOrder().getId();
+
+            List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderIdForItems);
+
+
+            for (OrderItem item : orderItems) {
+            Product product = productRepository.findByIdForUpdate(item.getProduct().getId());
+
+            if (product.getStock() < item.getQuantity()) {
+                throw new IllegalStateException("재고가 부족하여 배송 준비 상태로 변경할 수 없습니다." + product.getName());
+            }
+
+            product.setStock(product.getStock() - item.getQuantity());
+        }
+    }
 
         if (newStatus == DeliveryStatus.DELIVERY_IN_PROGRESS) {
             if (dto.getTrackingNumber() != null) {
