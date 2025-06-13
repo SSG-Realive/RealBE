@@ -1,0 +1,113 @@
+[33m9381e14b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mteam1/javcki[m[33m)[m HEAD@{0}: reset: moving to HEAD~1
+[33m895e2c5c[m HEAD@{1}: reset: moving to HEAD
+[33m895e2c5c[m HEAD@{2}: commit: [Feat] 로그인 소셜로그인
+[33m9381e14b[m[33m ([m[1;36mHEAD[m[33m -> [m[1;32mteam1/javcki[m[33m)[m HEAD@{3}: commit: 6/11 subtree add 후 dev와 merge
+[33m0bbf5d78[m HEAD@{4}: reset: moving to 0bbf5d780e14589c12c4b75ee64ac07a3cf85e6f
+[33m93932c1b[m HEAD@{5}: commit: Remove old back directory and backup existing files
+[33m55b8c577[m HEAD@{6}: commit: 6/11 main과 merge test2
+[33maacde7bc[m HEAD@{7}: commit (merge): ..
+[33m9af7b6e5[m HEAD@{8}: commit (merge): Commit current changes before subtree pull
+[33mb7f41f36[m HEAD@{9}: commit: Commit current changes before subtree pull
+[33me60b0561[m HEAD@{10}: reset: moving to e60b056174cc5a3f52b000d830b418a7b3868bcb
+[33me52dc122[m HEAD@{11}: commit: 6/11 Remove front directory for subtree setup
+[33me811befd[m HEAD@{12}: checkout: moving from temp-merge to team1/javcki
+[33me811befd[m HEAD@{13}: reset: moving to HEAD
+[33me811befd[m HEAD@{14}: checkout: moving from team1/javcki to temp-merge
+[33me811befd[m HEAD@{15}: commit: 6/11 subtree test 전 commit
+[33mce90582e[m HEAD@{16}: commit: 6/11 subtree로 push test2
+[33m61870c1f[m HEAD@{17}: reset: moving to HEAD
+[33m61870c1f[m HEAD@{18}: checkout: moving from team1/javcki to team1/javcki
+[33m61870c1f[m HEAD@{19}: commit: 6/10 test
+[33ma13e78e4[m[33m ([m[1;31morigin/team1/javcki[m[33m)[m HEAD@{20}: commit: 6/9 JwtUtil 변수 변경
+[33mcb14cfae[m HEAD@{21}: checkout: moving from dev2 to team1/javcki
+[33ma27a13ae[m[33m ([m[1;32mdev2[m[33m)[m HEAD@{22}: checkout: moving from dev to dev2
+[33m3fe68873[m[33m ([m[1;32mdev[m[33m)[m HEAD@{23}: checkout: moving from team1/javcki to dev
+[33mcb14cfae[m HEAD@{24}: commit: 6/5 dev2와 수동으로 병합 후 commit
+[33m3561c82c[m HEAD@{25}: reset: moving to 3561c82cd016c7987c86c3c4c263a1e6150f3dc6
+[33m4c742dca[m HEAD@{26}: commit: 6/5 dev2와 병합 전 commit 2
+[33m3561c82c[m HEAD@{27}: checkout: moving from dev2 to team1/javcki
+[33ma27a13ae[m[33m ([m[1;32mdev2[m[33m)[m HEAD@{28}: checkout: moving from team1/javcki to dev2
+[33m3561c82c[m HEAD@{29}: checkout: moving from team1/javcki to team1/javcki
+[33m3561c82c[m HEAD@{30}: rebase (finish): returning to refs/heads/team1/javcki
+[33m3561c82c[m HEAD@{31}: rebase (pick): 6/5 dev2와 병합
+[33me289d75b[m HEAD@{32}: rebase (pick): 6/5 dev2와 병합 전 commit
+[33ma27a13ae[m[33m ([m[1;32mdev2[m[33m)[m HEAD@{33}: rebase (start): checkout dev2
+[33mb06fa8f7[m HEAD@{34}: checkout: moving from dev2 to team1/javcki
+[33ma27a13ae[m[33m ([m[1;32mdev2[m[33m)[m HEAD@{35}: checkout: moving from team1/javcki to dev2
+[33mb06fa8f7[m HEAD@{36}: checkout: moving from dev2 to team1/javcki
+[33ma27a13ae[m[33m ([m[1;32mdev2[m[33m)[m HEAD@{37}: checkout: moving from team1/javcki to dev2
+[33mb06fa8f7[m HEAD@{38}: merge dev2: Merge made by the 'ort' strategy.
+[33m9d12c3cd[m HEAD@{39}: checkout: moving from dev2 to team1/javcki
+[33ma27a13ae[m[33m ([m[1;32mdev2[m[33m)[m HEAD@{40}: pull origin dev2: Fast-forward
+[33m99463d63[m HEAD@{41}: checkout: moving from team1/javcki to dev2
+[33m9d12c3cd[m HEAD@{42}: checkout: moving from dev2 to team1/javcki
+[33m99463d63[m HEAD@{43}: checkout: moving from team1/javcki to dev2
+[33m9d12c3cd[m HEAD@{44}: checkout: moving from dev to team1/javcki
+[33m3fe68873[m[33m ([m[1;32mdev[m[33m)[m HEAD@{45}: checkout: moving from team1/javcki to dev
+[33m9d12c3cd[m HEAD@{46}: commit: 6/5 dev2와 병합
+[33m248b4982[m HEAD@{47}: checkout: moving from dev2 to team1/javcki
+[33m99463d63[m HEAD@{48}: reset: moving to HEAD
+[33m99463d63[m HEAD@{49}: checkout: moving from team1/javcki to dev2
+[33m248b4982[m HEAD@{50}: commit: 6/5 dev2와 병합 전 commit
+[33m9f44836d[m HEAD@{51}: commit: 6/5 SecurityConfig stackoverflow 해결
+[33mb0fedba0[m HEAD@{52}: pull origin team1/javcki: Merge made by the 'ort' strategy.
+[33mcda0b242[m HEAD@{53}: commit: 6/4 bean문제 다시 발생
+[33me3ad2469[m HEAD@{54}: commit: Q파일 테스트
+[33mb00230d8[m HEAD@{55}: commit: Fix: allow QueryDSL Q files to be tracked
+[33me5f50014[m HEAD@{56}: commit: Q업로드 테스트
+[33m65f53df2[m HEAD@{57}: commit: 6/4 스택오버플로우 해결 - UserService bean문제
+[33mb139cf8d[m HEAD@{58}: commit (merge): 6/4 dev2와 merge 완료
+[33mc9987bbe[m HEAD@{59}: checkout: moving from dev2 to team1/javcki
+[33m99463d63[m HEAD@{60}: checkout: moving from team1/javcki to dev2
+[33mc9987bbe[m HEAD@{61}: commit: 6/4 merge 전 commit
+[33mc0e84cfd[m HEAD@{62}: commit: 5/30 PR전 commit
+[33mc81d63d0[m HEAD@{63}: commit (merge): 5/30 dev와 병합 완료
+[33maef41725[m HEAD@{64}: checkout: moving from dev to team1/javcki
+[33m3fe68873[m[33m ([m[1;32mdev[m[33m)[m HEAD@{65}: pull origin dev: Fast-forward
+[33mea8f20c3[m HEAD@{66}: checkout: moving from team1/javcki to dev
+[33maef41725[m HEAD@{67}: commit: 5/30 dev 병합전 commit
+[33m68111098[m HEAD@{68}: commit (merge): Merge branch 'dev' into team1/javcki
+[33m4dd7d0b6[m HEAD@{69}: checkout: moving from dev to team1/javcki
+[33mea8f20c3[m HEAD@{70}: reset: moving to HEAD
+[33mea8f20c3[m HEAD@{71}: pull origin dev: Fast-forward
+[33mb431066c[m HEAD@{72}: reset: moving to HEAD
+[33mb431066c[m HEAD@{73}: checkout: moving from team1/javcki to dev
+[33m4dd7d0b6[m HEAD@{74}: commit: 5/30 dev 병합 전 commit
+[33ma0bb3141[m HEAD@{75}: commit: 5/29 Q파일이름 변경
+[33m4a3f2d54[m HEAD@{76}: commit: fix: CustomerQnaRequestDTO 파일 복구
+[33mbb98efbe[m HEAD@{77}: commit: fix: ignore 무시된 Qna DTO 파일 강제 등록2
+[33m23672048[m HEAD@{78}: commit: Fix: .gitignore로 인해 무시된 Q로 시작하는 DTO 포함
+[33mb0af4b08[m HEAD@{79}: commit: 5/29 QnaListDTO안 올라가는 문제
+[33mbe8c8b47[m HEAD@{80}: commit: 5/29 주석처리와 정리, 판매 상품의 QnA 목록 기능 추가.
+[33me72249d8[m HEAD@{81}: merge team2/ho: Merge made by the 'ort' strategy.
+[33m32ee0a16[m HEAD@{82}: checkout: moving from team2/ho to team1/javcki
+[33m0ae51fd3[m[33m ([m[1;32mteam2/ho[m[33m)[m HEAD@{83}: pull origin team2/ho: Fast-forward
+[33meced52ce[m HEAD@{84}: checkout: moving from team1/javcki to team2/ho
+[33m32ee0a16[m HEAD@{85}: commit (merge): 5/29 병합 전 커밋
+[33ma2d9b11d[m HEAD@{86}: checkout: moving from team2/ho to team1/javcki
+[33meced52ce[m HEAD@{87}: reset: moving to HEAD
+[33meced52ce[m HEAD@{88}: checkout: moving from team1/javcki to team2/ho
+[33ma2d9b11d[m HEAD@{89}: commit: 5/28 1 2 3조 파일 병합 전 커밋
+[33m8c3d0581[m HEAD@{90}: reset: moving to HEAD
+[33m8c3d0581[m HEAD@{91}: checkout: moving from dev to team1/javcki
+[33mb431066c[m HEAD@{92}: reset: moving to HEAD
+[33mb431066c[m HEAD@{93}: checkout: moving from team1/javcki to dev
+[33m8c3d0581[m HEAD@{94}: commit: 5/28 dev와 병합 전 commit
+[33mc6a0fb62[m HEAD@{95}: commit: 5/28 병합 완료
+[33mbd957f7b[m HEAD@{96}: commit (merge): 5/28 병합 수정중 commit
+[33m6e2fd328[m HEAD@{97}: checkout: moving from team1/min to team1/javcki
+[33m9a4a919c[m[33m ([m[1;32mteam1/min[m[33m)[m HEAD@{98}: reset: moving to origin/team1/min
+[33m10c5bfac[m HEAD@{99}: reset: moving to HEAD
+[33m10c5bfac[m HEAD@{100}: reset: moving to HEAD
+[33m10c5bfac[m HEAD@{101}: reset: moving to HEAD
+[33m10c5bfac[m HEAD@{102}: checkout: moving from team1/javcki to team1/min
+[33m6e2fd328[m HEAD@{103}: commit: 5/28 수정
+[33m9aad2c7d[m HEAD@{104}: reset: moving to HEAD
+[33m9aad2c7d[m HEAD@{105}: commit: 5/28 대문자DTO
+[33m983f75e3[m HEAD@{106}: commit: 5/28 checkout 전 commit
+[33mf96e3b6c[m HEAD@{107}: reset: moving to HEAD
+[33mf96e3b6c[m HEAD@{108}: checkout: moving from team1/min to team1/javcki
+[33m10c5bfac[m HEAD@{109}: reset: moving to HEAD
+[33m10c5bfac[m HEAD@{110}: reset: moving to HEAD
+[33m10c5bfac[m HEAD@{111}: checkout: moving from team1/javcki to team1/min
+[33mf96e3b6c[m HEAD@{112}: checkout: moving from team1/javcki 
