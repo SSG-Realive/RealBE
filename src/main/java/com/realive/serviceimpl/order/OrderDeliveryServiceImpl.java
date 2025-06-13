@@ -39,6 +39,8 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
         DeliveryStatus currentStatus = delivery.getStatus();
         DeliveryStatus newStatus = dto.getDeliveryStatus();
 
+        log.info("현재 배송 상태 currentStatus={}, 요청된 newStatus={}", currentStatus, newStatus);
+
         boolean validTransition = (currentStatus == DeliveryStatus.INIT
                 && newStatus == DeliveryStatus.DELIVERY_PREPARING) || // 처음 PREPARING 으로 변경
                 (currentStatus == DeliveryStatus.DELIVERY_PREPARING && newStatus == DeliveryStatus.DELIVERY_IN_PROGRESS)
