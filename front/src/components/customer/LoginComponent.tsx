@@ -75,15 +75,20 @@ export default function LoginForm() {
   };
 
   const handleKakaoLogin = () => {
-    // 현재 URL에서 redirectTo 파라미터 가져오기
-    const redirectTo = searchParams?.get('redirectTo') || '/';
+    const state = crypto.randomUUID();
     
-    // redirectTo 파라미터를 state로 전달
-    const state = encodeURIComponent(JSON.stringify({ redirectTo }));
+    // URL에서 원래 가려던 페이지 가져오기
+    const urlParams = new URLSearchParams(window.location.search);
+    const originalPage = urlParams.get('redirectTo') || '/';
     
-    // Spring Security OAuth2 엔드포인트로 리다이렉트 (state 파라미터 포함)
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/oauth2/authorization/kakao?state=${state}`;
+    // 원래 페이지를 sessionStorage에 저장
+    sessionStorage.setItem('loginRedirectUrl', originalPage);
+    
+    const redirectTo = encodeURIComponent(`${window.location.origin}/customer/oauth/callback`);
+    
+    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/oauth2/authorization/kakao?state=${state}&redirectTo=${redirectTo}`;
   };
+
 
   return (
     <form onSubmit={handleSubmit} className="space-y-4">
