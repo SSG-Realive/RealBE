@@ -130,13 +130,13 @@ public class ProductServiceImpl implements ProductService {
                         throw new SecurityException("해당 상품에 대한 수정 권한이 없습니다.");
                 }
 
-                // 기존 썸네일 이미지/영상 삭제
-                productImageRepository.findByProductId(productId).stream()
-                                .filter(ProductImage::isThumbnail)
-                                .forEach(productImageRepository::delete);
-
+                
                 // 대표 이미지 저장
                 if (dto.getImageThumbnail() != null && !dto.getImageThumbnail().isEmpty()) {
+                        productImageRepository.findByProductId(productId).stream()
+                        .filter(img -> img.isThumbnail() && img.getMediaType() == MediaType.IMAGE)
+                        .forEach(productImageRepository::delete);
+
                         String imageUrl = fileUploadService.upload(dto.getImageThumbnail(), "product", sellerId);
                         productImageRepository.save(ProductImage.builder()
                                         .url(imageUrl)
@@ -148,6 +148,10 @@ public class ProductServiceImpl implements ProductService {
 
                 // 대표 영상 저장
                 if (dto.getVideoThumbnail() != null && !dto.getVideoThumbnail().isEmpty()) {
+                        productImageRepository.findByProductId(productId).stream()
+                        .filter(img -> img.isThumbnail() && img.getMediaType() == MediaType.VIDEO)
+                        .forEach(productImageRepository::delete);
+                        
                         String videoUrl = fileUploadService.upload(dto.getVideoThumbnail(), "product", sellerId);
                         productImageRepository.save(ProductImage.builder()
                                         .url(videoUrl)
@@ -268,6 +272,7 @@ public class ProductServiceImpl implements ProductService {
                 Product product = productRepository.findById(productId)
                                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
 
+                Category category = product.getCategory();
                 if (!product.getSeller().getId().equals(sellerId)) {
                         throw new SecurityException("해당 상품에 대한 조회 권한이 없습니다.");
                 }
@@ -285,6 +290,8 @@ public class ProductServiceImpl implements ProductService {
                                 .imageThumbnailUrl(getThumbnailUrlByType(productId, MediaType.IMAGE))
                                 .videoThumbnailUrl(getThumbnailUrlByType(productId, MediaType.VIDEO))
                                 .categoryName(Category.getCategoryFullPath(product.getCategory()))
+                                .categoryId(category.getId()) // ✅ 추가
+                                .parentCategoryId(category.getParent() != null ? category.getParent().getId() : null) // ✅ 추가
                                 .sellerName(product.getSeller().getName())
                                 .build();
         }
