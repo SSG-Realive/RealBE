@@ -42,7 +42,6 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
         DeliveryStatus currentStatus = delivery.getStatus();
         DeliveryStatus newStatus = dto.getDeliveryStatus();
         Long orderIdForItems = delivery.getOrder().getId();
-        
 
         log.info("현재 배송 상태 currentStatus={}, 요청된 newStatus={}", currentStatus, newStatus);
         log.info("🔥 DEBUG - 배송 상태 변경 확인: newStatus={}, currentStatus={}", newStatus, currentStatus);
@@ -175,5 +174,39 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
                 .trackingNumber(delivery.getTrackingNumber())
                 .carrier(delivery.getCarrier())
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void cancelOrderDelivery(Long orderId, Long sellerId) {
+        OrderDelivery delivery = sellerOrderDeliveryRepository
+                .findByOrderIdAndSellerId(orderId, sellerId)
+                .orElseThrow(() -> new IllegalArgumentException("배송 정보가 존재하지 않습니다."));
+        
+         // 🚩 INIT 상태만 취소 가능
+        if (delivery.getStatus() != DeliveryStatus.INIT) {
+            throw new IllegalArgumentException("배송 준비 중 상태에서만 취소할 수 있습니다.");
+        }
+        
+        // 🚫 중복 처리 방지
+        if (delivery.getStatus() == DeliveryStatus.CANCELLED) {
+            throw new IllegalStateException("이미 취소된 주문입니다.");
+        }
+
+        // 상태 변경
+        delivery.setStatus(DeliveryStatus.CANCELLED);
+        log.info("❌ 배송 취소 처리됨 - orderId={}, sellerId={}", orderId, sellerId);
+
+        // 🔒 재고 복원 (동시성 방지를 위해 락 걸고 처리)
+        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+        for (OrderItem item : items) {
+            Product product = productRepository.findByIdForUpdate(item.getProduct().getId());
+
+            product.setStock(product.getStock() + item.getQuantity());
+
+            if (!product.isActive()) {
+                product.setActive(true); // 재고 생기면 다시 활성화
+            }
+        }
     }
 }

@@ -9,9 +9,9 @@ import lombok.RequiredArgsConstructor;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
-
 
 @RestController
 @RequiredArgsConstructor
@@ -36,6 +36,7 @@ public class SellerOrderDeliveryController {
 
         return ResponseEntity.ok().build();
     }
+
     // 배송 단건 조회 컨트롤러
     @GetMapping("/{orderId}/delivery")
     public ResponseEntity<OrderDeliveryResponseDTO> getDeliveryByOrderId(@PathVariable Long orderId) {
@@ -44,6 +45,17 @@ public class SellerOrderDeliveryController {
         OrderDeliveryResponseDTO result = orderDeliveryService.getDeliveryByOrderId(seller.getId(), orderId);
 
         return ResponseEntity.ok(result);
+    }
+
+    @PatchMapping("/{orderId}/cancel")
+    public ResponseEntity<Void> cancelOrderDelivery(
+            @PathVariable Long orderId
+           ) {
+
+        Seller seller = (Seller) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        orderDeliveryService.cancelOrderDelivery(orderId, seller.getId());
+
+        return ResponseEntity.ok().build();
     }
 
 }
