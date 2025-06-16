@@ -21,4 +21,7 @@ public interface SellerQnaService {
     // QnA 수정 (답변 없을 때만 가능)
     void updateQnaContent(Long sellerId, Long qnaId, SellerQnaUpdateRequestDTO dto);
 
+    // QnA 답변(고객이 작성한 QnA)
+    void answerQna(Long sellerId, Long qnaId, String answer);
+
 }

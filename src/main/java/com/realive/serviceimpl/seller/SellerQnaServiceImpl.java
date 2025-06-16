@@ -12,6 +12,8 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
+
 @Service
 @RequiredArgsConstructor
 public class SellerQnaServiceImpl implements SellerQnaService {
@@ -32,12 +34,12 @@ public class SellerQnaServiceImpl implements SellerQnaService {
                 .content(dto.getContent())
                 .isAnswered(false)
                 .isActive(true)
-                
                 .build();
 
         sellerQnaRepository.save(qna);
     }
 
+    // ✅ QnA 목록 조회
     @Override
     @Transactional
     public Page<SellerQnaResponseDTO> getQnaListBySellerId(Long sellerId, Pageable pageable) {
@@ -54,6 +56,7 @@ public class SellerQnaServiceImpl implements SellerQnaService {
                         .build());
     }
 
+    // ✅ QnA 단건 상세 조회
     @Override
     @Transactional
     public SellerQnaDetailResponseDTO getQnaDetail(Long sellerId, Long qnaId) {
@@ -76,6 +79,7 @@ public class SellerQnaServiceImpl implements SellerQnaService {
                 .build();
     }
 
+    // ✅ QnA 삭제 (soft delete)
     @Override
     @Transactional
     public void deleteQna(Long sellerId, Long qnaId) {
@@ -83,10 +87,10 @@ public class SellerQnaServiceImpl implements SellerQnaService {
                 .filter(q -> q.getSeller().getId().equals(sellerId))
                 .orElseThrow(() -> new IllegalArgumentException("삭제할 권한이 없습니다."));
 
-
         qna.setActive(false);
     }
 
+    // ✅ QnA 수정
     @Override
     @Transactional
     public void updateQnaContent(Long sellerId, Long qnaId, SellerQnaUpdateRequestDTO dto) {
@@ -100,5 +104,22 @@ public class SellerQnaServiceImpl implements SellerQnaService {
 
         qna.setTitle(dto.getTitle());
         qna.setContent(dto.getContent());
+    }
+
+    // ✅ 고객 문의에 대한 답변 등록
+    @Override
+    @Transactional
+    public void answerQna(Long sellerId, Long qnaId, String answer) {
+        SellerQna qna = sellerQnaRepository.findById(qnaId)
+                .filter(q -> q.getSeller().getId().equals(sellerId))
+                .orElseThrow(() -> new IllegalArgumentException("QnA가 존재하지 않거나 권한이 없습니다."));
+
+        if (qna.isAnswered()) {
+            throw new IllegalStateException("이미 답변된 QnA입니다.");
+        }
+
+        qna.setAnswer(answer);
+        qna.setAnswered(true);
+        qna.setAnsweredAt(LocalDateTime.now());
     }
 }

@@ -60,4 +60,15 @@ public class SellerQnaController {
         sellerQnaService.deleteQna(seller.getId(), qnaId);
         return ResponseEntity.ok().build();
     }
+
+    // ✅ QnA 답변 등록 (고객 문의에 대한 답변)
+    @PutMapping("/{qnaId}/answer")
+    public ResponseEntity<Void> answerToCustomerQna(
+            @PathVariable Long qnaId,
+            @RequestBody SellerQnaAnswerRequestDTO dto
+    ) {
+        Seller seller = (Seller) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        sellerQnaService.answerQna(seller.getId(), qnaId, dto.getAnswer());
+        return ResponseEntity.ok().build();
+    }
 }
