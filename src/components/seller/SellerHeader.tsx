@@ -1,4 +1,4 @@
-// src/app/components/Header.tsx
+// src/app/components/SellerHeader.tsx
 'use client';
 
 import Link from 'next/link';
@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { getProfile, logout } from '@/service/sellerService';
 import { useEffect, useState } from 'react';
 
-export default function Header() {
+export default function SellerHeader() {
   const router = useRouter();
   const [name, setName] = useState<string>('');
 
