@@ -69,6 +69,7 @@ public class SellerOrderDeliveryRepositoryImpl implements SellerOrderDeliveryRep
                         delivery.startDate,
                         delivery.completeDate,
                         order.orderedAt
+                        
                 ))
                 .from(orderItem)
                 .join(orderItem.order, order)

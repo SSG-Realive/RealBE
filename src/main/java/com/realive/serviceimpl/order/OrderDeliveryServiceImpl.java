@@ -11,6 +11,8 @@ import com.realive.repository.order.OrderItemRepository;
 import com.realive.repository.order.SellerOrderDeliveryRepository;
 import com.realive.repository.product.ProductRepository;
 import com.realive.service.order.OrderDeliveryService;
+import com.realive.service.seller.SellerPayoutService;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 
@@ -28,6 +30,7 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
     private final SellerOrderDeliveryRepository sellerOrderDeliveryRepository;
     private final OrderItemRepository orderItemRepository;
     private final ProductRepository productRepository;
+    private final SellerPayoutService sellerPayoutService;
 
     @Override
     @Transactional
@@ -38,16 +41,20 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
 
         DeliveryStatus currentStatus = delivery.getStatus();
         DeliveryStatus newStatus = dto.getDeliveryStatus();
+        Long orderIdForItems = delivery.getOrder().getId();
+        
 
         log.info("현재 배송 상태 currentStatus={}, 요청된 newStatus={}", currentStatus, newStatus);
-
+        log.info("🔥 DEBUG - 배송 상태 변경 확인: newStatus={}, currentStatus={}", newStatus, currentStatus);
         boolean validTransition = (currentStatus == DeliveryStatus.INIT
                 && newStatus == DeliveryStatus.DELIVERY_PREPARING) || // 처음 PREPARING 으로 변경
                 (currentStatus == DeliveryStatus.DELIVERY_PREPARING && newStatus == DeliveryStatus.DELIVERY_IN_PROGRESS)
                 ||
                 (currentStatus == DeliveryStatus.DELIVERY_IN_PROGRESS
-                        && newStatus == DeliveryStatus.DELIVERY_COMPLETED) ||
-                (currentStatus == DeliveryStatus.DELIVERY_IN_PROGRESS && newStatus == DeliveryStatus.DELIVERY_IN_PROGRESS);
+                        && newStatus == DeliveryStatus.DELIVERY_COMPLETED)
+                ||
+                (currentStatus == DeliveryStatus.DELIVERY_IN_PROGRESS
+                        && newStatus == DeliveryStatus.DELIVERY_IN_PROGRESS);
 
         if (!validTransition) {
             throw new IllegalStateException("유효하지 않은 배송 상태 전이입니다.");
@@ -58,8 +65,6 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
 
         // 배송 준비되면 stock 차감 로직
         if (newStatus == DeliveryStatus.DELIVERY_PREPARING && currentStatus != DeliveryStatus.DELIVERY_PREPARING) {
-
-            Long orderIdForItems = delivery.getOrder().getId();
 
             List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderIdForItems);
 
@@ -94,7 +99,6 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
             delivery.setCompleteDate(LocalDateTime.now());
         }
 
-        Long orderIdForItems = delivery.getOrder().getId();
         List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderIdForItems);
 
         for (OrderItem item : orderItems) {
@@ -104,6 +108,16 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
             if (product.getStock() == 0 && product.isActive()) {
                 product.setActive(false);
                 log.info("Product {} 비활성화 처리됨", product.getId());
+            }
+        }
+
+        if (newStatus == DeliveryStatus.DELIVERY_COMPLETED) {
+            log.info("📌 정산 생성 조건문에 진입함");
+            try {
+                sellerPayoutService.generatePayoutLogIfNotExists(orderIdForItems);
+                log.info("🟢 정산 생성 시도 완료 - orderId: {}", orderIdForItems);
+            } catch (Exception e) {
+                log.warn("❌ 정산 생성 실패 - orderId: {}, 에러: {}", orderIdForItems, e.getMessage());
             }
         }
 
