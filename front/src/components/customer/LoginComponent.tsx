@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
+import { useAuthStore } from '@/store/customer/authStore';
 
 export default function LoginForm() {
   const router = useRouter();

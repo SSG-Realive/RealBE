@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
+import { useAuthStore } from '@/store/customer/authStore';
 
 export default function useRequireAuth() {
   const token = useAuthStore((state) => state.token);

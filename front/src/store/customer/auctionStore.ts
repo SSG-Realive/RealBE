@@ -81,10 +81,6 @@ export const useAuctionStore = create<AuctionState>()(
         
         // 중복 요청 방지: 1초 이내 동일 요청 차단
         const now = Date.now();
-        if (now - lastFetchTime < 1000) {
-          console.log('Store: 중복 요청 차단 (1초 이내)');
-          return;
-        }
 
         if (!hasNext || loading) {
           console.log('Store: 요청 중단', { hasNext, loading });
@@ -98,7 +94,7 @@ export const useAuctionStore = create<AuctionState>()(
           currentItemsCount: get().auctions.length 
         });
 
-        set({ loading: true, lastFetchTime: now });
+        set({ loading: true });
 
         try {
           // API URL 구성 - 카테고리 파라미터 이름 확인 필요

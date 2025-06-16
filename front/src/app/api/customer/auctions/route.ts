@@ -1,23 +1,28 @@
 import { NextRequest, NextResponse } from "next/server";
+import api from '@/app/lib/axios'; // axios 인스턴스 import
 
 export async function GET(request: NextRequest) {
-  const backendUrl = `${process.env.NEXT_PUBLIC_API_BASE_URL}/api/customer/auctions`;
-
   try {
-    const res = await fetch(backendUrl, {
-      method: "GET",
+    const cookie = request.headers.get("cookie") || "";
+
+    // 쿠키를 수동으로 axios 요청에 포함
+    const response = await api.get('/api/customer/auctions', {
       headers: {
-        Cookie: request.headers.get("cookie") || "",
+        Cookie: cookie, // 서버사이드 요청이므로 쿠키 직접 전달
       },
-      credentials: "include",
+      withCredentials: true, // 쿠키 기반 인증을 허용
     });
 
-    const data = await res.json();
-    return NextResponse.json(data, { status: res.status });
-  } catch (error) {
+    return NextResponse.json(response.data, { status: response.status });
+  } catch (error: any) {
+    console.error("경매 목록 조회 중 오류 발생:", error);
+
+    const message = error?.response?.data?.message || "경매 목록 조회 중 오류 발생";
+    const status = error?.response?.status || 500;
+
     return NextResponse.json(
-      { success: false, message: "경매 목록 조회 중 오류 발생" },
-      { status: 500 }
+      { success: false, message },
+      { status }
     );
   }
 }
