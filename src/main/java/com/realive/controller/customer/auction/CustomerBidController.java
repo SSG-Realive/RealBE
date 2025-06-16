@@ -32,6 +32,7 @@ public class CustomerBidController {
 
     private final BidService bidService;
     private final AuctionRepository auctionRepository;
+    private final TickSizeCalculator tickSizeCalculator;
 
     private Long getAuthenticatedCustomerId() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -66,7 +67,11 @@ public class CustomerBidController {
                     .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), "입찰 가격은 필수입니다."));
             }
             
-            BidResponseDTO placedBid = bidService.placeBid(requestDto, customerId);
+            BidResponseDTO placedBid = bidService.placeBid(
+                requestDto.getAuctionId(),
+                customerId.intValue(),
+                requestDto
+            );
             return ResponseEntity.status(HttpStatus.CREATED)
                     .body(ApiResponse.success("입찰이 성공적으로 등록되었습니다.", placedBid));
         } catch (AccessDeniedException e) {
@@ -112,7 +117,7 @@ public class CustomerBidController {
             Long customerId = getAuthenticatedCustomerId();
             
             log.info("GET /api/customer/bids/my-bids - 나의 입찰 내역 조회 요청. CustomerId: {}", customerId);
-            Page<BidResponseDTO> bids = bidService.getBidsByCustomer(customerId, pageable);
+            Page<BidResponseDTO> bids = bidService.getBidsByCustomer(customerId.intValue(), pageable);
             return ResponseEntity.ok(ApiResponse.success(bids));
         } catch (AccessDeniedException e) {
             log.error("입찰 내역 조회 권한 없음 - CustomerId: {}", 
@@ -137,7 +142,7 @@ public class CustomerBidController {
             Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new NoSuchElementException("경매 정보를 찾을 수 없습니다. ID: " + auctionId));
             
-            Integer tickSize = TickSizeCalculator.calculateTickSize(auction.getStartPrice());
+            Integer tickSize = tickSizeCalculator.calculateTickSize(auction.getStartPrice());
             return ResponseEntity.ok(ApiResponse.success(tickSize));
         } catch (NoSuchElementException e) {
             log.error("경매 정보 조회 실패 - AuctionId: {}, 에러: {}", auctionId, e.getMessage());
@@ -156,7 +161,7 @@ public class CustomerBidController {
             @PageableDefault(size = 20, sort = "bidTime", direction = Sort.Direction.DESC) Pageable pageable) {
         try {
             log.info("GET /api/customer/bids/{} - 경매 입찰 내역 조회 요청", auctionId);
-            Page<BidResponseDTO> bids = bidService.getBidsByAuction(auctionId.longValue(), pageable);
+            Page<BidResponseDTO> bids = bidService.getBidsByAuction(auctionId, pageable);
             return ResponseEntity.ok(ApiResponse.success(bids));
         } catch (NoSuchElementException e) {
             log.error("경매 입찰 내역 조회 실패 - AuctionId: {}, 에러: {}", auctionId, e.getMessage());

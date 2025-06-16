@@ -89,18 +89,21 @@ public class SecurityConfig {
         log.info("Admin SecurityConfig 적용");
 
         http
-            .securityMatcher("/api/admin/**")
-            .authenticationManager(authenticationManager()) // 명시적 연결
-            .csrf(csrf -> csrf.disable())
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-            .authorizeHttpRequests(auth -> auth
-                .requestMatchers("/api/admin/login").permitAll()
-                .anyRequest().authenticated()
-            )
-            .addFilterBefore(adminJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+                .securityMatcher("/api/admin/**")
+                .authenticationManager(authenticationManager()) // 명시적 연결
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/api/admin/login", "/api/admin/register").permitAll() // 관리자 로그인 임시 허용(개발용)
+                        // 운영시에 주석 풀기
+                        //.requestMatchers("/api/admin/register").denyAll()
+                        .anyRequest().authenticated()
+                )
+                .addFilterBefore(adminJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }
+
 
     // === Seller Security Chain ===
     @Bean
