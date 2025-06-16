@@ -92,6 +92,7 @@ public class SecurityConfig {
                 .securityMatcher("/api/admin/**")
                 .authenticationManager(authenticationManager()) // 명시적 연결
                 .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))  // ★ 추가!
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/admin/login").permitAll()
@@ -112,6 +113,7 @@ public class SecurityConfig {
                 .securityMatcher("/api/seller/**")
                 .authenticationManager(authenticationManager())
                 .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))  // ★ 추가!
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/seller/login", "/api/seller/signup").permitAll()
@@ -129,7 +131,7 @@ public class SecurityConfig {
         log.info("Customer SecurityConfig 적용");
 
         http
-                .securityMatcher("/api/**") // 나머지 API
+                .securityMatcher("/api/customer/**", "/api/public/**") // 나머지 API
                 .authenticationManager(authenticationManager())
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -161,7 +163,7 @@ public class SecurityConfig {
         CorsConfiguration corsConfiguration = new CorsConfiguration();
 
         corsConfiguration.setAllowedOriginPatterns(List.of("*"));
-        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS"));
+        corsConfiguration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "HEAD", "OPTIONS", "PATCH"));
         corsConfiguration.setAllowedHeaders(List.of("Authorization", "Cache-Control", "Content-Type"));
         corsConfiguration.setAllowCredentials(true);
 
