@@ -9,4 +9,6 @@ public interface SellerPayoutService {
     List<PayoutLogDTO> getPayoutLogsBySellerId(Long sellerId);
 
     List<PayoutLogDTO> getPayoutLogsByDate(Long sellerId, LocalDate date);
+
+    void generatePayoutLogIfNotExists(Long orderId);
 }
