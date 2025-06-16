@@ -26,8 +26,7 @@ public class ProductListDTO {
     private String parentCategoryName;
     private String categoryName;
     private String sellerName;
-    private Long sellerId;             // 판매자 ID
-    private int stock;                 // 재고
+
 
     public static ProductListDTO from(Product product, String imageUrl) {
         return ProductListDTO.builder()
@@ -43,8 +42,6 @@ public class ProductListDTO {
                                 ? product.getCategory().getParent().getName()
                                 : null)
                 .sellerName(product.getSeller().getName())
-                .sellerId(product.getSeller().getId())
-                .stock(product.getStock())
                 .build();
     }
 }

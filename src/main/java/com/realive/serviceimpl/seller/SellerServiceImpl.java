@@ -48,7 +48,7 @@ public class SellerServiceImpl implements SellerService{
     @Override
     public SellerLoginResponseDTO login(SellerLoginRequestDTO reqdto){
 
-
+       
 
         // email로 사용자 찾기
         Seller seller = sellerRepository.findByEmailAndIsActiveTrue(reqdto.getEmail())
@@ -72,13 +72,10 @@ public class SellerServiceImpl implements SellerService{
                 .build();
     }
 
-    // 판매자 정보 조회
+    // 판매자 정보 조회 
     @Override
-    public SellerResponseDTO getMyInfo(String email){
-        // 이메일로 판매자 찾기
-        Seller seller = sellerRepository.findByEmail(email)
-                .orElseThrow(()-> new IllegalArgumentException("존재하지 않는 판매자입니다."));
-
+    public SellerResponseDTO getMyInfo(Seller seller){
+        
         // 판매자 정보 생성
         return SellerResponseDTO.builder()
                 .email(seller.getEmail())
@@ -94,8 +91,8 @@ public class SellerServiceImpl implements SellerService{
     @Override
     @Transactional
     public Seller registerSeller(SellerSignupDTO dto){
-
-
+        
+        
         //이메일 존재 유무 검증.
         if (sellerRepository.existsByEmail(dto.getEmail())) {
             throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
@@ -108,28 +105,29 @@ public class SellerServiceImpl implements SellerService{
         //비번 인코딩저장.
         String encodedPassword = passwordEncoder.encode(dto.getPassword());
 
-        //dto로 전달받은 정보로 seller 객체 생성
+        //dto로 전달받은 정보로 seller 객체 생성 
         Seller seller = Seller.builder()
                 .email(dto.getEmail())
                 .name(dto.getName())
                 .phone(dto.getPhone())
                 .password(encodedPassword)
                 .businessNumber(dto.getBusinessNumber())
+                .isActive(true)
                 .isApproved(false)
                 .build();
         //dto 받은거 저장.
         return sellerRepository.save(seller);
 
-
-
-    }
+        
+    
+    }   
     //회원수정
     @Override
     @Transactional
-    public void updateSeller(String email, SellerUpdateDTO dto) {
-        // 이메일로 판매자 찾기
-        Seller seller = sellerRepository.findByEmail(email)
-                .orElseThrow(()-> new IllegalArgumentException("존재하지 않는 판매자입니다."));
+    public void updateSeller(Seller seller, SellerUpdateDTO dto) {
+        // 판매자 정보 조회 
+        seller.setName(dto.getName());
+        seller.setPhone(dto.getPhone());
         //판매자 이름 수정 및 검증
         if (!seller.getName().equals(dto.getName())) {
             if(sellerRepository.existsByName(dto.getName())){
@@ -139,7 +137,7 @@ public class SellerServiceImpl implements SellerService{
             seller.setName(dto.getName());
 
         }//end if
-        //판매자 전화번호 수정
+        //판매자 전화번호 수정 
         if (!seller.getPhone().equals(dto.getPhone())) {
 
             seller.setPhone(dto.getPhone());
@@ -156,7 +154,7 @@ public class SellerServiceImpl implements SellerService{
 
     }
 
-
-
+   
+  
 }
 
