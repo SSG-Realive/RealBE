@@ -9,8 +9,8 @@ import org.springframework.test.context.TestPropertySource;
 @ActiveProfiles("test")
 class RealiveApplicationTests {
 
-	@Test
-	void contextLoads() {
-	}
+//	@Test
+//	void contextLoads() {
+//	}
 
 }

@@ -6,7 +6,7 @@ import com.realive.domain.order.Order;
 import com.realive.domain.order.OrderItem; // OrderItem 엔티티 import
 import com.realive.domain.product.Product; // Product 엔티티 import
 import com.realive.domain.review.ReviewReport;
-import com.realive.domain.seller.SellerReview;
+import com.realive.domain.review.SellerReview;
 import com.realive.dto.admin.review.*;
 import com.realive.repository.customer.CustomerRepository;
 import com.realive.repository.order.OrderItemRepository; // OrderItemRepository import
@@ -99,7 +99,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
             Order order = review.getOrder();
             orderIdFromReview = order.getId();
 
-            List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
+            List<OrderItem> orderItems = orderItemRepository.findByOrder_Id(order.getId());
             if (orderItems != null && !orderItems.isEmpty()) {
                 OrderItem firstOrderItem = orderItems.get(0); // 첫 번째 주문 항목의 상품을 대표로 가정
                 if (firstOrderItem.getProduct() != null) {
@@ -130,7 +130,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
                 .content(review.getContent())
                 .createdAt(review.getCreatedAt())
                 .updatedAt(review.getUpdatedAt())
-                .isHidden(review.getIsHidden())
+                .isHidden(review.isHidden())
                 .build();
     }
 
@@ -228,7 +228,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
 
         Map<Long, Product> orderIdToProductMap = new HashMap<>();
         if (!orderIds.isEmpty()) {
-            List<OrderItem> orderItems = orderItemRepository.findByOrderIdIn(orderIds); // IN 절 사용
+            List<OrderItem> orderItems = orderItemRepository.findByOrder_IdIn(orderIds); // IN 절 사용
             for (OrderItem item : orderItems) {
                 if (item.getOrder() != null && item.getProduct() != null) {
                     // 주문 ID별 첫 번째 상품 정보만 저장 (정책에 따라 변경 가능)
@@ -276,7 +276,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
                 .contentSummary(contentSummary)
                 .createdAt(review.getCreatedAt())
                 .updatedAt(review.getUpdatedAt())
-                .isHidden(review.getIsHidden())
+                .isHidden(review.isHidden())
                 .build();
     }
 
@@ -292,7 +292,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
                     log.warn("SellerReview not found for visibility update with ID: {}", reviewId);
                     return new EntityNotFoundException("SellerReview not found with id: " + reviewId);
                 });
-        review.setIsHidden(isHidden);
+        review.setHidden(isHidden);
         sellerReviewRepository.save(review);
         log.info("Successfully updated visibility for seller review ID: {} to isHidden: {}", reviewId, isHidden);
     }
