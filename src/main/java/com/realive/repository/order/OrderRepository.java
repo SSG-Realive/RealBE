@@ -26,9 +26,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
             ORDER BY o.orderedAt DESC
             """,
             countQuery = "SELECT COUNT(o) FROM Order o")
-    // 모든 주문 조회
-    @Query(value = "SELECT o FROM Order o JOIN FETCH o.customer ORDER BY o.orderedAt DESC",
-            countQuery = "SELECT count(o) FROM Order o")
     Page<Order> findAllOrders(Pageable pageable);
 
     // 판매자 기준 진행 중인 주문 수 조회
