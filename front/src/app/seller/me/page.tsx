@@ -4,7 +4,7 @@
 
 import { useState, useEffect, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import Header from '@/components/Header';      // ↙ Header 컴포넌트를 import
+import SellerHeader from '@/components/seller/SellerHeader';      // ↙ SellerHeader 컴포넌트를 import
 import {
   getProfile,
   updateProfile,
@@ -12,8 +12,12 @@ import {
   SellerUpdateRequest,
 } from '@/service/sellerService';
 import SellerLayout from '@/components/layouts/SellerLayout';
+import useSellerAuthGuard from '@/hooks/useSellerAuthGuard';
 
 export default function SellerMePage() {
+  // 판매자 인증 가드를 적용
+  const checking = useSellerAuthGuard();
+
   const router = useRouter();
 
   const [email, setEmail] = useState<string>('');
@@ -24,6 +28,8 @@ export default function SellerMePage() {
   const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
+     if (checking) return;
+
     const fetchProfile = async () => {
       const token = localStorage.getItem('accessToken');
 
@@ -42,7 +48,7 @@ export default function SellerMePage() {
       }
     };
     fetchProfile();
-  }, [router]);
+  }, [router, checking]);
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -82,11 +88,12 @@ export default function SellerMePage() {
   if (loading) {
     return <div>로딩 중...</div>;
   }
+  if (checking) return <div className="p-8">인증 확인 중...</div>;
 
   return (
     <>
       {/* ↙ 여기서 Header를 먼저 렌더링 */}
-      <Header />
+      <SellerHeader />
       <SellerLayout>
       {/* 기존 로그인 폼처럼 생긴 부분을 그대로 둔 예시 */}
       <div style={{ maxWidth: 500, margin: '0 auto', padding: '2rem' }}>

@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useRouter } from "next/navigation"; // ✅ 수정된 부분
+import { usePathname  } from "next/navigation"; // ✅ 수정된 부분
 import { FC } from "react";
 
 interface MenuItem {
@@ -10,17 +10,17 @@ interface MenuItem {
 }
 
 const menuItems: MenuItem[] = [
+  { label: "대시보드", href: "/seller/dashboard" },
   { label: "마이페이지", href: "/seller/me" },
   { label: "상품관리", href: "/seller/products" },
   { label: "주문관리", href: "/seller/orders" },
   { label: "정산관리", href: "/seller/settlements" },
-  { label: "고객문의확인", href: "/seller/contacts" },
+  { label: "고객문의확인", href: "/seller/qna" },
 ];
 
-const Sidebar: FC = () => {
-  const router = useRouter();
-  const currentPath = typeof window !== "undefined" ? window.location.pathname : "";
-
+const SellerSidebar: FC = () => {
+  const pathname = usePathname ();
+  const currentPath = pathname;
   return (
     <aside className="w-60 min-h-screen bg-gray-800 text-white flex-shrink-0">
       <div className="px-6 py-8">
@@ -52,4 +52,4 @@ const Sidebar: FC = () => {
   );
 };
 
-export default Sidebar;
+export default SellerSidebar;
