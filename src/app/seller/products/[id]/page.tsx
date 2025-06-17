@@ -7,6 +7,7 @@ import { ProductDetail } from '@/types/product';
 import SellerHeader from '@/components/seller/SellerHeader';
 import SellerLayout from '@/components/layouts/SellerLayout';
 import useSellerAuthGuard from '@/hooks/useSellerAuthGuard';
+import { useSellerAuthStore } from '@/store/seller/useSellerAuthStore';
 
 export default function ProductDetailPage() {
     const checking = useSellerAuthGuard();
@@ -22,7 +23,7 @@ export default function ProductDetailPage() {
     useEffect(() => {
         if (checking) return;
 
-        const token = localStorage.getItem('accessToken');
+        const token = useSellerAuthStore.getState().token;
         if (!token) {
             router.push('/seller/login');
             return;

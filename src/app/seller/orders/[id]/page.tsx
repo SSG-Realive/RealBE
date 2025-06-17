@@ -24,7 +24,7 @@ export default function DeliveryDetailPage() {
     const getNextStatusOptionsFor = (currentStatus: string): string[] => {
         switch (currentStatus) {
             case 'INIT':
-                return ['DELIVERY_PREPARING'];
+                return ['DELIVERY_PREPARING']; // ✅ 취소 포함
             case 'DELIVERY_PREPARING':
                 return ['DELIVERY_IN_PROGRESS'];
             case 'DELIVERY_IN_PROGRESS':

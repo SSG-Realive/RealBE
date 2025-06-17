@@ -1,11 +1,11 @@
-import apiClient from '@/lib/apiClient';
+import  { sellerApi } from '@/lib/apiClient';
 import { SellerSettlementResponse } from '@/types/sellersettlement/sellerSettlement';
 
 /**
  * 판매자 정산 내역 전체 조회
  */
 export async function getSellerSettlementList(): Promise<SellerSettlementResponse[]> {
-    const res = await apiClient.get('/seller/settlements');
+    const res = await sellerApi.get('/seller/settlements');
     return res.data;
 }
 
@@ -14,6 +14,6 @@ export async function getSellerSettlementList(): Promise<SellerSettlementRespons
  * @param date YYYY-MM-DD 형식의 날짜 문자열
  */
 export async function getSellerSettlementListByDate(date: string): Promise<SellerSettlementResponse[]> {
-    const res = await apiClient.get(`/seller/settlements/by-date?date=${date}`);
+    const res = await sellerApi.get(`/seller/settlements/by-date?date=${date}`);
     return res.data;
 }

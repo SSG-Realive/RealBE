@@ -5,10 +5,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { getProfile, logout } from '@/service/sellerService';
 import { useEffect, useState } from 'react';
+import { useSellerAuthStore } from '@/store/seller/useSellerAuthStore';
 
 export default function SellerHeader() {
   const router = useRouter();
   const [name, setName] = useState<string>('');
+  const logoutStore = useSellerAuthStore((state) => state.logout); // ✅ 상태 초기화용
 
   useEffect(() =>{
     const fetchName = async () => {
@@ -27,16 +29,16 @@ export default function SellerHeader() {
     try {
       // 1) 서비스의 logout() 호출 → refreshToken 쿠키 삭제
       await logout();
-
-      // 2) 로컬 스토리지의 accessToken 삭제
-      localStorage.removeItem('accessToken');
+      
+      // 2) accessToken 삭제
+      logoutStore();
 
       // 3) 로그인 페이지로 리디렉트
       router.push('/seller/login');
     } catch (err) {
       console.error('로그아웃 실패', err);
       // 예외 상황에도 로컬 토큰은 삭제하고 로그인 페이지로 이동
-      localStorage.removeItem('accessToken');
+      logoutStore();
       router.push('/seller/login');
     }
   };

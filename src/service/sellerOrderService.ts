@@ -1,4 +1,5 @@
-import apiClient from '@/lib/apiClient';
+
+import { sellerApi } from '@/lib/apiClient';
 import { PageResponse } from '@/types/page/pageResponse';
 import { PageResponseForOrder } from '@/types/page/pageResponseForOrder';
 import {
@@ -12,14 +13,14 @@ import {
  * @param searchParams - 페이지, 정렬, 검색 필터 등
  */
 export async function getSellerOrders(): Promise<PageResponseForOrder<SellerOrderResponse>> {
-    const res = await apiClient.get('/seller/orders');
+    const res = await sellerApi.get('/seller/orders');
     return res.data;
 }
 /**
  * 주문 상세 조회
  */
 export async function getOrderDetail(orderId: number): Promise<SellerOrderDetailResponse> {
-    const res = await apiClient.get(`/seller/orders/${orderId}`);
+    const res = await sellerApi.get(`/seller/orders/${orderId}`);
     return res.data;
 }
 
@@ -32,5 +33,5 @@ export async function updateDeliveryStatus(
     orderId: number,
     updateData: DeliveryStatusUpdateRequest
 ): Promise<void> {
-    await apiClient.patch(`/seller/orders/${orderId}/delivery`, updateData);
+    await sellerApi.patch(`/seller/orders/${orderId}/delivery`, updateData);
 }

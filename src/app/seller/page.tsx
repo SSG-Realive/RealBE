@@ -3,12 +3,13 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSellerAuthStore } from '@/store/seller/useSellerAuthStore';
 
 export default function SellerIndexPage() {
   const router = useRouter();
   
   useEffect(() => {
-    const token = localStorage.getItem('accessToken');
+    const token = useSellerAuthStore.getState().token;
 
     if (token) {
       router.replace('/seller/dashboard');
