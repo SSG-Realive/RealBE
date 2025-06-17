@@ -35,7 +35,7 @@ public class CustomUserDetailsService implements UserDetailsService {
         // MemberLoginDTO로 변환해서 리턴
         MemberLoginDTO memberLoginDTO = new MemberLoginDTO(
                 customer.getEmail(),
-                customer.getPassword()
+                customer.getPassword()  
         );
         memberLoginDTO.setId(customer.getId());
         return memberLoginDTO;
