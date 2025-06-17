@@ -6,7 +6,7 @@ export async function GET(request: NextRequest) {
     const cookie = request.headers.get("cookie") || "";
 
     // 쿠키를 수동으로 axios 요청에 포함
-    const response = await api.get('/customer/auctions', {
+    const response = await api.get('customer/auctions', {
       headers: {
         Cookie: cookie, // 서버사이드 요청이므로 쿠키 직접 전달
       },
