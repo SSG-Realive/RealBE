@@ -86,7 +86,7 @@ export default function LoginForm() {
     
     const redirectTo = encodeURIComponent(`${window.location.origin}/customer/oauth/callback`);
     
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/oauth2/authorization/kakao?state=${state}&redirectTo=${redirectTo}`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_ROOT_URL}/oauth2/authorization/kakao?state=${state}&redirectTo=${redirectTo}`;
   };
 
 

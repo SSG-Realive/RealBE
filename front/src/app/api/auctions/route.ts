@@ -1,5 +1,6 @@
+import api from "@/app/lib/axios";
 import { NextRequest, NextResponse } from "next/server";
-import api from '@/lib/axios'; // axios 인스턴스 import
+// axios 인스턴스 import
 
 export async function GET(request: NextRequest) {
   try {
