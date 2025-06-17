@@ -48,7 +48,7 @@ public class SellerServiceImpl implements SellerService{
     @Override
     public SellerLoginResponseDTO login(SellerLoginRequestDTO reqdto){
 
-       
+
 
         // email로 사용자 찾기
         Seller seller = sellerRepository.findByEmailAndIsActiveTrue(reqdto.getEmail())
@@ -72,7 +72,7 @@ public class SellerServiceImpl implements SellerService{
                 .build();
     }
 
-    // 판매자 정보 조회 
+    // 판매자 정보 조회
     @Override
     public SellerResponseDTO getMyInfo(Seller seller){
         
@@ -91,8 +91,8 @@ public class SellerServiceImpl implements SellerService{
     @Override
     @Transactional
     public Seller registerSeller(SellerSignupDTO dto){
-        
-        
+
+
         //이메일 존재 유무 검증.
         if (sellerRepository.existsByEmail(dto.getEmail())) {
             throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
@@ -105,7 +105,7 @@ public class SellerServiceImpl implements SellerService{
         //비번 인코딩저장.
         String encodedPassword = passwordEncoder.encode(dto.getPassword());
 
-        //dto로 전달받은 정보로 seller 객체 생성 
+        //dto로 전달받은 정보로 seller 객체 생성
         Seller seller = Seller.builder()
                 .email(dto.getEmail())
                 .name(dto.getName())
@@ -118,9 +118,9 @@ public class SellerServiceImpl implements SellerService{
         //dto 받은거 저장.
         return sellerRepository.save(seller);
 
-        
-    
-    }   
+
+
+    }
     //회원수정
     @Override
     @Transactional
@@ -137,7 +137,7 @@ public class SellerServiceImpl implements SellerService{
             seller.setName(dto.getName());
 
         }//end if
-        //판매자 전화번호 수정 
+        //판매자 전화번호 수정
         if (!seller.getPhone().equals(dto.getPhone())) {
 
             seller.setPhone(dto.getPhone());
@@ -154,7 +154,7 @@ public class SellerServiceImpl implements SellerService{
 
     }
 
-   
-  
+
+
 }
 
