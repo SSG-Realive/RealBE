@@ -5,7 +5,7 @@
 import { useState, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
 import { login } from '@/service/sellerService'; // 👈 위에서 확인한 서비스 함수
-import { LoginResponse } from '@/types/login/loginResponse';
+import { LoginResponse } from '@/types/custoemr/login/loginResponse';
 import { useSellerAuthStore } from '@/store/seller/useSellerAuthStore'; // 👈 [2단계]에서 만든 스토어
 
 export default function SellerLoginPage() {

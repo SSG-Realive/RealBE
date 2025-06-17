@@ -2,7 +2,7 @@
 import { sellerApi } from '@/lib/apiClient';
 import { useSellerAuthStore } from '@/store/seller/useSellerAuthStore';
 import { SellerDashboardResponse } from '@/types/dashboard/sellerDashboardResponse';
-import { LoginResponse } from '@/types/login/loginResponse';
+import { LoginResponse } from '@/types/custoemr/login/loginResponse';
 
 
 
