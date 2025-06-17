@@ -20,6 +20,7 @@ import com.realive.dto.logs.salessum.MonthlySalesLogDetailListDTO;
 import com.realive.dto.logs.salessum.MonthlySalesSummaryDTO;
 import com.realive.dto.logs.salessum.SalesLogDetailListDTO;
 import com.realive.repository.admin.approval.ApprovalRepository;
+import com.realive.repository.customer.CustomerRepository;
 import com.realive.repository.logs.CommissionLogRepository;
 import com.realive.repository.logs.PayoutLogRepository;
 import com.realive.repository.logs.PenaltyLogRepository;
@@ -67,7 +68,7 @@ public class StatServiceImpl implements StatService {
     private final PayoutLogRepository payoutLogRepository;
     private final CommissionLogRepository commissionLogRepository;
     private final SellerRepository sellerRepository;
-    // private final UserRepository userRepository;
+    private final CustomerRepository customerRepository;
 
     @Override
     public AdminDashboardDTO getAdminDashboard(LocalDate date, String periodType) {
@@ -126,12 +127,17 @@ public class StatServiceImpl implements StatService {
                 .collect(Collectors.toList());
 
         // 5. 회원 통계
+        long totalSellers = sellerRepository.count();
+        long totalCustomers = customerRepository.count();
+        long activeSellers = sellerRepository.countByIsActiveTrue();
+        long activeCustomers = customerRepository.countActiveUsers();
+
         MemberSummaryStatsDTO memberSummaryStats = MemberSummaryStatsDTO.builder()
-                .totalMembers(sellerRepository.count())  // 전체 회원 수
-                .newMembersInPeriod(0L)  // TODO: 실제 신규 회원 수 조회 로직 구현 필요
-                .uniqueVisitorsInPeriod(0L)  // TODO: 실제 방문자 수 조회 로직 구현 필요
-                .engagedUsersInPeriod(0L)  // TODO: 실제 참여자 수 조회 로직 구현 필요
-                .activeUsersInPeriod(0L)  // TODO: 실제 활성 사용자 수 조회 로직 구현 필요
+                .totalMembers(totalSellers + totalCustomers)
+                .newMembersInPeriod(0L)
+                .uniqueVisitorsInPeriod(0L)
+                .engagedUsersInPeriod(0L)
+                .activeUsersInPeriod(activeSellers + activeCustomers)
                 .build();
 
         // 6. 판매 통계
