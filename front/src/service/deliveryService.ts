@@ -1,11 +1,12 @@
-import apiClient from '@/lib/apiClient';
+
+import { sellerApi } from '@/lib/apiClient';
 import { DeliveryStatusUpdateRequest, OrderDeliveryDetail } from '@/types/sellerdelivery/sellerDelivery';
 
 /**
  * 배송 상세 조회
  */
 export async function getDeliveryDetail(orderId: number): Promise<OrderDeliveryDetail> {
-    const res = await apiClient.get(`/seller/orders/${orderId}/delivery`);
+    const res = await sellerApi.get(`/seller/orders/${orderId}/delivery`);
     return res.data;
 }
 
@@ -13,12 +14,12 @@ export async function getDeliveryDetail(orderId: number): Promise<OrderDeliveryD
  * 배송 상태 변경
  */
 export async function updateDeliveryStatus(orderId: number, dto: DeliveryStatusUpdateRequest): Promise<void> {
-    await apiClient.patch(`/seller/orders/${orderId}/delivery`, dto);
+    await sellerApi.patch(`/seller/orders/${orderId}/delivery`, dto);
 
 }
 
 //배송취소 설정
 export async function cancelOrderDelivery(orderId: number): Promise<void> {
-    await apiClient.patch(`/seller/orders/${orderId}/cancel`);
+    await sellerApi.patch(`/seller/orders/${orderId}/cancel`);
 }
 
