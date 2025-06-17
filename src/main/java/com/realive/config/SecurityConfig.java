@@ -3,6 +3,7 @@ package com.realive.config;
 import com.realive.security.AdminJwtAuthenticationFilter;
 import com.realive.security.SellerJwtAuthenticationFilter;
 import com.realive.security.customer.CustomerJwtAuthenticationFilter;
+import com.realive.security.customer.CustomAuthorizationRequestResolver;
 import com.realive.security.customer.CustomLoginSuccessHandler;
 
 import lombok.RequiredArgsConstructor;
@@ -31,6 +32,7 @@ import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
+import java.util.Arrays;
 import java.util.List;
 
 @EnableWebSecurity
@@ -96,7 +98,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/admin/login").permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().hasAuthority("ROLE_ADMIN")
                 )
                 .addFilterBefore(adminJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -117,7 +119,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/seller/login", "/api/seller/signup").permitAll()
-                        .anyRequest().authenticated()
+                        .anyRequest().hasAuthority("ROLE_SELLER")
                 )
                 .addFilterBefore(sellerJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
@@ -138,6 +140,7 @@ public class SecurityConfig {
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/public/**").permitAll()
+                        .requestMatchers("/api/oauth2/**").permitAll()
                         .requestMatchers("/api/customer/**").authenticated()
                         .anyRequest().denyAll()
                 )
@@ -146,6 +149,29 @@ public class SecurityConfig {
 
         return http.build();
     }
+
+    // === Customer oauth2 Security Chain ===
+    @Bean
+    @Order(4)
+    public SecurityFilterChain oauth2SecurityFilterChain(HttpSecurity http, CustomAuthorizationRequestResolver customResolver) throws Exception {
+        http
+            .securityMatcher("/oauth2/**", "/login/oauth2/**")
+            .authorizeHttpRequests(auth -> auth.anyRequest().permitAll())
+            .csrf(csrf -> csrf.disable())
+            .oauth2Login(config -> config
+                .authorizationEndpoint(endpoint -> endpoint
+                    .authorizationRequestResolver(customResolver)
+                )
+                .successHandler(customLoginSuccessHandler)
+                .failureHandler((request, response, exception) -> {
+                    log.error("OAuth2 로그인 실패: {}", exception.getMessage(), exception);
+                    response.sendRedirect("/login?error=kakao_login_failed");
+                })
+            );
+
+        return http.build();
+    }
+
 
     @Bean
     public PasswordEncoder passwordEncoder() {
