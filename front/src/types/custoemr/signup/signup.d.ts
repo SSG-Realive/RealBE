@@ -1,3 +1,6 @@
+
+type GenderWithUnselected = 'MALE' | 'FEMALE' | 'UNSELECTED';
+
 export interface MemberJoinDTO {
   email: string;
   password: string;
