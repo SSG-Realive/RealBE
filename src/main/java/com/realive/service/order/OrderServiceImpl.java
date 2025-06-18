@@ -110,10 +110,9 @@ public class OrderServiceImpl implements OrderService {
 
         // OrderDelivery 정보 조회
         Optional<OrderDelivery> optionalOrderDelivery = orderDeliveryRepository.findByOrder(order);
-        // 여기서 DELIVERY_PREPARING 대신 INIT으로 설정
         String currentDeliveryStatus = optionalOrderDelivery
                 .map(delivery -> delivery.getStatus().getDescription())
-                .orElse(DeliveryStatus.INIT.getDescription()); // <--- 이 부분 수정
+                .orElse(DeliveryStatus.INIT.getDescription());
         String paymentType = "CARD"; // 다른 결제수단은 없음
 
         return OrderResponseDTO.from(
@@ -188,8 +187,7 @@ public class OrderServiceImpl implements OrderService {
                         .build());
             }
 
-            // 여기서도 DeliveryStatus.DELIVERY_PREPARING 대신 INIT으로 설정
-            String currentDeliveryStatus = deliveryStatusByOrderId.getOrDefault(order.getId(), DeliveryStatus.INIT.getDescription()); // <--- 이 부분 수정
+            String currentDeliveryStatus = deliveryStatusByOrderId.getOrDefault(order.getId(), DeliveryStatus.INIT.getDescription());
             String paymentType = "CARD";
 
             OrderResponseDTO orderDTO = OrderResponseDTO.from(
@@ -221,19 +219,18 @@ public class OrderServiceImpl implements OrderService {
 
         if (optionalOrderDelivery.isPresent()) {
             DeliveryStatus deliveryStatus = optionalOrderDelivery.get().getStatus();
-            // INIT 상태도 삭제 가능하도록 허용
-            if (!(deliveryStatus == DeliveryStatus.DELIVERY_PREPARING || deliveryStatus == DeliveryStatus.INIT)) { // <--- 이 부분 수정
-                throw new IllegalStateException(String.format("현재 배송 상태가 '%s'이므로 주문을 삭제할 수 없습니다. '%s' 또는 '%s' 상태의 주문만 삭제 가능합니다.", // <--- 이 부분 수정
+            if (!(deliveryStatus == DeliveryStatus.DELIVERY_PREPARING || deliveryStatus == DeliveryStatus.INIT)) {
+                throw new IllegalStateException(String.format("현재 배송 상태가 '%s'이므로 주문을 삭제할 수 없습니다. '%s' 또는 '%s' 상태의 주문만 삭제 가능합니다.",
                         deliveryStatus.getDescription(),
                         DeliveryStatus.DELIVERY_PREPARING.getDescription(),
-                        DeliveryStatus.INIT.getDescription())); // <--- 이 부분 수정
+                        DeliveryStatus.INIT.getDescription()));
             }
         }
 
-        if (!(order.getStatus() == OrderStatus.PAYMENT_COMPLETED || order.getStatus() == OrderStatus.ORDER_RECEIVED || order.getStatus() == OrderStatus.INIT)) { // <--- 이 부분 수정
-            throw new IllegalStateException(String.format("현재 주문 상태가 '%s'이므로 삭제할 수 없습니다. 삭제 가능한 상태: (%s, %s, %s)", // <--- 이 부분 수정
+        if (!(order.getStatus() == OrderStatus.PAYMENT_COMPLETED || order.getStatus() == OrderStatus.ORDER_RECEIVED || order.getStatus() == OrderStatus.INIT)) {
+            throw new IllegalStateException(String.format("현재 주문 상태가 '%s'이므로 삭제할 수 없습니다. 삭제 가능한 상태: (%s, %s, %s)",
                     order.getStatus().getDescription(),
-                    OrderStatus.PAYMENT_COMPLETED.getDescription(), OrderStatus.ORDER_RECEIVED.getDescription(), OrderStatus.INIT.getDescription())); // <--- 이 부분 수정
+                    OrderStatus.PAYMENT_COMPLETED.getDescription(), OrderStatus.ORDER_RECEIVED.getDescription(), OrderStatus.INIT.getDescription()));
         }
 
         List<OrderItem> orderItemsToDelete = orderItemRepository.findByOrder_Id(order.getId());
@@ -260,12 +257,11 @@ public class OrderServiceImpl implements OrderService {
 
         if (optionalOrderDelivery.isPresent()) {
             DeliveryStatus deliveryStatus = optionalOrderDelivery.get().getStatus();
-            // INIT 상태도 취소 가능하도록 허용
-            if (!(deliveryStatus == DeliveryStatus.DELIVERY_PREPARING || deliveryStatus == DeliveryStatus.INIT)) { // <--- 이 부분 수정
-                throw new IllegalStateException(String.format("현재 배송 상태가 '%s'이므로 주문을 취소할 수 없습니다. '%s' 또는 '%s' 상태의 주문만 취소 가능합니다.", // <--- 이 부분 수정
+            if (!(deliveryStatus == DeliveryStatus.DELIVERY_PREPARING || deliveryStatus == DeliveryStatus.INIT)) {
+                throw new IllegalStateException(String.format("현재 배송 상태가 '%s'이므로 주문을 취소할 수 없습니다. '%s' 또는 '%s' 상태의 주문만 취소 가능합니다.",
                         deliveryStatus.getDescription(),
                         DeliveryStatus.DELIVERY_PREPARING.getDescription(),
-                        DeliveryStatus.INIT.getDescription())); // <--- 이 부분 수정
+                        DeliveryStatus.INIT.getDescription()));
             }
 
             optionalOrderDelivery.get().setCompleteDate(LocalDateTime.now());
@@ -273,10 +269,10 @@ public class OrderServiceImpl implements OrderService {
         }
 
         if (!(order.getStatus() == OrderStatus.PAYMENT_COMPLETED ||
-                order.getStatus() == OrderStatus.ORDER_RECEIVED || order.getStatus() == OrderStatus.INIT)) { // <--- 이 부분 수정
-            throw new IllegalStateException(String.format("현재 주문 상태가 '%s'이므로 취소할 수 없습니다. 취소 가능한 상태: (%s, %s, %s)", // <--- 이 부분 수정
+                order.getStatus() == OrderStatus.ORDER_RECEIVED || order.getStatus() == OrderStatus.INIT)) {
+            throw new IllegalStateException(String.format("현재 주문 상태가 '%s'이므로 취소할 수 없습니다. 취소 가능한 상태: (%s, %s, %s)",
                     order.getStatus().getDescription(),
-                    OrderStatus.PAYMENT_COMPLETED.getDescription(), OrderStatus.ORDER_RECEIVED.getDescription(), OrderStatus.INIT.getDescription())); // <--- 이 부분 수정
+                    OrderStatus.PAYMENT_COMPLETED.getDescription(), OrderStatus.ORDER_RECEIVED.getDescription(), OrderStatus.INIT.getDescription()));
         }
 
         order.setStatus(OrderStatus.PURCHASE_CANCELED);
@@ -409,7 +405,7 @@ public class OrderServiceImpl implements OrderService {
         // OrderDelivery 상태를 INIT으로 설정
         OrderDelivery orderDelivery = OrderDelivery.builder()
                 .order(order)
-                .status(DeliveryStatus.INIT) // <--- 이 부분 수정: INIT으로 변경
+                .status(DeliveryStatus.INIT)
                 .startDate(LocalDateTime.now())
                 .build();
         orderDeliveryRepository.save(orderDelivery);
@@ -418,119 +414,10 @@ public class OrderServiceImpl implements OrderService {
         return order.getId();
     }
 
-    // 장바구니 다수 상품 결제 진행 로직
-    @Override
-    @Transactional
-    public Long processCartPayment(PayRequestDTO payRequestDTO) {
-        log.info("장바구니 다수 상품 결제 처리 시작: {}", payRequestDTO);
-
-        // **유효성 검증: 장바구니 결제에 필요한 필드 확인**
-        if (payRequestDTO.getOrderItems() == null || payRequestDTO.getOrderItems().isEmpty()) {
-            throw new IllegalArgumentException("장바구니 결제에는 orderItems가 필수이며, 비어있지 않아야 합니다.");
-        }
-        if (payRequestDTO.getProductId() != null || payRequestDTO.getQuantity() != null) {
-            throw new IllegalArgumentException("장바구니 결제 시에는 productId와 quantity를 포함할 수 없습니다.");
-        }
-
-        // 고객 정보 조회
-        Customer customer = customerRepository.findById(payRequestDTO.getCustomerId())
-                .orElseThrow(() -> new IllegalArgumentException("고객을 찾을 수 없습니다: " + payRequestDTO.getCustomerId()));
-
-        // 배송 및 결제 정보 조회 (공통)
-        String receiverName = payRequestDTO.getReceiverName();
-        String phone = payRequestDTO.getPhone();
-        String deliveryAddress = payRequestDTO.getDeliveryAddress();
-        PaymentType paymentType = payRequestDTO.getPaymentMethod();
-
-        if (receiverName == null || receiverName.isEmpty() ||
-                phone == null || phone.isEmpty() ||
-                deliveryAddress == null || deliveryAddress.isEmpty() ||
-                paymentType == null) {
-            throw new IllegalArgumentException("필수 배송 및 결제 정보가 누락되었습니다.");
-        }
-
-        List<OrderItem> orderItemsToSave = new ArrayList<>();
-        int calculatedTotalProductPrice = 0;
-        int totalDeliveryFee = 0;
-        List<Long> processedProductIdsForDeliveryCalculation = new ArrayList<>(); // 배송비 중복 방지
-
-        // 요청된 모든 상품 ID 수집 및 상품 정보 일괄 조회
-        List<Long> requestedProductIds = payRequestDTO.getOrderItems().stream()
-                .map(ProductQuantityDTO::getProductId)
-                .collect(Collectors.toList());
-        Map<Long, Product> productsMap = productRepository.findAllById(requestedProductIds).stream()
-                .collect(Collectors.toMap(Product::getId, Function.identity()));
-
-        // DeliveryPolicyRepository 수정 권한이 없으므로 findAll 후 필터링
-        Map<Long, DeliveryPolicy> deliveryPoliciesMap = deliveryPolicyRepository.findAll().stream()
-                .filter(policy -> policy.getProduct() != null && requestedProductIds.contains(policy.getProduct().getId()))
-                .collect(Collectors.toMap(policy -> policy.getProduct().getId(), Function.identity()));
-
-        for (ProductQuantityDTO itemDTO : payRequestDTO.getOrderItems()) {
-            Product product = productsMap.get(itemDTO.getProductId());
-            if (product == null) {
-                throw new IllegalArgumentException("결제하려는 상품을 찾을 수 없습니다: ID " + itemDTO.getProductId());
-            }
-
-            // TODO: 재고 확인 및 감소 로직 추가
-            // if (product.getStock() < itemDTO.getQuantity()) {
-            //     throw new IllegalStateException("상품 재고가 부족합니다: " + product.getName());
-            // }
-            // product.decreaseStock(itemDTO.getQuantity());
-            // productRepository.save(product); // 재고 감소 후 저장
-
-            calculatedTotalProductPrice += product.getPrice() * itemDTO.getQuantity();
-
-            // 배송비 계산: 동일한 상품이 여러 번 요청되어도 배송비는 한 번만 부과 (단일 상품 배송 정책 가정)
-            DeliveryPolicy deliveryPolicy = deliveryPoliciesMap.get(product.getId());
-            if (deliveryPolicy != null && deliveryPolicy.getType() == DeliveryType.유료배송 && !processedProductIdsForDeliveryCalculation.contains(product.getId())) {
-                totalDeliveryFee += deliveryPolicy.getCost();
-                processedProductIdsForDeliveryCalculation.add(product.getId());
-            }
-
-            orderItemsToSave.add(OrderItem.builder()
-                    .product(product)
-                    .quantity(itemDTO.getQuantity())
-                    .price(product.getPrice()) // 주문 당시 상품 가격 저장
-                    .build());
-        }
-
-        // 최종 결제 금액 계산
-        int finalTotalPrice = calculatedTotalProductPrice + totalDeliveryFee;
-
-        // Payment Gateway 연동 (시뮬레이션)
-        boolean paymentSuccess = processWithPaymentGateway(customer, finalTotalPrice, paymentType);
-        if (!paymentSuccess) {
-            throw new IllegalStateException("결제 처리 중 오류가 발생했거나 결제가 실패했습니다.");
-        }
-
-        // ------------------ 결제 성공 후 DB에 주문 정보 저장 ------------------
-        Order order = Order.builder()
-                .customer(customer)
-                .status(OrderStatus.PAYMENT_COMPLETED) // 주문 상태는 결제 완료
-                .totalPrice(finalTotalPrice)
-                .deliveryAddress(deliveryAddress)
-                .orderedAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .build();
-        order = orderRepository.save(order);
-
-        for (OrderItem item : orderItemsToSave) {
-            item.setOrder(order);
-        }
-        orderItemRepository.saveAll(orderItemsToSave); // 모든 주문 항목 한 번에 저장
-
-        // OrderDelivery 상태를 INIT으로 설정
-        OrderDelivery orderDelivery = OrderDelivery.builder()
-                .order(order)
-                .status(DeliveryStatus.INIT) // <--- 이 부분 수정: INIT으로 변경
-                .startDate(LocalDateTime.now())
-                .build();
-        orderDeliveryRepository.save(orderDelivery);
-
-        log.info("장바구니 주문 성공 및 생성 완료: 주문 ID {}", order.getId());
-        return order.getId();
-    }
+    // `processCartPayment` 메서드는 `CartService`로 이동
+    // @Override
+    // @Transactional
+    // public Long processCartPayment(PayRequestDTO payRequestDTO) { ... }
 
     // 결제 처리를 하는 시뮬레이션 메서드
     private boolean processWithPaymentGateway(Customer customer, int amount, PaymentType paymentType) {

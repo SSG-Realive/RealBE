@@ -16,11 +16,13 @@ import com.realive.dto.product.ProductListDTO;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.stereotype.Repository;
 
 // [Customer] 상품 검색 Repository 구현체
 
 @Log4j2
 @RequiredArgsConstructor
+@Repository
 public class ProductSearchImpl implements ProductSearch {
 
     private final JPAQueryFactory queryFactory;
