@@ -20,6 +20,17 @@ public interface OrderService {
     // 구매 확정
     void confirmOrder(OrderConfirmRequestDTO orderConfirmRequestDTO);
 
-    // 결제 진행 + 구매내역 생성
-    Long processPayment(PayRequestDTO payRequestDTO);
+    // 단일 상품 바로 구매 결제 진행 및 구매내역 생성
+    Long processDirectPayment(PayRequestDTO payRequestDTO); // 또는 DirectPayRequestDTO 사용 (선택 사항)
+
+    /**
+     * 단일 상품 바로 구매 정보 조회
+     * @param productId 상품 ID
+     * @param quantity 수량
+     * @return DirectPaymentInfoDTO
+     */
+    DirectPaymentInfoDTO getDirectPaymentInfo(Long productId, Integer quantity);
+
+    // 장바구니 다수 상품 결제 진행 및 구매내역 생성
+    Long processCartPayment(PayRequestDTO payRequestDTO);
 }
