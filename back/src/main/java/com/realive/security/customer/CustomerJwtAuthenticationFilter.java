@@ -1,79 +1,74 @@
 package com.realive.security.customer;
 
-import java.io.IOException;
-
-import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.stereotype.Component;
-import org.springframework.web.filter.OncePerRequestFilter;
-
-import com.realive.dto.customer.member.MemberLoginDTO;
-
+import com.realive.security.JwtUtil;
+import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
+import lombok.extern.slf4j.Slf4j;
 
-// [Customer] JWT 토큰을 이용한 인증 필터
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.GrantedAuthority;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
+import java.io.IOException;
+import java.util.Collections;
+import java.util.List;
+
+@Slf4j
 @Component
 @RequiredArgsConstructor
-@Log4j2
 public class CustomerJwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtTokenProvider jwtTokenProvider;
-    private final CustomUserDetailsService customUserDetailsService;
+    private final JwtUtil jwtUtil;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-                                    HttpServletResponse response,
-                                    FilterChain filterChain) throws ServletException, IOException {
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
-        log.info("[CustomerJwtAuthenticationFilter] doFilterInternal 호출, URI: {}", request.getRequestURI());
-        String token = resolveToken(request);
-        log.info("JWT 토큰 추출: {}", token);
+        String authHeader = request.getHeader("Authorization");
 
-        if (token != null && jwtTokenProvider.validateToken(token)) {
-            String email = jwtTokenProvider.getUsername(token);
-            log.info("토큰에서 추출한 사용자명(email): {}", email);
+        if (authHeader != null && authHeader.startsWith("Bearer ")) {
+            String token = authHeader.substring(7);
 
-            // DB에서 유저 정보 로드 (MemberLoginDTO는 UserDetails를 구현해야 함)
-            MemberLoginDTO memberDTO = (MemberLoginDTO) customUserDetailsService.loadUserByUsername(email);
+            if (jwtUtil.validateToken(token)) {
+                Claims claims = jwtUtil.getClaims(token);
+                String subject = claims.getSubject();
 
-            // 인증 객체 생성 및 SecurityContext에 등록
-            UsernamePasswordAuthenticationToken auth =
-                    new UsernamePasswordAuthenticationToken(memberDTO, null, memberDTO.getAuthorities());
-            //log.info("로드한 MemberLoginDTO: {}", memberDTO);
+                // Customer 토큰인지 확인
+                if (JwtUtil.SUBJECT_CUSTOMER.equals(subject)) {
+                    String email = claims.get("email", String.class);
+                    String role = claims.get("auth", String.class);
 
-            SecurityContextHolder.getContext().setAuthentication(auth);
-            log.info("SecurityContextHolder에 인증 객체 등록 완료");
-        }else {
-            log.info("토큰이 없거나 유효하지 않음");
+                    if (email != null && role != null) {
+                        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+                        Authentication authentication = new UsernamePasswordAuthenticationToken(email, null, authorities);
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    }
+                }
+            }
         }
-
         filterChain.doFilter(request, response);
     }
 
-    private String resolveToken(HttpServletRequest request) {
-        String bearerToken = request.getHeader("Authorization");
-        log.info("Authorization 헤더: {}", bearerToken);
-        if (bearerToken != null && bearerToken.startsWith("Bearer ")) {
-            String token = bearerToken.substring(7); // "Bearer " 이후 토큰만 추출
-            log.info("추출된 토큰: {}", token);
-            return token;
-        }
-        return null;
-    }
-
-    @Override
+     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String uri = request.getRequestURI();
-        log.info("shouldNotFilter 호출 - URI: {}", uri);
-        boolean result = uri.startsWith("/api/admin") || uri.startsWith("/api/seller") || uri.startsWith("/api/public");
-        log.info("필터 제외 여부: {}", result);
-        return result;
+        
+        // 요청 경로가 "/api/customer/"로 시작하는 경우에만 이 필터가 동작하도록 합니다.
+        // 그 외의 경우(예: /api/public, /api/auth)에는 이 필터를 건너뜁니다.
+        log.info("[CustomerJwtFilter] shouldNotFilter 검사. URI: {}", uri);
+        boolean shouldNotFilter = !uri.startsWith("/api/customer/");
+        log.info("필터 실행 여부 (false여야 실행됨): {}", !shouldNotFilter);
+        
+        return shouldNotFilter;
     }
-
+    
+    
 }
