@@ -1,22 +1,21 @@
+import apiClient from '@/lib/apiClient';
 
-import { sellerApi } from '@/lib/apiClient';
-import { useSellerAuthStore } from '@/store/seller/useSellerAuthStore';
-import { SellerDashboardResponse } from '@/types/dashboard/sellerDashboardResponse';
-import { LoginResponse } from '@/types/custoemr/login/loginResponse';
-
-
-
-// 로그인 요청
-export const login = async (email: string, password: string): Promise<LoginResponse> => {
-  const response = await sellerApi.post('/seller/login', { email, password });
-  return response.data;
+export interface LoginResponse {
+  accessToken: string;
+  refreshToken: string;
+  email: string;
+  name: string;
 }
 
-
+// 로그인 요청
+export async function login(email: string, password: string): Promise<LoginResponse> {
+  const response = await apiClient.post<LoginResponse>('/seller/login', { email, password });
+  return response.data;
+}
 //로그아웃 요청
 export async function logout(): Promise<void> {
-  await sellerApi.post('/seller/logout'); // 서버 쿠키 제거
-  useSellerAuthStore.getState().logout(); // 상태도 초기화
+  // 1) 백엔드 /seller/logout 호출 → refreshToken 쿠키 만료
+  await apiClient.post('/seller/logout');
 }
 
 // 프로필 조회
@@ -27,7 +26,7 @@ export interface SellerProfile {
   phone: string;
 }
 export async function getProfile(): Promise<SellerProfile> {
-  const response = await sellerApi.get<SellerProfile>('/seller/me');
+  const response = await apiClient.get<SellerProfile>('/seller/me');
   return response.data;
 }
 
@@ -39,15 +38,18 @@ export interface SellerUpdateRequest {
 }
 // 백엔드가 PUT 으로 받으니 여기서도 PUT으로 바꿔야 합니다.
 export async function updateProfile(data: SellerUpdateRequest): Promise<void> {
-  await sellerApi.put('/seller/me', data);
+  await apiClient.put('/seller/me', data);
 }
 //대시보드
-
+export interface SellerDashboardResponse{
+  totalProducts : number;
+  todayProducts : number;
+  totalQna : number;
+  unansweredQna : number;
+  activeOrders : number;
+}
 export async function getDashboard() : Promise<SellerDashboardResponse> {
-  const response = await sellerApi.get('/seller/dashboard');
+  const response = await apiClient.get('/seller/dashboard');
   return response.data;
 }
-
-//qna
-
 

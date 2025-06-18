@@ -1,15 +1,24 @@
-// src/lib/apiClient.ts (기존 파일을 이 내용으로 교체)
+import axios from 'axios';
 
-import { createApiClient } from './apiFactory';
-import { useAuthStore } from '@/store/customer/authStore';
-import { useSellerAuthStore } from '@/store/seller/useSellerAuthStore';
+const apiClient = axios.create({
+  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL, // "http://localhost:8080/api"
+  headers: {
+    'Content-Type': 'application/json',
+  },
+  withCredentials: true, // 쿠키 기반 인증을 함께 보내려면 true
+});
 
-// Customer용 API 클라이언트
-export const customerApi = createApiClient(useAuthStore);
+// 요청 인터셉터 예시: 토큰이 있다면 자동으로 헤더에 넣기
+apiClient.interceptors.request.use((config) => {
+  const token = localStorage.getItem('accessToken');
+   console.log('→ Interceptor: token=', token);
+  if (token && config.headers) {
+    config.headers.Authorization = `Bearer ${token}`;
+     console.log('→ Interceptor: Authorization 헤더 설정됨:', config.headers.Authorization);
+  }
+  return config;
+});
 
-// Seller용 API 클라이언트
-export const sellerApi = createApiClient(useSellerAuthStore);
 
-// 기본적으로는 customerApi를 내보내거나,
-// 혹은 사용하는 곳에서 명시적으로 customerApi, sellerApi를 import해서 사용합니다.
-export default customerApi;
+
+export default apiClient;

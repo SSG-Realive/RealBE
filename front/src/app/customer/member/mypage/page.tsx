@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { useAuthStore } from '@/store/customer/authStore';
+import { useAuthStore } from '@/store/authStore';
 import Navbar from '@/components/customer/Navbar';
 
 export default function MyPage() {
