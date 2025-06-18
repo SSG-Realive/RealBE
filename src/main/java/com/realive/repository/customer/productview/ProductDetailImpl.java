@@ -31,29 +31,29 @@ public class ProductDetailImpl implements ProductDetail {
         QSeller seller = QSeller.seller;
 
         ProductResponseDTO dto = queryFactory
-            .select(Projections.constructor(ProductResponseDTO.class,
-                product.id,
-                product.name,
-                product.description,
-                product.price,
-                product.stock,
-                product.width,
-                product.depth,
-                product.height,
-                product.status.stringValue(),
-                product.active,
-                productImage.url,
-                category.name,
-                seller.name
-            ))
-            .from(product)
-            .leftJoin(productImage)
+                .select(Projections.bean(ProductResponseDTO.class,
+                        product.id.as("id"),
+                        product.name.as("name"),
+                        product.description.as("description"),
+                        product.price.as("price"),
+                        product.stock.as("stock"),
+                        product.width.as("width"),
+                        product.depth.as("depth"),
+                        product.height.as("height"),
+                        product.status.stringValue().as("status"),
+                        product.active.as("active"),
+                        productImage.url.as("mainImageUrl"),
+                        category.name.as("categoryName"),
+                        seller.name.as("sellerName")
+                ))
+                .from(product)
+                .leftJoin(productImage)
                 .on(productImage.product.eq(product)
-                    .and(productImage.isThumbnail.isTrue()))
-            .leftJoin(category).on(product.category.eq(category))
-            .leftJoin(seller).on(product.seller.eq(seller))
-            .where(product.id.eq(id))
-            .fetchOne();
+                        .and(productImage.isThumbnail.isTrue()))
+                .leftJoin(category).on(product.category.eq(category))
+                .leftJoin(seller).on(product.seller.eq(seller))
+                .where(product.id.eq(id))
+                .fetchOne();
 
         return Optional.ofNullable(dto);
     }

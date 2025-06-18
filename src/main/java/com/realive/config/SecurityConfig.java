@@ -152,7 +152,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/public/**", "/api/auth/**").permitAll()
                         .requestMatchers("/api/oauth2/**").permitAll()
-                        .requestMatchers("/api/customer/**").hasAuthority("ROLE_CUSTOMER")
+                        .requestMatchers("/api/customer/**").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_USER")
                         .anyRequest().denyAll()
                 )
                 .addFilterBefore(customerJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -43,11 +43,11 @@ public class MemberController {
         // 로그인 사용자 이메일 가져오기
         String currentEmail = authentication.getName();
 
-         // 권한 검증: 본인만 수정 가능
+        // 권한 검증: 본인만 수정 가능
         if (!currentEmail.equals(request.getEmail())) {
             throw new UnauthorizedException("본인의 정보만 수정할 수 있습니다.");
         }
-        
+
         memberService.updateTemporaryUserInfo(request, currentEmail);
         return ResponseEntity.ok("회원정보가 정상적으로 수정되었습니다.");
     }
@@ -55,19 +55,19 @@ public class MemberController {
     // 회원정보조회
     @GetMapping("/me")
     public ResponseEntity<MemberReadDTO> getMyProfile(Authentication authentication) {
-        MemberLoginDTO loginDTO = (MemberLoginDTO) authentication.getPrincipal();
-        log.info("현재 로그인한 사용자: {}", loginDTO);
-        log.info("로그인 사용자 ID: {}", loginDTO.getEmail());
         String email = authentication.getName();
+        log.info("현재 로그인한 사용자 이메일: {}", email);
+
         MemberReadDTO profile = memberService.getMyProfile(email);
         return ResponseEntity.ok(profile);
     }
 
     // 회원정보수정
     @PutMapping("/me")
-    public ResponseEntity<?> updateMyInfo(@AuthenticationPrincipal MemberLoginDTO loginDTO,
+    public ResponseEntity<?> updateMyInfo(Authentication authentication,
                                           @RequestBody @Valid MemberModifyDTO updateDTO) {
-        memberService.updateMember(loginDTO.getEmail(), updateDTO);
+        String email = authentication.getName();
+        memberService.updateMember(email, updateDTO);
         return ResponseEntity.ok().build();
     }
 
@@ -78,6 +78,4 @@ public class MemberController {
         memberService.deactivateByEmail(email);
         return ResponseEntity.ok("회원 탈퇴가 정상 처리되었습니다.");
     }
-
 }
-
