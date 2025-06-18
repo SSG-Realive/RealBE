@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.List;
 
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,53 +27,50 @@ import lombok.extern.slf4j.Slf4j;
 @RequiredArgsConstructor
 public class SellerJwtAuthenticationFilter extends OncePerRequestFilter {
 
-    private final JwtUtil jwtUtil; // JWT 유틸
-    private final SellerRepository sellerRepository;
+    private final JwtUtil jwtUtil;
 
     @Override
-    protected void doFilterInternal(HttpServletRequest request,
-            HttpServletResponse response,
-            FilterChain filterChain)
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
             throws ServletException, IOException {
 
-        log.info("[SellerJwtAuthenticationFilter] doFilterInternal 호출, URI: {}", request.getRequestURI());
         String authHeader = request.getHeader("Authorization");
-        log.info("Authorization 헤더: {}", authHeader);
 
         if (authHeader != null && authHeader.startsWith("Bearer ")) {
             String token = authHeader.substring(7);
-            log.info("추출한 토큰: {}", token);
 
             if (jwtUtil.validateToken(token)) {
                 Claims claims = jwtUtil.getClaims(token);
-                String email = claims.get("email", String.class); // ★ 이메일 추출
+                String subject = claims.getSubject();
 
-                Seller seller = sellerRepository.findByEmail(email)
-                        .orElseThrow(() -> new IllegalArgumentException("판매자 정보를 찾을 수 없습니다."));
+                // Seller 토큰인지 확인
+                if (JwtUtil.SUBJECT_SELLER.equals(subject)) {
+                    String email = claims.get("email", String.class);
+                    Long sellerId = claims.get("id", Long.class);
+                    String role = claims.get("auth", String.class);
 
-                log.info("DB에서 조회한 Seller id: {}, email: {}", seller.getId(), seller.getEmail());
-
-                List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority("ROLE_SELLER"));
-
-                UsernamePasswordAuthenticationToken authentication = new UsernamePasswordAuthenticationToken(seller,
-                        null, authorities);
-
-                SecurityContextHolder.getContext().setAuthentication(authentication);
-                log.info("SecurityContextHolder 에 Seller 등록 완료");
-            } else {
-                log.warn("JWT token 검증 실패");
+                    if (email != null && sellerId != null && role != null) {
+                        Seller sellerPrincipal = Seller.builder().id(sellerId).email(email).build();
+                        List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+                        Authentication authentication = new UsernamePasswordAuthenticationToken(sellerPrincipal, null, authorities);
+                        SecurityContextHolder.getContext().setAuthentication(authentication);
+                    }
+                }
             }
-        } else {
-            log.warn("Authorization 헤더가 없거나 Bearer 형식이 아님");
         }
-
         filterChain.doFilter(request, response);
-    }
 
-    // 체인에서 이미 /api/seller/** 로 한정했으므로 필터는 항상 작동
-    @Override
-    protected boolean shouldNotFilter(HttpServletRequest request) {
-        String path = request.getRequestURI();
-        return !path.startsWith("/api/seller"); // /api/seller 로 시작하는 요청에 대해서만 필터를 적용
+    }
+    
+   @Override
+    protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
+        String uri = request.getRequestURI();
+        
+        // 요청 경로가 "/api/customer/"로 시작하는 경우에만 이 필터가 동작하도록 합니다.
+        // 그 외의 경우(예: /api/public, /api/auth)에는 이 필터를 건너뜁니다.
+        log.info("[SellerJwtFilter] shouldNotFilter 검사. URI: {}", uri);
+        boolean shouldNotFilter = !uri.startsWith("/api/seller/");
+        log.info("필터 실행 여부 (false여야 실행됨): {}", !shouldNotFilter);
+        
+        return shouldNotFilter;
     }
 }

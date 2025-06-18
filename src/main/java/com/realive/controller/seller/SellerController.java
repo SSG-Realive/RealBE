@@ -42,23 +42,10 @@ public class SellerController {
 
     // 🔐 로그인 (토큰 발급)
     @PostMapping("/login")
-    public ResponseEntity<SellerLoginResponseDTO> login(@RequestBody SellerLoginRequestDTO reqdto, HttpServletResponse response) {
-        SellerLoginResponseDTO resdto = sellerService.login(reqdto);
-
-        Seller seller = sellerService.getByEmail(reqdto.getEmail());
-        String refreshToken = jwtUtil.generateRefreshToken(seller);
-
-        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
-                .httpOnly(true)
-                .secure(true)
-                .sameSite("None")
-                .path("/")
-                .maxAge(Duration.ofDays(7))
-                .build();
-
-        response.setHeader("Set-Cookie", refreshCookie.toString());
-
-        return ResponseEntity.ok(resdto);
+    public ResponseEntity<SellerLoginResponseDTO> login(@RequestBody @Valid SellerLoginRequestDTO request) {
+        // 컨트롤러는 이제 서비스의 login 메서드를 호출하고 결과만 받습니다.
+        SellerLoginResponseDTO responseDto = sellerService.login(request);
+        return ResponseEntity.ok(responseDto);
     }
 
     // 로그아웃 (토큰 덮어쓰기)
