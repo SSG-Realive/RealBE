@@ -4,6 +4,10 @@ package com.realive.serviceimpl.seller;
 
 import java.util.List;
 
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -19,6 +23,7 @@ import com.realive.dto.seller.SellerUpdateDTO;
 import com.realive.repository.seller.SellerDocumentRepository;
 import com.realive.repository.seller.SellerRepository;
 import com.realive.security.JwtUtil;
+import com.realive.security.seller.SellerPrincipal;
 import com.realive.service.common.FileUploadService;
 import com.realive.service.seller.SellerService;
 
@@ -33,9 +38,10 @@ public class SellerServiceImpl implements SellerService{
 
     private final SellerRepository sellerRepository;
     private final PasswordEncoder passwordEncoder;
-    private final JwtUtil jwtUtil;
     private final SellerDocumentRepository sellerDocumentRepository;
     private final FileUploadService fileUploadService;
+    private final AuthenticationManager authenticationManager;
+    private final JwtUtil jwtUtil;
 
      @Override
     public Seller getByEmail(String email){
@@ -44,35 +50,40 @@ public class SellerServiceImpl implements SellerService{
     }
 
 
-    //로그인
+    
     @Override
-    public SellerLoginResponseDTO login(SellerLoginRequestDTO reqdto){
+    public SellerLoginResponseDTO login(SellerLoginRequestDTO request) {
+        // 1. 사용자가 보낸 이메일/비밀번호로 인증 토큰 생성
+        UsernamePasswordAuthenticationToken authToken = 
+            new UsernamePasswordAuthenticationToken(request.getEmail(), request.getPassword());
 
-       
+        // 2. AuthenticationManager에게 인증 위임 -> SellerDetailsService가 실행됨
+        Authentication authentication = authenticationManager.authenticate(authToken);
 
-        // email로 사용자 찾기
-        Seller seller = sellerRepository.findByEmailAndIsActiveTrue(reqdto.getEmail())
-                .orElseThrow(()-> new IllegalArgumentException("존재하지 않는 이메일입니다."));
+        // 3. 인증 성공! Principal 객체를 가져옴
+        SellerPrincipal principal = (SellerPrincipal) authentication.getPrincipal();
 
-        // 비밀번호 확인
-        if (!passwordEncoder.matches(reqdto.getPassword(), seller.getPassword())) {
-            throw new IllegalArgumentException("비밀번호가 일치하지 않습니다.");
-
+        // 4. 승인된 판매자인지 추가 확인
+        if (!principal.isApproved()) {
+            throw new BadCredentialsException("아직 승인되지 않은 판매자 계정입니다.");
         }
-        // accesstoken, refreshtoken 생성
-        String accessToken = jwtUtil.generateAccessToken(seller);
-        String refreshToken = jwtUtil.generateRefreshToken(seller);
 
-        // dto 반환
+        // 5. JWT 생성
+        String accessToken = jwtUtil.generateAccessToken(principal);
+        String refreshToken = jwtUtil.generateRefreshToken(principal);
+        
+        // 6. 최종 응답 DTO 생성 및 반환
         return SellerLoginResponseDTO.builder()
                 .accessToken(accessToken)
                 .refreshToken(refreshToken)
-                .email(seller.getEmail())
-                .name(seller.getName())
+                .email(principal.getUsername())
+                .name(principal.getName())
                 .build();
     }
 
-    // 판매자 정보 조회 
+
+
+    // 판매자 정보 조회
     @Override
     public SellerResponseDTO getMyInfo(Seller seller){
         
@@ -91,8 +102,8 @@ public class SellerServiceImpl implements SellerService{
     @Override
     @Transactional
     public Seller registerSeller(SellerSignupDTO dto){
-        
-        
+
+
         //이메일 존재 유무 검증.
         if (sellerRepository.existsByEmail(dto.getEmail())) {
             throw new IllegalArgumentException("이미 존재하는 이메일입니다.");
@@ -105,7 +116,7 @@ public class SellerServiceImpl implements SellerService{
         //비번 인코딩저장.
         String encodedPassword = passwordEncoder.encode(dto.getPassword());
 
-        //dto로 전달받은 정보로 seller 객체 생성 
+        //dto로 전달받은 정보로 seller 객체 생성
         Seller seller = Seller.builder()
                 .email(dto.getEmail())
                 .name(dto.getName())
@@ -118,9 +129,9 @@ public class SellerServiceImpl implements SellerService{
         //dto 받은거 저장.
         return sellerRepository.save(seller);
 
-        
-    
-    }   
+
+
+    }
     //회원수정
     @Override
     @Transactional
@@ -137,7 +148,7 @@ public class SellerServiceImpl implements SellerService{
             seller.setName(dto.getName());
 
         }//end if
-        //판매자 전화번호 수정 
+        //판매자 전화번호 수정
         if (!seller.getPhone().equals(dto.getPhone())) {
 
             seller.setPhone(dto.getPhone());
@@ -154,7 +165,7 @@ public class SellerServiceImpl implements SellerService{
 
     }
 
-   
-  
+
+
 }
 
