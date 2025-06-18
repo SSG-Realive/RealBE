@@ -13,6 +13,7 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 import com.realive.domain.seller.Seller;
 import com.realive.repository.seller.SellerRepository;
+import com.realive.security.seller.SellerPrincipal;
 
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -49,7 +50,8 @@ public class SellerJwtAuthenticationFilter extends OncePerRequestFilter {
                     String role = claims.get("auth", String.class);
 
                     if (email != null && sellerId != null && role != null) {
-                        Seller sellerPrincipal = Seller.builder().id(sellerId).email(email).build();
+                        Seller sellerForPrincipal  = Seller.builder().id(sellerId).email(email).build();
+                        SellerPrincipal sellerPrincipal = new SellerPrincipal(sellerForPrincipal);
                         List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
                         Authentication authentication = new UsernamePasswordAuthenticationToken(sellerPrincipal, null, authorities);
                         SecurityContextHolder.getContext().setAuthentication(authentication);
@@ -65,8 +67,6 @@ public class SellerJwtAuthenticationFilter extends OncePerRequestFilter {
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String uri = request.getRequestURI();
         
-        // 요청 경로가 "/api/customer/"로 시작하는 경우에만 이 필터가 동작하도록 합니다.
-        // 그 외의 경우(예: /api/public, /api/auth)에는 이 필터를 건너뜁니다.
         log.info("[SellerJwtFilter] shouldNotFilter 검사. URI: {}", uri);
         boolean shouldNotFilter = !uri.startsWith("/api/seller/");
         log.info("필터 실행 여부 (false여야 실행됨): {}", !shouldNotFilter);

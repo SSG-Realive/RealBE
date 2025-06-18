@@ -1,5 +1,8 @@
 package com.realive.security.customer;
 
+import com.realive.domain.admin.Admin;
+import com.realive.domain.customer.Customer;
+import com.realive.security.AdminPrincipal;
 import com.realive.security.JwtUtil;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
@@ -44,11 +47,14 @@ public class CustomerJwtAuthenticationFilter extends OncePerRequestFilter {
                 // Customer 토큰인지 확인
                 if (JwtUtil.SUBJECT_CUSTOMER.equals(subject)) {
                     String email = claims.get("email", String.class);
+                    Long customerId = claims.get("id", Long.class);
                     String role = claims.get("auth", String.class);
 
-                    if (email != null && role != null) {
+                    if (email != null && customerId != null &&role != null) {
+                        Customer customerForPrincipal = Customer.builder().id(customerId).email(email).build();
+                        CustomerPrincipal customerPrincipal = new CustomerPrincipal(customerForPrincipal);
                         List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
-                        Authentication authentication = new UsernamePasswordAuthenticationToken(email, null, authorities);
+                        Authentication authentication = new UsernamePasswordAuthenticationToken(customerPrincipal, null, authorities);
                         SecurityContextHolder.getContext().setAuthentication(authentication);
                     }
                 }
