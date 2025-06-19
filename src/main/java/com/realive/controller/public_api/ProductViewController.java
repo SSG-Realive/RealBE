@@ -60,5 +60,11 @@ public class ProductViewController {
         return ResponseEntity.ok(qnaLists); 
 
     }
+
+    @GetMapping("/{id}/related")
+    public ResponseEntity<List<ProductListDTO>> getRelatedProducts(@PathVariable Long id) {
+        List<ProductListDTO> related = productViewService.getRelatedProducts(id);
+        return ResponseEntity.ok(related);
+    }
     
 }
