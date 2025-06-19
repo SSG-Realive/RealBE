@@ -1,7 +1,6 @@
 package com.realive.domain.order;
 
 import com.realive.domain.customer.Customer;
-import com.realive.domain.common.enums.DeliveryStatus;
 import com.realive.domain.common.enums.OrderStatus;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -40,6 +39,10 @@ public class Order {
 
     @Column(name = "updated_at", nullable =  false)
     private LocalDateTime updatedAt;
+
+    // 새로운 필드: 결제 방식
+    @Column(name = "payment_method", nullable = false, length = 50)
+    private String paymentMethod; // 예를 들어 "CARD", "CASH", "BANK_TRANSFER" 등
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customers_id", nullable = false)
