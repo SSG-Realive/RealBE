@@ -29,7 +29,4 @@ public interface OrderDeliveryService {
      * @param dto 배송 상태 갱신 요청 DTO
      */
     void updateDeliveryStatus(Long sellerId, Long orderId, DeliveryStatusUpdateDTO dto);
-
-    //배송 취소 설정
-    void cancelOrderDelivery(Long orderId, Long sellerId);
 }

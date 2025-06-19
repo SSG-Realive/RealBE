@@ -11,31 +11,23 @@ import java.util.Optional;
 public interface SellerOrderDeliveryRepository
         extends JpaRepository<OrderDelivery, Long>, SellerOrderDeliveryRepositoryCustom {
 
-    // ✅ 단건 조회 (orderId + sellerId) → 엔티티 반환
+    // 🔧 [수정된 부분] 주문 ID 단건 조회 (판매자 검증 포함)
     @Query("""
         SELECT d FROM OrderDelivery d
         JOIN d.order o
-        WHERE o.id = :orderId
-          AND EXISTS (
-              SELECT 1 FROM OrderItem oi
-              WHERE oi.order = o
-              AND oi.product.seller.id = :sellerId
-          )
+        JOIN o.orderItems oi
+        JOIN oi.product p
+        WHERE o.id = :orderId AND p.seller.id = :sellerId
     """)
-    Optional<OrderDelivery> findByOrderIdAndSellerId(
-            @Param("orderId") Long orderId,
-            @Param("sellerId") Long sellerId
-    );
+    Optional<OrderDelivery> findByOrderIdAndSellerId(@Param("orderId") Long orderId, @Param("sellerId") Long sellerId);
 
-    // ✅ 전체 조회 (sellerId 기준) → 엔티티 반환
+    // 🔁 전체 배송 목록 (판매자 기준)
     @Query("""
         SELECT DISTINCT d FROM OrderDelivery d
         JOIN d.order o
-        WHERE EXISTS (
-            SELECT 1 FROM OrderItem oi
-            WHERE oi.order = o
-            AND oi.product.seller.id = :sellerId
-        )
+        JOIN o.orderItems oi
+        JOIN oi.product p
+        WHERE p.seller.id = :sellerId
     """)
     List<OrderDelivery> findAllBySellerId(@Param("sellerId") Long sellerId);
 }
