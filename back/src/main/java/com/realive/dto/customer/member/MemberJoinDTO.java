@@ -1,6 +1,8 @@
 package com.realive.dto.customer.member;
 
 import java.time.LocalDate;
+
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.realive.domain.customer.Gender;
 
 import jakarta.validation.constraints.Email;
