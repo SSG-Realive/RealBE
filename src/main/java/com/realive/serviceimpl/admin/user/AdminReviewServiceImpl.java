@@ -228,7 +228,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
 
         Map<Long, Product> orderIdToProductMap = new HashMap<>();
         if (!orderIds.isEmpty()) {
-            List<OrderItem> orderItems = orderItemRepository.findByOrder_IdIn(orderIds); // IN 절 사용
+            List<OrderItem> orderItems = orderItemRepository.findByOrderIdIn(orderIds); // IN 절 사용
             for (OrderItem item : orderItems) {
                 if (item.getOrder() != null && item.getProduct() != null) {
                     // 주문 ID별 첫 번째 상품 정보만 저장 (정책에 따라 변경 가능)
