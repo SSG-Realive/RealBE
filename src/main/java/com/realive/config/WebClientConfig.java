@@ -1,18 +1,9 @@
-// src/main/java/com/realive/config/WebClientConfig.java (최종 수정본)
-
 package com.realive.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-<<<<<<< HEAD
-=======
-import com.fasterxml.jackson.databind.SerializationFeature;
-import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
-
->>>>>>> dev
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
-
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -27,46 +18,36 @@ import java.util.concurrent.TimeUnit;
 @Configuration
 public class WebClientConfig {
 
-    // WebClient 내부에서만 사용할 ObjectMapper를 만드는 private 헬퍼 메소드는 그대로 둡니다.
-    // 이렇게 하면 전역 ObjectMapper(JacksonConfig)와 충돌하지 않습니다.
+    // WebClient 내부에서만 사용할 ObjectMapper를 만드는 private 헬퍼 메소드
     private ObjectMapper createWebClientObjectMapper() {
         ObjectMapper mapper = new ObjectMapper();
-        // 만약 Toss API 통신에만 필요한 특별한 JSON 설정이 있다면 여기에 추가합니다.
-        // 지금은 특별한 설정이 없으므로 기본 ObjectMapper를 생성합니다.
+        // WebClient만을 위한 특별한 설정이 있다면 여기에 추가합니다.
         return mapper;
     }
 
     // 두 개의 webClient() 메소드를 하나로 합친 최종 Bean
     @Bean
     public WebClient webClient() {
-        // 1. HttpClient 타임아웃 설정 (기존 코드)
+        // 1. HttpClient 타임아웃 설정
         HttpClient httpClient = HttpClient.create()
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000) // 연결 타임아웃 5초
-                .responseTimeout(Duration.ofSeconds(5)) // 응답 타임아웃
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
+                .responseTimeout(Duration.ofSeconds(5))
                 .doOnConnected(conn -> conn
                         .addHandlerLast(new ReadTimeoutHandler(5, TimeUnit.SECONDS))
                         .addHandlerLast(new WriteTimeoutHandler(5, TimeUnit.SECONDS)));
 
-        // 2. ObjectMapper 및 ExchangeStrategies 설정 (제가 드린 코드)
+        // 2. ObjectMapper 및 ExchangeStrategies 설정
         ObjectMapper customMapper = createWebClientObjectMapper();
         ExchangeStrategies strategies = ExchangeStrategies.builder()
                 .codecs(configurer -> 
                         configurer.defaultCodecs().jackson2JsonEncoder(new Jackson2JsonEncoder(customMapper)))
                 .build();
 
-        // 3. 위 설정들을 모두 사용하여 WebClient를 생성하고 반환합니다.
+        // 3. 위 설정들을 모두 사용하여 WebClient를 생성하고 반환
         return WebClient.builder()
                 .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .exchangeStrategies(strategies)
                 .baseUrl("https://api.tosspayments.com")
                 .build();
-    }
-
-    // ✅ LocalDate/LocalDateTime 직렬화 지원 ObjectMapper 등록
-    @Bean
-    public ObjectMapper objectMapper() {
-        ObjectMapper mapper = new ObjectMapper();
-        mapper.registerModule(new JavaTimeModule()); // Java 8 시간 모듈 등록
-        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS); // 날짜를 ISO 문자열로 처리
-        return mapper;
     }
 }
