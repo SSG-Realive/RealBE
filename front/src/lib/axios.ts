@@ -2,7 +2,7 @@ import { useAuthStore } from '@/store/authStore';
 import axios from 'axios';
 
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_BASE_URL,
+  baseURL: process.env.NEXT_PUBLIC_API_ROOT_URL,
 });
 
 // 토큰이 필요없는 public API 경로들

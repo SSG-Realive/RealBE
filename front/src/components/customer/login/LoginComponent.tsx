@@ -2,7 +2,8 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuthStore } from '@/store/authStore';
+import { login } from '@/service/customer/loginService';
+import { useAuthStore } from '@/store/customer/authStore';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -30,44 +31,27 @@ export default function LoginForm() {
     }));
   };
 
+  const setAuth = useAuthStore((state) => state.setAuth);
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
 
     try {
-      console.log('Attempting login with:', formData); // 디버깅용
+      const data = await login(formData); // Spring 서버로 직접 요청
+      if (data?.accessToken) {
+        setAuth({
+          token: data.accessToken,
+          email: data.email,
+          name: data.name,
+          temporaryUser: false, // 이건 백엔드 판단에 따라 다를 수 있음
+        });
 
-      const response = await fetch('/api/customer/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
-
-      console.log('Login response status:', response.status); // 디버깅용
-
-      const data = await response.json();
-      console.log('Login response data:', data); // 디버깅용
-
-      if (!response.ok) {
-        // 서버에서 반환한 에러 메시지가 있으면 사용, 없으면 기본 메시지 사용
-        const errorMessage = data.message || data.error || '로그인에 실패했습니다.';
-        setError(errorMessage);
-        return;
-      }
-
-      if (data.success && data.data?.token) {
-        // 토큰 저장
-        setToken(data.data.token);
-        
-        // 이전 페이지로 리다이렉션 (없으면 홈으로)
         const redirectTo = searchParams?.get('redirectTo');
-        console.log('Redirecting to:', redirectTo); // 디버깅용
         router.push(redirectTo || '/');
       } else {
         setError('로그인 응답이 올바르지 않습니다.');
       }
+
     } catch (err) {
       console.error('Login error:', err);
       setError('로그인 처리 중 오류가 발생했습니다.');
@@ -86,7 +70,7 @@ export default function LoginForm() {
     
     const redirectTo = encodeURIComponent(`${window.location.origin}/customer/oauth/callback`);
     
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/oauth2/authorization/kakao?state=${state}&redirectTo=${redirectTo}`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_ROOT_URL}/oauth2/authorization/kakao?state=${state}&redirectTo=${redirectTo}`;
   };
 
 

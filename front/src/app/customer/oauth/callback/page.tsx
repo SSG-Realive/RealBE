@@ -26,11 +26,13 @@ export default function OAuthCallbackPage() {
         
         if (token && email) {
             setAuth({ token, email, temporaryUser: isTemporaryUser });
-            console.log('인증 정보 설정 완료, 리다이렉트할 URL:', originalUrl || '/');
-            router.push(originalUrl || '/');
-        } else {
-            console.log('토큰 또는 이메일이 없음, 로그인 페이지로 이동');
-            router.push('/login?error=invalid_callback');
+
+            if (isTemporaryUser) {
+            // 소셜 회원가입 폼 페이지로 이동
+                router.push('/customer/socialsignup');
+            } else {
+                router.push(originalUrl || '/');
+            } 
         }
     }, [searchParams, setAuth, router]);
     return <div>로그인 처리 중입니다...</div>;

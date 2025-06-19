@@ -16,11 +16,11 @@ export default function SocialSignupPage() {
   }, [email, token, isTemporaryUser, router]);
 
   const handleSuccess = (name: string) => {
-    setUserName(name);
-    setAuth({ token: token || '', email: email || '', temporaryUser: false });
-    alert('회원가입이 완료되었습니다!');
-    router.push('/');
-  };
+  setUserName(name);
+  setAuth({ token: token || '', email: email || '', name, temporaryUser: false });
+  alert('회원가입이 완료되었습니다!');
+  router.push('/');
+};
 
   if (!email || !token || !isTemporaryUser) return null;
 

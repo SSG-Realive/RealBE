@@ -4,7 +4,6 @@ import { useState } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuthStore } from '@/store/customer/authStore';
 
-import InputField from './InputField';
 import GenderSelector from './GenderSelector';
 
 import {
@@ -19,7 +18,9 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
-import { GenderWithUnselected, MemberJoinDTO } from '@/types/custoemr/signup/signup';
+
+import { GenderWithUnselected, MemberJoinDTO } from '@/types/custoemr/signup';
+import { signup } from '@/service/customer/signupService';
 
 export default function RegisterForm() {
   const router = useRouter();
@@ -65,33 +66,24 @@ export default function RegisterForm() {
         gender: formData.gender as 'MALE' | 'FEMALE',
       };
 
-      const res = await fetch('/api/customer/signup', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload),
-      });
+      // 변경: 직접 fetch 대신 authService.signup 호출
+      const data = await signup(payload);
 
-      const data = await res.json();
+      alert('회원가입 성공!');
 
-      if (res.ok) {
-        alert('회원가입 성공!');
-
-        // 서버가 토큰, email, temporaryUser 값을 응답한다고 가정
-        if (data.token && data.email) {
-          setAuth({
-            token: data.token,
-            email: data.email,
-            temporaryUser: data.temporaryUser || false,
-          });
-        }
-
-        router.push(redirectTo);
-      } else {
-        alert(data.message || '회원가입 실패');
+      if (data.token && data.email && data.name) {
+        setAuth({
+          token: data.token,
+          email: data.email,
+          name: data.name,
+          temporaryUser: data.temporaryUser || false,
+        });
       }
-    } catch (err) {
+
+      router.push(redirectTo);
+    } catch (err: any) {
       console.error(err);
-      alert('에러 발생');
+      alert(err?.response?.data?.message || '회원가입 실패');
     }
   };
 

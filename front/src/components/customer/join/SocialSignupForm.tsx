@@ -1,8 +1,21 @@
-// components/SocialSignupForm.tsx
 'use client';
 
 import React from 'react';
-import { Gender, useSocialSignupForm } from '@/hooks/useSocialSignupForm';
+import { useSocialSignupForm } from '@/hooks/useSocialSignupForm';
+import GenderSelector from './GenderSelector';
+
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import Link from 'next/link';
+import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 
 interface Props {
   email: string;
@@ -42,7 +55,7 @@ export default function SocialSignupForm({ email, token, onSuccess }: Props) {
         },
         body: JSON.stringify({
           email,
-          password: 'aaaa1111', // 고정된 임시 비밀번호
+          password: 'aaaa1111',
           name: userName,
           phone,
           address,
@@ -63,38 +76,81 @@ export default function SocialSignupForm({ email, token, onSuccess }: Props) {
   };
 
   return (
-    <form onSubmit={handleSubmit}>
-      <div>
-        <label>이메일</label>
-        <input value={email} readOnly />
-      </div>
-      <div>
-        <label>닉네임</label>
-        <input value={userName} onChange={(e) => setUserName(e.target.value)} />
-      </div>
-      <div>
-        <label>전화번호</label>
-        <input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-      </div>
-      <div>
-        <label>주소</label>
-        <input type="text" value={address} onChange={(e) => setAddress(e.target.value)} />
-      </div>
-      <div>
-        <label>생년월일</label>
-        <input type="date" value={birth} onChange={(e) => setBirth(e.target.value)} />
-      </div>
-      <div>
-        <label>성별</label>
-        <select value={gender} onChange={(e) => setGender(e.target.value as Gender)}>
-          <option value="">선택하세요</option>
-          <option value="MALE">남성</option>
-          <option value="FEMALE">여성</option>
-        </select>
-      </div>
-      <button type="submit" disabled={loading}>
-        {loading ? '가입 중...' : '회원가입'}
-      </button>
+    <form onSubmit={handleSubmit} className="max-w-md mx-auto mt-10">
+      <Card>
+        <CardHeader>
+          <CardTitle>소셜 회원가입</CardTitle>
+          <CardAction>
+            <Button asChild variant="outline">
+              <Link href="/customer/member/login">Login</Link>
+            </Button>
+          </CardAction>
+        </CardHeader>
+        <CardContent>
+          <div className="flex flex-col gap-6">
+            <div className="grid gap-2">
+              <Label htmlFor="email">이메일</Label>
+              <Input
+                id="email"
+                name="email"
+                type="email"
+                value={email}
+                readOnly
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="userName">닉네임</Label>
+              <Input
+                id="userName"
+                name="userName"
+                value={userName}
+                onChange={(e) => setUserName(e.target.value)}
+                required
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="phone">전화번호</Label>
+              <Input
+                id="phone"
+                name="phone"
+                value={phone}
+                onChange={(e) => setPhone(e.target.value)}
+                placeholder="010-1234-5678"
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="address">주소</Label>
+              <Input
+                id="address"
+                name="address"
+                value={address}
+                onChange={(e) => setAddress(e.target.value)}
+              />
+            </div>
+            <div className="grid gap-2">
+              <Label htmlFor="birth">생년월일</Label>
+              <Input
+                id="birth"
+                name="birth"
+                type="date"
+                value={birth}
+                onChange={(e) => setBirth(e.target.value)}
+              />
+            </div>
+
+            <GenderSelector
+              gender={gender}
+              onChange={setGender}  // gender와 setGender는 useSocialSignupForm 훅에서 바로 받음
+            />
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button type="submit" className="w-full mt-4" disabled={loading}>
+            {loading ? '가입 중...' : '회원가입'}
+          </Button>
+        </CardFooter>
+      </Card>
     </form>
   );
+
 }
