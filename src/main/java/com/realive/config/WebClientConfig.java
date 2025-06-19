@@ -3,9 +3,16 @@
 package com.realive.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+<<<<<<< HEAD
+=======
+import com.fasterxml.jackson.databind.SerializationFeature;
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule;
+
+>>>>>>> dev
 import io.netty.channel.ChannelOption;
 import io.netty.handler.timeout.ReadTimeoutHandler;
 import io.netty.handler.timeout.WriteTimeoutHandler;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.client.reactive.ReactorClientHttpConnector;
@@ -34,8 +41,8 @@ public class WebClientConfig {
     public WebClient webClient() {
         // 1. HttpClient 타임아웃 설정 (기존 코드)
         HttpClient httpClient = HttpClient.create()
-                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000)
-                .responseTimeout(Duration.ofSeconds(5))
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 5000) // 연결 타임아웃 5초
+                .responseTimeout(Duration.ofSeconds(5)) // 응답 타임아웃
                 .doOnConnected(conn -> conn
                         .addHandlerLast(new ReadTimeoutHandler(5, TimeUnit.SECONDS))
                         .addHandlerLast(new WriteTimeoutHandler(5, TimeUnit.SECONDS)));
@@ -49,9 +56,17 @@ public class WebClientConfig {
 
         // 3. 위 설정들을 모두 사용하여 WebClient를 생성하고 반환합니다.
         return WebClient.builder()
-                .clientConnector(new ReactorClientHttpConnector(httpClient)) // HttpClient 설정 적용
-                .exchangeStrategies(strategies)                             // ObjectMapper 설정 적용
-                .baseUrl("https://api.tosspayments.com")                     // 기본 URL 설정
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
+                .baseUrl("https://api.tosspayments.com")
                 .build();
+    }
+
+    // ✅ LocalDate/LocalDateTime 직렬화 지원 ObjectMapper 등록
+    @Bean
+    public ObjectMapper objectMapper() {
+        ObjectMapper mapper = new ObjectMapper();
+        mapper.registerModule(new JavaTimeModule()); // Java 8 시간 모듈 등록
+        mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS); // 날짜를 ISO 문자열로 처리
+        return mapper;
     }
 }

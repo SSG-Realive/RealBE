@@ -14,7 +14,7 @@ public interface CartItemRepository extends JpaRepository<CartItem, Long>, CartI
     List<CartItem> findByCustomerId(Long customerId);
 
     // 특정 고객의 특정 상품이 장바구니에 있는지 확인
-    Optional<CartItem> findByCustomer_IdAndProduct_Id(Long customerId, Long productId);
+    Optional<CartItem> findByCustomerIdAndProductId(Long customerId, Long productId);
 
     // 전체 삭제 기능
     @Modifying

@@ -81,7 +81,7 @@ public class CartServiceImpl implements CartService {
         //     throw new IllegalArgumentException("상품 ID " + productId + "번이 활성화되어 있지 않거나 구매할 수 없는 상태입니다.");
         // }
 
-        Optional<CartItem> existingCartItem = cartItemRepository.findByCustomer_IdAndProduct_Id(customerId, productId);
+        Optional<CartItem> existingCartItem = cartItemRepository.findByCustomerIdAndProductId(customerId, productId);
 
         CartItem cartItem;
         if (existingCartItem.isPresent()) {
@@ -300,7 +300,7 @@ public class CartServiceImpl implements CartService {
         // 장바구니에서 결제된 항목들 삭제
         // payRequestDTO.getOrderItems()에 있는 productId들을 기반으로 장바구니에서 해당 상품들을 삭제합니다.
         for (ProductQuantityDTO itemDTO : payRequestDTO.getOrderItems()) {
-            cartItemRepository.findByCustomer_IdAndProduct_Id(customer.getId(), itemDTO.getProductId())
+            cartItemRepository.findByCustomerIdAndProductId(customer.getId(), itemDTO.getProductId())
                     .ifPresent(cartItemRepository::delete);
         }
 

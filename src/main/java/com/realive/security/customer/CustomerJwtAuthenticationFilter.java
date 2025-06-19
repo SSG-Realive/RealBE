@@ -1,9 +1,8 @@
 package com.realive.security.customer;
 
-import com.realive.domain.admin.Admin;
 import com.realive.domain.customer.Customer;
-import com.realive.security.AdminPrincipal;
 import com.realive.security.JwtUtil;
+import com.realive.service.customer.CustomerService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -11,7 +10,6 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
-
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.GrantedAuthority;
@@ -22,7 +20,6 @@ import org.springframework.util.StringUtils;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
-import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -31,72 +28,85 @@ import java.util.List;
 public class CustomerJwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtil jwtUtil;
+    private final CustomerService customerService; // ✅ 이메일로 Customer 조회를 위해 필요
 
 @Override
 protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
         throws ServletException, IOException {
 
-    String authHeader = request.getHeader("Authorization");
+        log.info("=== CustomerJwtFilter doFilterInternal 시작 ===");
+        log.info("URI: {}", request.getRequestURI());
 
-    // 1. Authorization 헤더가 있는지, "Bearer "로 시작하는지 확인
-    if (StringUtils.hasText(authHeader) && authHeader.startsWith("Bearer ")) {
-        String token = authHeader.substring(7);
-        log.info("[JWT 디버깅] 추출된 토큰: {}", token);
+        try {
+            String authHeader = request.getHeader("Authorization");
+            log.info("Authorization 헤더: {}", authHeader != null ? "있음" : "없음");
 
-        // 2. 토큰이 유효한지 확인
-        if (jwtUtil.validateToken(token)) {
-            log.info("[JWT 디버깅] 토큰이 유효합니다.");
-            Claims claims = jwtUtil.getClaims(token);
-            String subject = claims.getSubject();
+            if (authHeader != null && authHeader.startsWith("Bearer ")) {
+                String token = authHeader.substring(7);
+                log.info("토큰 추출 성공 - 토큰 길이: {}", token.length());
+                log.info("토큰 앞 20자: {}", token.substring(0, Math.min(token.length(), 20)));
 
-            log.info("[JWT 디버깅] 토큰 Subject: [{}], 기대하는 Subject: [{}]", subject, JwtUtil.SUBJECT_CUSTOMER);
+                boolean isTokenValid = jwtUtil.validateToken(token);
+                log.info("토큰 검증 결과: {}", isTokenValid);
 
-            // 3. 토큰의 subject가 'Customer'용이 맞는지 확인
-            if (JwtUtil.SUBJECT_CUSTOMER.equals(subject)) {
-                log.info("[JWT 디버깅] Subject가 일치합니다. Customer 토큰으로 처리합니다.");
+                if (isTokenValid) {
+                    Claims claims = jwtUtil.getClaims(token);
 
-                String email = claims.get("email", String.class);
-                Long customerId = claims.get("id", Long.class);
-                String role = claims.get("auth", String.class);
+                    String subject = claims.getSubject();
+                    String userType = claims.get("userType", String.class);
+                    String email = claims.get("email", String.class);
+                    String role = claims.get("auth", String.class);
 
-                log.info("[JWT 디버깅] 추출된 Claims - Email: [{}], ID: [{}], Role: [{}]", email, customerId, role);
-                
-                // 4. 필요한 모든 클레임이 존재하는지 확인
-                if (email != null && customerId != null && role != null) {
-                    log.info("[JWT 디버깅] 모든 클레임이 존재합니다. 인증 객체를 생성하고 SecurityContext에 저장합니다.");
-                    Customer customerForPrincipal = Customer.builder().id(customerId).email(email).build();
-                    CustomerPrincipal customerPrincipal = new CustomerPrincipal(customerForPrincipal);
-                    List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
-                    Authentication authentication = new UsernamePasswordAuthenticationToken(customerPrincipal, null, authorities);
-                    SecurityContextHolder.getContext().setAuthentication(authentication);
+                    log.info("토큰 Subject: {}", subject);
+                    log.info("사용자 타입: {}", userType);
+                    log.info("추출된 이메일: {}", email);
+                    log.info("추출된 권한: {}", role);
+
+                    boolean isCustomerToken = "customer".equals(userType)
+                            || (userType == null && ("customer".equals(subject) || isEmailFormat(subject)));
+
+                    if (isCustomerToken) {
+                        String userEmail = email != null ? email : subject;
+
+                        if (userEmail != null && role != null) {
+                            List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
+
+                            // ✅ CustomerPrincipal 사용을 위한 Customer 조회
+                            Customer customer = customerService.getByEmail(userEmail);
+                            CustomerPrincipal principal = new CustomerPrincipal(customer);
+                            Authentication authentication = new UsernamePasswordAuthenticationToken(principal, null, authorities);
+                            SecurityContextHolder.getContext().setAuthentication(authentication);
+
+                            log.info("SecurityContext 설정 완료 - 사용자: {}, 권한: {}", userEmail, role);
+                        } else {
+                            log.warn("이메일 또는 권한 정보 누락 - email: {}, subject: {}, role: {}", email, subject, role);
+                        }
+                    } else {
+                        log.warn("Customer 토큰이 아님 - Subject: {}, userType: {}", subject, userType);
+                    }
                 } else {
-                    log.warn("[JWT 디버깅] 토큰에 필수 클레임(email, id, auth)이 누락되었습니다.");
+                    log.warn("토큰 검증 실패");
                 }
             } else {
-                log.warn("[JWT 디버깅] Subject가 일치하지 않습니다. 이 필터에서는 처리하지 않습니다.");
+                log.warn("Authorization 헤더 없음 또는 형식 오류: {}", authHeader);
             }
-        } else {
-            log.warn("[JWT 디버깅] 유효하지 않은 토큰입니다.");
+        } catch (Exception e) {
+            log.error("JWT 필터 처리 중 예외 발생: {}", e.getMessage(), e);
         }
-    } else {
-        log.info("[JWT 디버깅] Authorization 헤더가 없거나 Bearer 타입이 아닙니다.");
+
+        filterChain.doFilter(request, response);
+        log.info("=== CustomerJwtFilter doFilterInternal 완료 ===");
     }
 
-    filterChain.doFilter(request, response);
-}
+    private boolean isEmailFormat(String text) {
+        return text != null && text.contains("@") && text.contains(".");
+    }
 
-     @Override
+    @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String uri = request.getRequestURI();
-        
-        // 요청 경로가 "/api/customer/"로 시작하는 경우에만 이 필터가 동작하도록 합니다.
-        // 그 외의 경우(예: /api/public, /api/auth)에는 이 필터를 건너뜁니다.
-        log.info("[CustomerJwtFilter] shouldNotFilter 검사. URI: {}", uri);
         boolean shouldNotFilter = !uri.startsWith("/api/customer/");
-        log.info("필터 실행 여부 (false여야 실행됨): {}", !shouldNotFilter);
-        
+        log.info("[CustomerJwtFilter] shouldNotFilter 검사. URI: {}, 결과: {}", uri, shouldNotFilter ? "건너뜀" : "실행");
         return shouldNotFilter;
     }
-    
-    
 }
