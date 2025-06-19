@@ -23,13 +23,11 @@ public class Bid extends BaseTimeEntity {
     private Integer auctionId;
 
     @Column(name = "customer_id")
-    private Integer customerId;
+    private Long customerId;
 
     @Column(name = "bid_price")
     private Integer bidPrice;
 
     @Column(name = "bid_time")
     private LocalDateTime bidTime;
-
-
 }

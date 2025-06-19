@@ -4,7 +4,6 @@ import java.time.Duration;
 
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -19,12 +18,9 @@ import com.realive.dto.seller.SellerResponseDTO;
 import com.realive.dto.seller.SellerSignupDTO;
 import com.realive.dto.seller.SellerUpdateDTO;
 import com.realive.event.FileUploadEvnetPublisher;
-import com.realive.repository.seller.SellerRepository;
 import com.realive.security.JwtUtil;
-import com.realive.security.seller.SellerPrincipal;
 import com.realive.service.seller.SellerService;
 
-import jakarta.persistence.EntityNotFoundException;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -43,14 +39,26 @@ public class SellerController {
     private final SellerService sellerService;
     private final JwtUtil jwtUtil;
     private final FileUploadEvnetPublisher fileUploadEvnetPublisher;
-    private final SellerRepository sellerRepository;
 
     // 🔐 로그인 (토큰 발급)
     @PostMapping("/login")
-    public ResponseEntity<SellerLoginResponseDTO> login(@RequestBody @Valid SellerLoginRequestDTO request) {
-        // 컨트롤러는 이제 서비스의 login 메서드를 호출하고 결과만 받습니다.
-        SellerLoginResponseDTO responseDto = sellerService.login(request);
-        return ResponseEntity.ok(responseDto);
+    public ResponseEntity<SellerLoginResponseDTO> login(@RequestBody SellerLoginRequestDTO reqdto, HttpServletResponse response) {
+        SellerLoginResponseDTO resdto = sellerService.login(reqdto);
+
+        Seller seller = sellerService.getByEmail(reqdto.getEmail());
+        String refreshToken = jwtUtil.generateRefreshToken(seller);
+
+        ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
+                .httpOnly(true)
+                .secure(true)
+                .sameSite("None")
+                .path("/")
+                .maxAge(Duration.ofDays(7))
+                .build();
+
+        response.setHeader("Set-Cookie", refreshCookie.toString());
+
+        return ResponseEntity.ok(resdto);
     }
 
     // 로그아웃 (토큰 덮어쓰기)
@@ -82,31 +90,26 @@ public class SellerController {
         return ResponseEntity.ok().build();
     }
 
-    //판매자 정보 보기
-    @GetMapping("/me")
-    public ResponseEntity<SellerResponseDTO> getMyInfo(@AuthenticationPrincipal SellerPrincipal principal) {
-        Long sellerId = principal.getId();
-        Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new EntityNotFoundException("Seller not found with id: " + sellerId));
+    // 🔄 판매자 정보 수정
+    @PutMapping("/me")
+    public ResponseEntity<Void> updateSeller(@RequestBody @Valid SellerUpdateDTO dto) {
+        Seller seller = (Seller) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+       
 
-        log.info("Seller email from @AuthenticationPrincipal: {}", seller.getEmail());
+        sellerService.updateSeller(seller, dto);
+        return ResponseEntity.ok().build();
+    }
+
+    // 🙋‍♀️ 마이페이지 조회 (판매자 정보)
+    @GetMapping("/me")
+    public ResponseEntity<SellerResponseDTO> getMyInfo() {
+        Seller seller = (Seller) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        
+
+        log.info("Seller email: {}", seller.getEmail());
 
         SellerResponseDTO dto = sellerService.getMyInfo(seller);
         return ResponseEntity.ok(dto);
     }
 
-    // 🔄 판매자 정보 수정 - @AuthenticationPrincipal 사용
-    @PutMapping("/me")
-    public ResponseEntity<Void> updateSeller(
-            @AuthenticationPrincipal SellerPrincipal principal, // 파라미터로 주입
-            @RequestBody @Valid SellerUpdateDTO dto) {
-
-        Long sellerId = principal.getId();
-        Seller seller = sellerRepository.findById(sellerId)
-                .orElseThrow(() -> new EntityNotFoundException("Seller not found with id: " + sellerId));
-    
-
-        sellerService.updateSeller(seller, dto);
-        return ResponseEntity.ok().build();
-    }
 }
