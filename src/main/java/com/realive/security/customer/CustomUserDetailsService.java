@@ -1,17 +1,19 @@
 package com.realive.security.customer;
 
-import com.realive.domain.customer.Customer;
-import com.realive.repository.customer.CustomerRepository;
-import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2;
-import org.springframework.security.core.authority.SimpleGrantedAuthority;
-import org.springframework.security.core.userdetails.User;
+import org.springframework.context.annotation.Primary;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.stereotype.Service;
 
-import java.util.Collections;
+import com.realive.domain.customer.Customer;
+import com.realive.dto.customer.member.MemberLoginDTO;
+import com.realive.repository.customer.CustomerRepository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
+
+// [Customer] UserDetailsService
 
 @Service("customUserDetailsService")
 @Log4j2
@@ -20,12 +22,13 @@ public class CustomUserDetailsService implements UserDetailsService {
 
     private final CustomerRepository customerRepository;
 
+    //사용자 정보를 로드하는 메서드
     @Override
     public UserDetails loadUserByUsername(String username) throws UsernameNotFoundException {
         log.info("loadUserByUsername: " + username);
 
-        // email 기준으로 Customer 찾기 (일반 로그인 사용자를 찾도록 findByEmail 사용)
-        Customer customer = customerRepository.findByEmail(username)
+        // email 기준으로 Customer 찾기
+        Customer customer = customerRepository.findByEmailIncludingSocial(username)
                 .orElseThrow(() -> new UsernameNotFoundException("이메일이 존재하지 않습니다: " + username));
 
         // ✅ DTO가 아닌, Spring Security의 User 객체를 생성하여 반환합니다.
