@@ -11,15 +11,13 @@ import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.NoSuchElementException;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import com.realive.dto.customer.member.MemberLoginDTO;
 
 // JWT/OAuth2를 통한 사용자 인증이 구현되어 있다면,
 // @AuthenticationPrincipal 또는 SecurityContextHolder를 통해 customerId를 가져올 수 있습니다.
-
-
 @RestController
-@RequestMapping("/api/orders")
+@RequestMapping("/api/customer/orders")
 @RequiredArgsConstructor
 @Log4j2
 public class OrderController {
@@ -27,18 +25,55 @@ public class OrderController {
     private final OrderService orderService;
 
     /**
-     * 주문 생성 및 결제 처리 (통합)
-     * POST /api/orders/pay
-     * @param payRequestDTO 결제 및 주문 생성 요청 DTO
+     * **단일 상품 바로 구매 정보 조회**
+     * GET /api/orders/direct-payment-info
+     * @param productId 상품 ID
+     * @param quantity 수량
+     * @param userDetails 현재 인증된 사용자 정보
+     * @return DirectPaymentInfoDTO
+     */
+    @GetMapping("/direct-payment-info")
+    public ResponseEntity<DirectPaymentInfoDTO> getDirectPaymentInfo(
+            @RequestParam Long productId,
+            @RequestParam Integer quantity,
+            @AuthenticationPrincipal MemberLoginDTO userDetails) {
+        log.info("단일 상품 바로 구매 정보 조회 요청: productId={}, quantity={}", productId, quantity);
+        DirectPaymentInfoDTO info = orderService.getDirectPaymentInfo(productId, quantity);
+        return ResponseEntity.ok(info);
+    }
+
+    /**
+     * **단일 상품 바로 구매 및 결제 처리**
+     * POST /api/orders/direct-payment
+     * @param payRequestDTO 결제 및 주문 생성 요청 DTO (productId, quantity 필드 필수)
      * @return 생성된 주문의 ID (Long)
      */
-    @PostMapping("/payment")
-    public ResponseEntity<Long> processPayment(@RequestBody PayRequestDTO payRequestDTO) {
-        log.info("결제 및 주문 생성 요청 수신: {}", payRequestDTO);
-        Long orderId = orderService.processPayment(payRequestDTO);
-        log.info("주문이 성공적으로 생성되었습니다. 주문 ID: {}", orderId);
+    @PostMapping("/direct-payment")
+    public ResponseEntity<Long> processDirectPayment(
+            @RequestBody PayRequestDTO payRequestDTO,
+            @AuthenticationPrincipal MemberLoginDTO userDetails) {
+        log.info("단일 상품 바로 구매 요청 수신: {}", payRequestDTO);
+        // Set customerId from authentication
+        payRequestDTO.setCustomerId(userDetails.getId());
+        Long orderId = orderService.processDirectPayment(payRequestDTO);
+        log.info("단일 상품 주문이 성공적으로 생성되었습니다. 주문 ID: {}", orderId);
         return new ResponseEntity<>(orderId, HttpStatus.CREATED); // 201 Created
     }
+
+    /**
+     * **장바구니 다수 상품 결제 처리**
+     * POST /api/orders/cart-payment
+     * @param payRequestDTO 결제 및 주문 생성 요청 DTO (orderItems 필드 필수)
+     * @return 생성된 주문의 ID (Long)
+     */
+    @PostMapping("/cart-payment")
+    public ResponseEntity<Long> processCartPayment(@RequestBody PayRequestDTO payRequestDTO) {
+        log.info("장바구니 다수 상품 결제 요청 수신: {}", payRequestDTO);
+        Long orderId = orderService.processCartPayment(payRequestDTO);
+        log.info("장바구니 주문이 성공적으로 생성되었습니다. 주문 ID: {}", orderId);
+        return new ResponseEntity<>(orderId, HttpStatus.CREATED); // 201 Created
+    }
+
 
     /**
      * 특정 주문 상세 조회
@@ -109,21 +144,5 @@ public class OrderController {
         orderService.deleteOrder(orderDeleteRequestDTO);
         log.info("주문 삭제 처리 완료: 주문 ID {}", orderDeleteRequestDTO.getOrderId());
         return new ResponseEntity<>(HttpStatus.NO_CONTENT); // 204 No Content
-    }
-
-    // 예외 처리 (선택 사항이지만 권장)
-    // @ControllerAdvice 또는 각 Controller 내부에 @ExceptionHandler를 사용하여 예외를 처리할 수 있습니다.
-    @ExceptionHandler({IllegalArgumentException.class, NoSuchElementException.class, IllegalStateException.class})
-    public ResponseEntity<String> handleOrderExceptions(RuntimeException ex) {
-        log.error("주문 처리 중 예외 발생: {}", ex.getMessage());
-        // 각 예외 타입에 따라 다른 HTTP 상태 코드를 반환할 수 있습니다.
-        if (ex instanceof IllegalArgumentException) {
-            return new ResponseEntity<>(ex.getMessage(), HttpStatus.BAD_REQUEST); // 400 Bad Request
-        } else if (ex instanceof NoSuchElementException) {
-            return new ResponseEntity<>(ex.getMessage(), HttpStatus.NOT_FOUND); // 404 Not Found
-        } else if (ex instanceof IllegalStateException) {
-            return new ResponseEntity<>(ex.getMessage(), HttpStatus.CONFLICT); // 409 Conflict (비즈니스 로직 위반)
-        }
-        return new ResponseEntity<>("알 수 없는 서버 오류가 발생했습니다.", HttpStatus.INTERNAL_SERVER_ERROR); // 500 Internal Server Error
     }
 }
