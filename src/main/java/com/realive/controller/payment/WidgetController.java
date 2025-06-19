@@ -5,6 +5,7 @@ import net.minidev.json.parser.JSONParser;
 import net.minidev.json.parser.ParseException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value; // @Value 어노테이션 임포트
 import org.springframework.stereotype.Controller;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -20,6 +21,10 @@ import java.util.Base64;
 public class WidgetController {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
+
+    // .properties 파일에서 토스 시크릿 키를 주입받습니다.
+    @Value("${toss.secret-key}")
+    private String tossSecretKey;
 
     @RequestMapping(value = "/confirm")
     public ResponseEntity<JSONObject> confirmPayment(@RequestBody String jsonBody) throws Exception {
@@ -44,10 +49,9 @@ public class WidgetController {
         obj.put("paymentKey", paymentKey);
 
         // 토스페이먼츠 API는 시크릿 키를 사용자 ID로 사용하고, 비밀번호는 사용하지 않습니다.
-        // 비밀번호가 없다는 것을 알리기 위해 시크릿 키 뒤에 콜론을 추가합니다.
-        String widgetSecretKey = "test_gsk_docs_OaPz8L5KdmQXkzRz3y47BMw6";
+        String widgetSecretKey = tossSecretKey;
         Base64.Encoder encoder = Base64.getEncoder();
-        byte[] encodedBytes = encoder.encode((widgetSecretKey + ":").getBytes(StandardCharsets.UTF_8));
+        byte[] encodedBytes = encoder.encode((widgetSecretKey).getBytes(StandardCharsets.UTF_8));
         String authorizations = "Basic " + new String(encodedBytes);
 
         // 결제를 승인하면 결제수단에서 금액이 차감돼요.

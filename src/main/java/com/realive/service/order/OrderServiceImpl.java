@@ -12,6 +12,7 @@ import com.realive.domain.order.OrderItem;
 import com.realive.domain.product.DeliveryPolicy;
 import com.realive.domain.product.Product;
 import com.realive.dto.order.*;
+import com.realive.dto.payment.TossPaymentApproveRequestDTO; // 추가
 import com.realive.repository.customer.CustomerRepository;
 import com.realive.repository.order.OrderDeliveryRepository;
 import com.realive.repository.order.OrderItemRepository;
@@ -19,13 +20,15 @@ import com.realive.repository.order.OrderRepository;
 import com.realive.repository.product.DeliveryPolicyRepository;
 import com.realive.repository.product.ProductImageRepository;
 import com.realive.repository.product.ProductRepository;
-import jakarta.transaction.Transactional;
+import com.realive.service.payment.PaymentService; // 추가
+import jakarta.transaction.Transactional; // jakarta.transaction.Transactional로 변경 (Spring의 @Transactional과 혼동 주의)
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException; // WebClient 예외 처리용
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -38,7 +41,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional
+@Transactional // Spring의 @Transactional 사용 권장 (org.springframework.transaction.annotation.Transactional)
 @Log4j2
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {
@@ -50,6 +53,7 @@ public class OrderServiceImpl implements OrderService {
     private final DeliveryPolicyRepository deliveryPolicyRepository;
     private final CustomerRepository customerRepository;
     private final OrderDeliveryRepository orderDeliveryRepository;
+    private final PaymentService paymentService; // PaymentService 주입
 
     // 구매내역 조회
     @Override
@@ -113,7 +117,7 @@ public class OrderServiceImpl implements OrderService {
         String currentDeliveryStatus = optionalOrderDelivery
                 .map(delivery -> delivery.getStatus().getDescription())
                 .orElse(DeliveryStatus.INIT.getDescription());
-        String paymentType = "CARD"; // 다른 결제수단은 없음
+        String paymentType = order.getPaymentMethod(); // Order 엔티티에서 결제 방식 가져오기
 
         return OrderResponseDTO.from(
                 order,
@@ -188,7 +192,7 @@ public class OrderServiceImpl implements OrderService {
             }
 
             String currentDeliveryStatus = deliveryStatusByOrderId.getOrDefault(order.getId(), DeliveryStatus.INIT.getDescription());
-            String paymentType = "CARD";
+            String paymentType = order.getPaymentMethod();
 
             OrderResponseDTO orderDTO = OrderResponseDTO.from(
                     order,
@@ -264,6 +268,7 @@ public class OrderServiceImpl implements OrderService {
                         DeliveryStatus.INIT.getDescription()));
             }
 
+            // 배송 취소 시 completeDate를 현재 시간으로 설정
             optionalOrderDelivery.get().setCompleteDate(LocalDateTime.now());
             orderDeliveryRepository.save(optionalOrderDelivery.get());
         }
@@ -380,11 +385,30 @@ public class OrderServiceImpl implements OrderService {
         // 최종 결제 금액 계산
         int finalTotalPrice = calculatedTotalProductPrice + totalDeliveryFee;
 
-        // Payment Gateway 연동 (시뮬레이션)
-        boolean paymentSuccess = processWithPaymentGateway(customer, finalTotalPrice, paymentType);
-        if (!paymentSuccess) {
-            throw new IllegalStateException("결제 처리 중 오류가 발생했거나 결제가 실패했습니다.");
+        // ------------------ 실제 토스페이먼츠 결제 승인 요청 ------------------
+        // PayRequestDTO에서 받은 paymentKey와 tossOrderId를 사용
+        TossPaymentApproveRequestDTO tossApproveRequest = TossPaymentApproveRequestDTO.builder()
+                .paymentKey(payRequestDTO.getPaymentKey())
+                .orderId(payRequestDTO.getTossOrderId()) // 토스페이먼츠 위젯에서 받은 orderId 사용
+                .amount((long) finalTotalPrice) // Long 타입으로 캐스팅
+                .build();
+
+        try {
+            // PaymentService를 통해 토스페이먼츠 API 결제 승인 요청
+            // 이 호출이 성공하면 결제가 최종적으로 완료된 것임.
+            paymentService.approveTossPayment(tossApproveRequest);
+            log.info("토스페이먼츠 결제 승인 성공: paymentKey={}, orderId={}", payRequestDTO.getPaymentKey(), payRequestDTO.getTossOrderId());
+        } catch (ResponseStatusException e) {
+            log.error("토스페이먼츠 API 통신 중 HTTP 오류 발생: {}. 결제 실패", e.getReason(), e);
+            throw new IllegalStateException("결제 처리 중 외부 API 오류가 발생했습니다: " + e.getReason(), e);
+        } catch (IllegalArgumentException e) {
+            log.error("토스페이먼츠 결제 응답 유효성 검증 실패 또는 비즈니스 로직 오류: {}. 결제 실패", e.getMessage(), e);
+            throw new IllegalStateException("결제 데이터 불일치 또는 비정상 상태: " + e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("토스페이먼츠 결제 승인 중 예기치 않은 오류 발생: {}. 결제 실패", e.getMessage(), e);
+            throw new RuntimeException("결제 처리 중 알 수 없는 오류가 발생했습니다.", e);
         }
+        // --------------------------------------------------------------------
 
         // ------------------ 결제 성공 후 DB에 주문 정보 저장 ------------------
         Order order = Order.builder()
@@ -394,6 +418,7 @@ public class OrderServiceImpl implements OrderService {
                 .deliveryAddress(deliveryAddress)
                 .orderedAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
+                .paymentMethod(paymentType.getDescription()) // PaymentType Enum의 설명을 저장
                 .build();
         order = orderRepository.save(order);
 
@@ -412,21 +437,6 @@ public class OrderServiceImpl implements OrderService {
 
         log.info("단일 상품 주문 성공 및 생성 완료: 주문 ID {}", order.getId());
         return order.getId();
-    }
-
-    // `processCartPayment` 메서드는 `CartService`로 이동
-    // @Override
-    // @Transactional
-    // public Long processCartPayment(PayRequestDTO payRequestDTO) { ... }
-
-    // 결제 처리를 하는 시뮬레이션 메서드
-    private boolean processWithPaymentGateway(Customer customer, int amount, PaymentType paymentType) {
-        log.info("--- PG사(Payment Gateway) 결제 요청 시뮬레이션 ---");
-        log.info("  고객 ID: {}", customer.getId());
-        log.info("  결제 금액: {}원", amount);
-        log.info("  결제 수단: {}", paymentType.getDescription());
-        log.info("  PG사 결제 성공 (시뮬레이션)");
-        return true;
     }
 
     @Override

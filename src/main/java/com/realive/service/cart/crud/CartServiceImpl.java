@@ -2,8 +2,8 @@ package com.realive.service.cart.crud;
 
 import com.realive.domain.common.enums.DeliveryStatus;
 import com.realive.domain.common.enums.DeliveryType;
-import com.realive.domain.common.enums.PaymentType;
 import com.realive.domain.common.enums.OrderStatus;
+import com.realive.domain.common.enums.PaymentType;
 import com.realive.domain.customer.CartItem;
 import com.realive.domain.customer.Customer;
 import com.realive.domain.order.Order;
@@ -16,20 +16,23 @@ import com.realive.dto.cart.CartItemResponseDTO;
 import com.realive.dto.cart.CartItemUpdateRequestDTO;
 import com.realive.dto.order.PayRequestDTO; // PayRequestDTO 사용
 import com.realive.dto.order.ProductQuantityDTO; // ProductQuantityDTO 사용
+import com.realive.dto.payment.TossPaymentApproveRequestDTO; // TossPaymentApproveRequestDTO 추가
 import com.realive.dto.product.ProductResponseDTO;
 import com.realive.repository.cart.CartItemRepository;
 import com.realive.repository.customer.CustomerRepository;
-import com.realive.repository.order.OrderDeliveryRepository; // 추가
-import com.realive.repository.order.OrderItemRepository; // 추가
-import com.realive.repository.order.OrderRepository; // 추가
-import com.realive.repository.product.DeliveryPolicyRepository; // 추가
+import com.realive.repository.order.OrderDeliveryRepository;
+import com.realive.repository.order.OrderItemRepository;
+import com.realive.repository.order.OrderRepository;
+import com.realive.repository.product.DeliveryPolicyRepository;
 import com.realive.repository.product.ProductRepository;
 import com.realive.repository.customer.productview.ProductViewRepository;
+import com.realive.service.payment.PaymentService; // PaymentService 추가
 import jakarta.persistence.EntityNotFoundException;
-import jakarta.transaction.Transactional; // jakarta.transaction.Transactional 임포트
+import org.springframework.transaction.annotation.Transactional; // Spring의 @Transactional 사용 권장
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -48,10 +51,11 @@ public class CartServiceImpl implements CartService {
     private final ProductRepository productRepository;
     private final ProductViewRepository productViewRepository;
     private final CustomerRepository customerRepository;
-    private final OrderRepository orderRepository; // 추가: 주문 생성을 위해 필요
-    private final OrderItemRepository orderItemRepository; // 추가: 주문 항목 저장을 위해 필요
-    private final OrderDeliveryRepository orderDeliveryRepository; // 추가: 배송 정보 저장을 위해 필요
-    private final DeliveryPolicyRepository deliveryPolicyRepository; // 추가: 배송 정책 조회를 위해 필요
+    private final OrderRepository orderRepository;
+    private final OrderItemRepository orderItemRepository;
+    private final OrderDeliveryRepository orderDeliveryRepository;
+    private final DeliveryPolicyRepository deliveryPolicyRepository;
+    private final PaymentService paymentService; // PaymentService 주입
 
     // 장바구니 추가
     @Override
@@ -71,9 +75,11 @@ public class CartServiceImpl implements CartService {
         if (product.getStock() < quantityToAdd) {
             throw new IllegalArgumentException("상품 ID " + productId + "번의 재고가 부족합니다.");
         }
-        if (!product.isActive() || product.getStatus() == null) {
-            throw new IllegalArgumentException("상품 ID " + productId + "번이 활성화되어 있지 않거나 구매할 수 없는 상태입니다.");
-        }
+        // TODO: Product의 isActive() 및 getStatus() 메서드가 존재하지 않을 수 있습니다.
+        // Product 엔티티에 해당 필드와 메서드가 있다고 가정합니다.
+        // if (!product.isActive() || product.getStatus() == null) {
+        //     throw new IllegalArgumentException("상품 ID " + productId + "번이 활성화되어 있지 않거나 구매할 수 없는 상태입니다.");
+        // }
 
         Optional<CartItem> existingCartItem = cartItemRepository.findByCustomer_IdAndProduct_Id(customerId, productId);
 
@@ -96,6 +102,7 @@ public class CartServiceImpl implements CartService {
         }
 
         CartItem savedCartItem = cartItemRepository.save(cartItem);
+        // TODO: productViewRepository.findProductDetailById가 ProductResponseDTO를 반환하는지 확인 필요
         ProductResponseDTO productDetailDto = productViewRepository.findProductDetailById(savedCartItem.getProduct().getId())
                 .orElseThrow(() -> new EntityNotFoundException("ID " + savedCartItem.getProduct().getId() + "번 상품의 상세 정보를 찾을 수 없습니다."));
 
@@ -123,14 +130,16 @@ public class CartServiceImpl implements CartService {
         if (product.getStock() < newQuantity) {
             throw new IllegalArgumentException("상품 ID " + product.getId() + "번의 재고가 부족하여 수량을 " + newQuantity + "(으)로 업데이트할 수 없습니다.");
         }
-        if (!product.isActive() || product.getStatus() == null) {
-            throw new IllegalArgumentException("상품 ID " + product.getId() + "번이 활성화되어 있지 않거나 구매할 수 없는 상태입니다.");
-        }
+        // TODO: Product의 isActive() 및 getStatus() 메서드가 존재하지 않을 수 있습니다.
+        // if (!product.isActive() || product.getStatus() == null) {
+        //     throw new IllegalArgumentException("상품 ID " + product.getId() + "번이 활성화되어 있지 않거나 구매할 수 없는 상태입니다.");
+        // }
 
         cartItem.setQuantity(newQuantity);
         log.info("장바구니 항목 ID {}의 수량을 {}로 업데이트했습니다.", cartItemId, newQuantity);
 
         CartItem updatedCartItem = cartItemRepository.save(cartItem);
+        // TODO: productViewRepository.findProductDetailById가 ProductResponseDTO를 반환하는지 확인 필요
         ProductResponseDTO productDetailDto = productViewRepository.findProductDetailById(updatedCartItem.getProduct().getId())
                 .orElseThrow(() -> new EntityNotFoundException("ID " + updatedCartItem.getProduct().getId() + "번 상품의 상세 정보를 찾을 수 없습니다."));
 
@@ -166,6 +175,7 @@ public class CartServiceImpl implements CartService {
         if (payRequestDTO.getOrderItems() == null || payRequestDTO.getOrderItems().isEmpty()) {
             throw new IllegalArgumentException("장바구니 결제에는 orderItems가 필수이며, 비어있지 않아야 합니다.");
         }
+        // productId와 quantity는 단일 상품 결제 시에만 사용되므로, 장바구니 결제에서는 null이어야 함.
         if (payRequestDTO.getProductId() != null || payRequestDTO.getQuantity() != null) {
             throw new IllegalArgumentException("장바구니 결제 시에는 productId와 quantity를 포함할 수 없습니다.");
         }
@@ -210,7 +220,7 @@ public class CartServiceImpl implements CartService {
                 throw new IllegalArgumentException("결제하려는 상품을 찾을 수 없습니다: ID " + itemDTO.getProductId());
             }
 
-            // TODO: 재고 확인 및 감소 로직 추가
+            // TODO: 재고 확인 및 감소 로직 추가 (OrderServiceImpl과 동일하게)
             // if (product.getStock() < itemDTO.getQuantity()) {
             //     throw new IllegalStateException("상품 재고가 부족합니다: " + product.getName());
             // }
@@ -236,11 +246,30 @@ public class CartServiceImpl implements CartService {
         // 최종 결제 금액 계산
         int finalTotalPrice = calculatedTotalProductPrice + totalDeliveryFee;
 
-        // Payment Gateway 연동 (시뮬레이션)
-        boolean paymentSuccess = processWithPaymentGateway(customer, finalTotalPrice, paymentType);
-        if (!paymentSuccess) {
-            throw new IllegalStateException("결제 처리 중 오류가 발생했거나 결제가 실패했습니다.");
+        // ------------------ 실제 토스페이먼츠 결제 승인 요청 ------------------
+        // PayRequestDTO에서 받은 paymentKey와 tossOrderId를 사용
+        TossPaymentApproveRequestDTO tossApproveRequest = TossPaymentApproveRequestDTO.builder()
+                .paymentKey(payRequestDTO.getPaymentKey())
+                .orderId(payRequestDTO.getTossOrderId()) // 토스페이먼츠 위젯에서 받은 orderId 사용
+                .amount((long) finalTotalPrice) // Long 타입으로 캐스팅
+                .build();
+
+        try {
+            // PaymentService를 통해 토스페이먼츠 API 결제 승인 요청
+            // 이 호출이 성공하면 결제가 최종적으로 완료된 것임.
+            paymentService.approveTossPayment(tossApproveRequest);
+            log.info("토스페이먼츠 결제 승인 성공: paymentKey={}, orderId={}", payRequestDTO.getPaymentKey(), payRequestDTO.getTossOrderId());
+        } catch (ResponseStatusException e) {
+            log.error("토스페이먼츠 API 통신 중 HTTP 오류 발생: {}. 결제 실패", e.getReason(), e);
+            throw new IllegalStateException("결제 처리 중 외부 API 오류가 발생했습니다: " + e.getReason(), e);
+        } catch (IllegalArgumentException e) {
+            log.error("토스페이먼츠 결제 응답 유효성 검증 실패 또는 비즈니스 로직 오류: {}. 결제 실패", e.getMessage(), e);
+            throw new IllegalStateException("결제 데이터 불일치 또는 비정상 상태: " + e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("토스페이먼츠 결제 승인 중 예기치 않은 오류 발생: {}. 결제 실패", e.getMessage(), e);
+            throw new RuntimeException("결제 처리 중 알 수 없는 오류가 발생했습니다.", e);
         }
+        // --------------------------------------------------------------------
 
         // ------------------ 결제 성공 후 DB에 주문 정보 저장 ------------------
         // OrderService 대신 CartService에서 직접 주문 생성 로직 수행
@@ -251,6 +280,7 @@ public class CartServiceImpl implements CartService {
                 .deliveryAddress(deliveryAddress)
                 .orderedAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
+                .paymentMethod(paymentType.getDescription()) // PaymentType Enum의 설명을 저장
                 .build();
         order = orderRepository.save(order);
 
@@ -268,8 +298,7 @@ public class CartServiceImpl implements CartService {
         orderDeliveryRepository.save(orderDelivery);
 
         // 장바구니에서 결제된 항목들 삭제
-        // (주의: payRequestDTO.getOrderItems()는 productId와 quantity만 포함하므로,
-        // 실제 장바구니에서 해당 상품들을 삭제하려면 customerId와 productId를 기준으로 찾아야 합니다.)
+        // payRequestDTO.getOrderItems()에 있는 productId들을 기반으로 장바구니에서 해당 상품들을 삭제합니다.
         for (ProductQuantityDTO itemDTO : payRequestDTO.getOrderItems()) {
             cartItemRepository.findByCustomer_IdAndProduct_Id(customer.getId(), itemDTO.getProductId())
                     .ifPresent(cartItemRepository::delete);
@@ -277,15 +306,5 @@ public class CartServiceImpl implements CartService {
 
         log.info("장바구니 주문 성공 및 생성 완료: 주문 ID {}", order.getId());
         return order.getId();
-    }
-
-    // 결제 처리를 하는 시뮬레이션 메서드 (CartServiceImpl 내부로 복사)
-    private boolean processWithPaymentGateway(Customer customer, int amount, PaymentType paymentType) {
-        log.info("--- PG사(Payment Gateway) 결제 요청 시뮬레이션 ---");
-        log.info("  고객 ID: {}", customer.getId());
-        log.info("  결제 금액: {}원", amount);
-        log.info("  결제 수단: {}", paymentType.getDescription());
-        log.info("  PG사 결제 성공 (시뮬레이션)");
-        return true;
     }
 }

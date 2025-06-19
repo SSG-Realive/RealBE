@@ -31,10 +31,10 @@ public class Payment extends BaseTimeEntity {
     private Order order;
 
     @Column(nullable = false)
-    private int amount;
+    private Long amount;
 
     @Column(name = "balance_amount")
-    private Integer balanceAmount;
+    private Long balanceAmount;
 
     @Column(name = "method", nullable = false, length = 50)
     private String method;

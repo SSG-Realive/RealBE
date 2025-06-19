@@ -82,7 +82,7 @@ public class CartController {
     /**
      * **장바구니 다수 상품 결제 처리**
      * POST /api/customer/cart/payment (경로 변경)
-     * @param payRequestDTO 결제 및 주문 생성 요청 DTO (orderItems 필드 필수)
+     * @param payRequestDTO 결제 및 주문 생성 요청 DTO (orderItems, paymentKey, tossOrderId 필드 필수)
      * @param userDetails 현재 인증된 사용자 정보
      * @return 생성된 주문의 ID (Long)
      */
