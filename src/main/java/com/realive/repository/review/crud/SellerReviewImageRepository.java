@@ -8,7 +8,7 @@ import java.util.List;
 
 @Repository
 public interface SellerReviewImageRepository extends JpaRepository<SellerReviewImage, Long> {
-    void deleteByReview_Id(Long reviewId);
+    void deleteByReviewId(Long reviewId);
 
     // ReviewServiceImpl에서 업데이트 후, 또는 삭제 전 이미지 URL을 가져오기 위함
     List<SellerReviewImage> findByReviewId(Long reviewId); // SellerReview 엔티티의 ID를 매핑
