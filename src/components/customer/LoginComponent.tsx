@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
-import { useAuthStore } from '@/store/customer/authStore';
+import { useAuthStore } from '@/store/authStore';
 
 export default function LoginForm() {
   const router = useRouter();
@@ -30,49 +30,60 @@ export default function LoginForm() {
     }));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError('');
 
+    // 1. 이벤트(e)가 발생한 form 요소를 직접 가져옵니다.
+    const form = e.currentTarget;
+    // 2. form 안의 input 요소들을 이름으로 접근할 수 있도록 타입을 지정합니다.
+    const formElements = form.elements as typeof form.elements & {
+        email: { value: string };
+        password: { value: string };
+    };
+
+    // 3. state 대신, input 요소에서 직접 값을 읽어옵니다.
+    const payload = {
+        email: formElements.email.value,
+        password: formElements.password.value,
+    };
+
+    console.log("--- [최종 확인] 입력창에서 직접 읽은 데이터 ---");
+    console.log("전송할 페이로드:", payload);
+    console.log("전송할 비밀번호 값:", payload.password);
+    console.log("---------------------------------------");
+
     try {
-      console.log('Attempting login with:', formData); // 디버깅용
+        const response = await fetch('/api/customer/login', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            // ✅ formData state 대신, 직접 읽어온 payload를 전송합니다.
+            body: JSON.stringify(payload),
+        });
 
-      const response = await fetch('/api/customer/login', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(formData),
-      });
+        const data = await response.json();
 
-      console.log('Login response status:', response.status); // 디버깅용
+        if (!response.ok) {
+            const errorMessage = data.message || data.error || '로그인에 실패했습니다.';
+            setError(errorMessage);
+            return;
+        }
 
-      const data = await response.json();
-      console.log('Login response data:', data); // 디버깅용
+        if (data.success && data.data?.accessToken) {
+            setToken(data.data.accessToken);
 
-      if (!response.ok) {
-        // 서버에서 반환한 에러 메시지가 있으면 사용, 없으면 기본 메시지 사용
-        const errorMessage = data.message || data.error || '로그인에 실패했습니다.';
-        setError(errorMessage);
-        return;
-      }
-
-      if (data.success && data.data?.token) {
-        // 토큰 저장
-        setToken(data.data.token);
-        
-        // 이전 페이지로 리다이렉션 (없으면 홈으로)
-        const redirectTo = searchParams?.get('redirectTo');
-        console.log('Redirecting to:', redirectTo); // 디버깅용
-        router.push(redirectTo || '/');
-      } else {
-        setError('로그인 응답이 올바르지 않습니다.');
-      }
+            const redirectTo = searchParams?.get('redirectTo');
+            router.push(redirectTo || '/');
+        } else {
+            setError('로그인 응답이 올바르지 않습니다.');
+        }
     } catch (err) {
-      console.error('Login error:', err);
-      setError('로그인 처리 중 오류가 발생했습니다.');
+        console.error('Login error:', err);
+        setError('로그인 처리 중 오류가 발생했습니다.');
     }
-  };
+};
 
   const handleKakaoLogin = () => {
     const state = crypto.randomUUID();
@@ -86,7 +97,7 @@ export default function LoginForm() {
     
     const redirectTo = encodeURIComponent(`${window.location.origin}/customer/oauth/callback`);
     
-    window.location.href = `${process.env.NEXT_PUBLIC_API_BASE_URL}/oauth2/authorization/kakao?state=${state}&redirectTo=${redirectTo}`;
+    window.location.href = `${process.env.NEXT_PUBLIC_API_ROOT_URL}/oauth2/authorization/kakao?state=${state}&redirectTo=${redirectTo}`;
   };
 
 

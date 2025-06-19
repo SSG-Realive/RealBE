@@ -2,13 +2,13 @@
 
 import { useEffect, useState } from 'react';
 import { useParams, useRouter } from 'next/navigation';
-import { getQnaDetail, updateQna, deleteQna } from '@/service/sellerQnaService';
+import { getQnaDetail, updateQna, deleteQna } from '@/service/seller/sellerQnaService';
 
 import SellerHeader from '@/components/seller/SellerHeader';
 import SellerLayout from '@/components/layouts/SellerLayout';
 import useSellerAuthGuard from '@/hooks/useSellerAuthGuard';
-import { SellerQnaUpdateRequest } from '@/types/sellerqna/sellerQnaRequest';
-import { SellerQnaDetailResponse } from '@/types/sellerqna/sellerQnaResponse';
+import { SellerQnaUpdateRequest } from '@/types/seller/sellerqna/sellerQnaRequest';
+import { SellerQnaDetailResponse } from '@/types/seller/sellerqna/sellerQnaResponse';
 
 export default function QnaEditPage() {
     useSellerAuthGuard();

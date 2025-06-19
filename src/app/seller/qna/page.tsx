@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getQnaList } from '@/service/sellerQnaService';
-import { SellerQnaResponse } from '@/types/sellerqna/sellerQnaResponse';
+import { getQnaList } from '@/service/seller/sellerQnaService';
+import { SellerQnaResponse } from '@/types/seller/sellerqna/sellerQnaResponse';
 import SellerLayout from '@/components/layouts/SellerLayout';
 import useSellerAuthGuard from '@/hooks/useSellerAuthGuard';
 import SellerHeader from '@/components/seller/SellerHeader';

@@ -2,12 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { getSellerOrders } from '@/service/sellerOrderService';
-import { SellerOrderResponse } from '@/types/sellerorder/sellerOrder';
+import { getSellerOrders } from '@/service/seller/sellerOrderService';
+import { SellerOrderResponse } from '@/types/seller/sellerorder/sellerOrder';
 import SellerHeader from '@/components/seller/SellerHeader';
 import SellerLayout from '@/components/layouts/SellerLayout';
 import useSellerAuthGuard from '@/hooks/useSellerAuthGuard';
-import { PageResponseForOrder } from '@/types/page/pageResponseForOrder';
+import { PageResponseForOrder } from '@/types/seller/page/pageResponseForOrder';
 
 export default function SellerOrderListPage() {
   const checking = useSellerAuthGuard(); // ✅ 인증 확인

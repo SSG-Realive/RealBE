@@ -3,7 +3,7 @@
 
 import { useState, ChangeEvent, FormEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { signup } from '../../../service/signupService';
+import { signup } from '../../../service/seller/signupService';
 
 const SellerSignup: React.FC = () => {
   const [email, setEmail] = useState<string>('');
