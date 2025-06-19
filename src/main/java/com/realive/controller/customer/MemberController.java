@@ -79,6 +79,4 @@ public class MemberController {
         memberService.deactivateByEmail(principal.getEmail());
         return ResponseEntity.ok("회원 탈퇴가 정상 처리되었습니다.");
     }
-
 }
-
