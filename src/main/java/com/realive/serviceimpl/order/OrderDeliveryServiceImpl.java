@@ -65,7 +65,7 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
         // 배송 준비되면 stock 차감 로직
         if (newStatus == DeliveryStatus.DELIVERY_PREPARING && currentStatus != DeliveryStatus.DELIVERY_PREPARING) {
 
-            List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderIdForItems);
+            List<OrderItem> orderItems = orderItemRepository.findByOrder_Id(orderIdForItems);
 
             for (OrderItem item : orderItems) {
                 Product product = productRepository.findByIdForUpdate(item.getProduct().getId());
@@ -98,7 +98,7 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
             delivery.setCompleteDate(LocalDateTime.now());
         }
 
-        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderIdForItems);
+        List<OrderItem> orderItems = orderItemRepository.findByOrder_Id(orderIdForItems);
 
         for (OrderItem item : orderItems) {
             Product product = productRepository.findByIdForUpdate(item.getProduct().getId());
@@ -129,7 +129,7 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
 
         return deliveries.stream()
                 .map(d -> {
-                    List<OrderItem> orderItems = orderItemRepository.findByOrderId(d.getOrder().getId());
+                    List<OrderItem> orderItems = orderItemRepository.findByOrder_Id(d.getOrder().getId());
                     String productName = orderItems.isEmpty() ? "상품 없음" : orderItems.get(0).getProduct().getName();
 
                     return OrderDeliveryResponseDTO.builder()
@@ -153,7 +153,7 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
                 .findByOrderIdAndSellerId(orderId, sellerId)
                 .orElseThrow(() -> new IllegalArgumentException("배송 정보가 존재하지 않습니다."));
 
-        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
+        List<OrderItem> orderItems = orderItemRepository.findByOrder_Id(orderId);
         if (orderItems.isEmpty()) {
             throw new IllegalArgumentException("주문에 상품이 없습니다.");
         }
@@ -198,7 +198,7 @@ public class OrderDeliveryServiceImpl implements OrderDeliveryService {
         log.info("❌ 배송 취소 처리됨 - orderId={}, sellerId={}", orderId, sellerId);
 
         // 🔒 재고 복원 (동시성 방지를 위해 락 걸고 처리)
-        List<OrderItem> items = orderItemRepository.findByOrderId(orderId);
+        List<OrderItem> items = orderItemRepository.findByOrder_Id(orderId);
         for (OrderItem item : items) {
             Product product = productRepository.findByIdForUpdate(item.getProduct().getId());
 

@@ -17,9 +17,11 @@ import com.realive.repository.product.CategoryRepository;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.stereotype.Repository;
 
 @Log4j2
 @RequiredArgsConstructor
+@Repository
 public class ProductSearchImpl implements ProductSearch {
 
     private final JPAQueryFactory queryFactory;
