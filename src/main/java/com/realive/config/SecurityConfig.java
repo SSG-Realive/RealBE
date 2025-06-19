@@ -47,7 +47,6 @@ public class SecurityConfig {
     private final AdminJwtAuthenticationFilter adminJwtAuthenticationFilter;
     private final CustomLoginSuccessHandler customLoginSuccessHandler;
 
-
     @Autowired
     @Qualifier("customUserDetailsService")
     private UserDetailsService customUserDetailsService;
@@ -106,7 +105,7 @@ public class SecurityConfig {
                 .securityMatcher("/api/admin/**")
                 .authenticationManager(authenticationManager()) // 명시적 연결
                 .csrf(csrf -> csrf.disable())
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))  // ★ 추가!
+                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/admin/login").permitAll()
@@ -153,10 +152,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/public/**", "/api/auth/**").permitAll()
                         .requestMatchers("/api/oauth2/**").permitAll()
-                        .requestMatchers("/api/customer/**").hasAuthority("ROLE_CUSTOMER")
+                        .requestMatchers("/api/customer/**").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_USER")
                         .anyRequest().denyAll()
                 )
-                .oauth2Login(config -> config.successHandler(customLoginSuccessHandler))
                 .addFilterBefore(customerJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
@@ -207,7 +205,6 @@ public class SecurityConfig {
 
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
         source.registerCorsConfiguration("/**", corsConfiguration);
-
         return source;
     }
 }

@@ -20,7 +20,8 @@ import org.springframework.web.filter.OncePerRequestFilter;
 import java.io.IOException;
 import java.util.List;
 
-// 관리자용 jwt 인증 필터
+// [Admin] JWT 토큰을 이용한 인증 필터
+
 @Component
 @RequiredArgsConstructor
 @Slf4j
@@ -48,7 +49,8 @@ public class AdminJwtAuthenticationFilter extends OncePerRequestFilter {
                     String role = claims.get("auth", String.class);
 
                     if (email != null && adminId != null && role != null) {
-                        Admin adminPrincipal = Admin.builder().id(adminId.intValue()).email(email).build();
+                        Admin adminForPrincipal = Admin.builder().id(adminId.intValue()).email(email).build();
+                        AdminPrincipal adminPrincipal = new AdminPrincipal(adminForPrincipal);
                         List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
                         Authentication authentication = new UsernamePasswordAuthenticationToken(adminPrincipal, null, authorities);
                         SecurityContextHolder.getContext().setAuthentication(authentication);
