@@ -20,7 +20,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
         JOIN FETCH p.seller
         WHERE oi.order.id = :orderId
     """)
- List<OrderItem> findByOrder_Id(Long orderId);
+ List<OrderItem> findByOrderId(Long orderId);
 
  // 다수 주문 id로 주문 상품 전체 조회 + product + seller 정보 포함
  @Query("""
@@ -30,7 +30,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
         JOIN FETCH p.seller
         WHERE oi.order.id IN :orderIds
     """)
- List<OrderItem> findByOrder_IdIn(List<Long> orderIds);
+ List<OrderItem> findByOrderIdIn(List<Long> orderIds);
 
  /**
   * 주문에 포함된 판매자 ID 목록 조회 (중복 제거)
