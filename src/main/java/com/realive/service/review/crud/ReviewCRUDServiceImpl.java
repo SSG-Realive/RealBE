@@ -92,7 +92,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
         review.setRating(requestDTO.getRating().intValue()); // 🔧 int 변환
         review.setContent(requestDTO.getContent());
 
-        imageRepository.deleteByReview_Id(reviewId);
+        imageRepository.deleteByReviewId(reviewId);
         List<String> imageUrls = saveImages(review, requestDTO.getImageUrls());
 
         SellerReview updatedReview = reviewRepository.save(review);
@@ -121,7 +121,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
             throw new SecurityException("리뷰를 삭제하실 수 있는 권한이 없습니다.");
         }
 
-        imageRepository.deleteByReview_Id(reviewId);
+        imageRepository.deleteByReviewId(reviewId);
         reviewRepository.delete(review);
     }
 
