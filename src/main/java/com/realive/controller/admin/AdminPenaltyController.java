@@ -1,3 +1,5 @@
+// AdminPenaltyController.java
+
 package com.realive.controller.admin;
 
 import com.realive.domain.logs.PenaltyLog;
@@ -10,7 +12,6 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
-
 
 @RestController
 @RequestMapping("/api/admin/penalties")
@@ -30,13 +31,13 @@ public class AdminPenaltyController {
         return ResponseEntity.ok(PenaltyLogDTO.fromEntity(saved));
     }
 
-    // 페이징+검색 (이것만 두세요!)
+    // 페이징+검색 (customerId 타입을 Long으로 변경)
     @GetMapping
     public ResponseEntity<Page<PenaltyLogDTO>> getPenalties(
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "10") int size,
             @RequestParam(required = false) String reason,
-            @RequestParam(required = false) Integer customerId
+            @RequestParam(required = false) Long customerId // Integer → Long
     ) {
         Pageable pageable = PageRequest.of(page, size);
 
@@ -55,6 +56,7 @@ public class AdminPenaltyController {
         return ResponseEntity.ok(dtos);
     }
 
+    // penaltyId는 DB가 int4(Integer)이므로 그대로 유지
     @GetMapping("/{penaltyId:[0-9]+}")
     public ResponseEntity<PenaltyLogDTO> getPenalty(@PathVariable("penaltyId") Integer penaltyId) {
         PenaltyLog penalty = penaltyLogRepository.findById(penaltyId)
