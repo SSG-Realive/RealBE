@@ -4,7 +4,7 @@ import com.realive.domain.customer.Customer;
 import com.realive.domain.order.Order;
 import com.realive.domain.review.SellerReviewImage;
 import com.realive.domain.seller.Seller;
-import com.realive.domain.seller.SellerReview;
+import com.realive.domain.review.SellerReview;
 import com.realive.dto.review.ReviewCreateRequestDTO;
 import com.realive.dto.review.ReviewResponseDTO;
 import com.realive.dto.review.ReviewUpdateRequestDTO;
@@ -35,7 +35,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
     @Transactional
     public ReviewResponseDTO createReview(ReviewCreateRequestDTO requestDTO, Long customerId) {
         // 1. 중복 리뷰 확인
-        reviewRepository.findByOrderIdAndCustomerIdAndSellerId(
+        reviewRepository.findByOrder_IdAndCustomer_IdAndSeller_Id(
                         requestDTO.getOrderId(), customerId, requestDTO.getSellerId())
                 .ifPresent(review -> {
                     throw new IllegalStateException("A review for this order and seller by this customer already exists.");
@@ -75,7 +75,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
                 .content(savedReview.getContent())
                 .imageUrls(imageUrls)
                 .createdAt(savedReview.getCreatedAt())
-                .isHidden(savedReview.getIsHidden()) // 🔧 수정
+                .isHidden(savedReview.isHidden()) // 🔧 수정
                 .build();
     }
 
@@ -92,7 +92,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
         review.setRating(requestDTO.getRating().intValue()); // 🔧 int 변환
         review.setContent(requestDTO.getContent());
 
-        imageRepository.deleteByReviewId(reviewId);
+        imageRepository.deleteByReview_Id(reviewId);
         List<String> imageUrls = saveImages(review, requestDTO.getImageUrls());
 
         SellerReview updatedReview = reviewRepository.save(review);
@@ -107,7 +107,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
                 .content(updatedReview.getContent())
                 .imageUrls(imageUrls)
                 .createdAt(updatedReview.getCreatedAt())
-                .isHidden(updatedReview.getIsHidden()) // 🔧 수정
+                .isHidden(updatedReview.isHidden()) // 🔧 수정
                 .build();
     }
 
@@ -121,7 +121,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
             throw new SecurityException("리뷰를 삭제하실 수 있는 권한이 없습니다.");
         }
 
-        imageRepository.deleteByReviewId(reviewId);
+        imageRepository.deleteByReview_Id(reviewId);
         reviewRepository.delete(review);
     }
 
@@ -142,5 +142,10 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
                     .collect(Collectors.toList());
         }
         return savedImageUrls;
+    }
+
+    @Override
+    public boolean checkReviewExistence(Long orderId, Long customerId) {
+        return reviewRepository.findByOrder_IdAndCustomer_Id(orderId, customerId).isPresent();
     }
 }
