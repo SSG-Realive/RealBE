@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server';
 import axios from 'axios';
 import api from '@/app/lib/axios'; // 커스텀 axios 인스턴스
-import { MemberJoinDTO } from '@/types/custoemr/signup/signup';
+import { MemberJoinDTO } from '@/types/customer/signup/signup';
 
 
 export async function POST(request: Request) {

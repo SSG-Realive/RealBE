@@ -1,4 +1,4 @@
-// src/types/product.ts
+// src/types/seller/product/product.ts
 
 export interface DeliveryPolicy {
     type: '무료배송' | '유료배송';
@@ -12,22 +12,30 @@ export interface ProductDetail {
     description: string;
     price: number;
     stock: number;
-    width: number;
-    depth: number;
-    height: number;
+    width?: number;
+    depth?: number;
+    height?: number;
     status: string;
-    active: boolean;
-    categoryId: number;
-    categoryName: string;
-    deliveryPolicy: DeliveryPolicy;
+    isActive: boolean;
     imageThumbnailUrl: string;
-    
+    videoThumbnailUrl?: string;
+    categoryName?: string;
+    categoryId?: number;
+    parentCategoryId?: number;
+    seller?: string;
 }
 
 export interface ProductListDTO {
-    productId: number;
+    id: number;
     name: string;
     price: number;
-    thumbnailUrl: string;
+    status: string;
+    isActive: boolean;
+    imageThumbnailUrl: string;
+    parentCategoryName: string | null;
+    categoryName: string;
+    sellerName: string;
+    sellerId: number;
+    stock: number;
     isWished: boolean;
 }

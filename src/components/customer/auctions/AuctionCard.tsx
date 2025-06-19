@@ -2,7 +2,6 @@
 
 import Link from 'next/link';
 
-
 interface AuctionCardProps {
   auction: any;
   isLast: boolean;

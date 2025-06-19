@@ -1,7 +1,8 @@
-import apiClient from '@/lib/apiClient';
+import { sellerApi } from "@/lib/apiClient";
+
 
 export async function signup(formData: FormData) {
-  const response = await apiClient.post('/seller/signup', formData, {
+  const response = await sellerApi.post('/seller/signup', formData, {
     headers: { 'Content-Type': 'multipart/form-data' },
   });
   return response.data;

@@ -11,7 +11,7 @@ export async function POST(request: Request) {
       password: body.password
     };
 
-    const response = await api.post('/api/public/auth/login', credentials);
+    const response = await api.post('api/public/auth/login', credentials);
     
     return NextResponse.json({
       success: true,
