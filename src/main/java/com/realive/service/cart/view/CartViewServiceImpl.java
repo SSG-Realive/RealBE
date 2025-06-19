@@ -30,7 +30,7 @@ public class CartViewServiceImpl implements CartViewService {
     public CartListResponseDTO getCart(Long customerId) {
         log.info("고객 ID: {}에 대한 장바구니를 조회합니다", customerId);
 
-        List<CartItem> cartItems = cartItemRepository.findByCustomer_Id(customerId);
+        List<CartItem> cartItems = cartItemRepository.findByCustomerId(customerId);
 
         // Cart에 있는 Product들의 Id를 productIds에 담기
         List<Long> productIds = cartItems.stream()

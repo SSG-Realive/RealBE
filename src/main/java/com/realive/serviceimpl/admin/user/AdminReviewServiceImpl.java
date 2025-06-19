@@ -99,7 +99,7 @@ public class AdminReviewServiceImpl implements AdminReviewService {
             Order order = review.getOrder();
             orderIdFromReview = order.getId();
 
-            List<OrderItem> orderItems = orderItemRepository.findByOrder_Id(order.getId());
+            List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
             if (orderItems != null && !orderItems.isEmpty()) {
                 OrderItem firstOrderItem = orderItems.get(0); // 첫 번째 주문 항목의 상품을 대표로 가정
                 if (firstOrderItem.getProduct() != null) {

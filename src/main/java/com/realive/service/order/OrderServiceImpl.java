@@ -58,10 +58,10 @@ public class OrderServiceImpl implements OrderService {
     // 구매내역 조회
     @Override
     public OrderResponseDTO getOrder(Long orderId, Long customerId) {
-        Order order = orderRepository.findByCustomer_IdAndId(customerId, orderId)
+        Order order = orderRepository.findByCustomerIdAndId(customerId, orderId)
                 .orElseThrow(() -> new NoSuchElementException("존재하지 않는 구매 내역입니다. (주문 ID: " + orderId + ", 고객 ID: " + customerId + ")"));
 
-        List<OrderItem> orderItems = orderItemRepository.findByOrder_Id(order.getId());
+        List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
 
         if (orderItems.isEmpty()) {
             throw new NoSuchElementException("주문 항목이 없습니다.");
@@ -136,7 +136,7 @@ public class OrderServiceImpl implements OrderService {
 
         List<Long> orderIds = orderPage.getContent().stream().map(Order::getId).collect(Collectors.toList());
 
-        Map<Long, List<OrderItem>> orderItemsByOrderId = orderItemRepository.findByOrder_IdIn(orderIds).stream()
+        Map<Long, List<OrderItem>> orderItemsByOrderId = orderItemRepository.findByOrderIdIn(orderIds).stream()
                 .collect(Collectors.groupingBy(item -> item.getOrder().getId()));
 
         List<Long> productIds = orderItemsByOrderId.values().stream()
@@ -216,7 +216,7 @@ public class OrderServiceImpl implements OrderService {
         Long orderId = orderDeleteRequestDTO.getOrderId();
         Long customerId = orderDeleteRequestDTO.getCustomerId();
 
-        Order order = orderRepository.findByCustomer_IdAndId(customerId, orderId)
+        Order order = orderRepository.findByCustomerIdAndId(customerId, orderId)
                 .orElseThrow(() -> new NoSuchElementException("삭제하려는 주문을 찾을 수 없습니다: 주문 ID " + orderId + ", 고객 ID " + customerId));
 
         Optional<OrderDelivery> optionalOrderDelivery = orderDeliveryRepository.findByOrder(order);
@@ -237,7 +237,7 @@ public class OrderServiceImpl implements OrderService {
                     OrderStatus.PAYMENT_COMPLETED.getDescription(), OrderStatus.ORDER_RECEIVED.getDescription(), OrderStatus.INIT.getDescription()));
         }
 
-        List<OrderItem> orderItemsToDelete = orderItemRepository.findByOrder_Id(order.getId());
+        List<OrderItem> orderItemsToDelete = orderItemRepository.findByOrderId(order.getId());
         orderItemRepository.deleteAll(orderItemsToDelete);
 
         optionalOrderDelivery.ifPresent(orderDeliveryRepository::delete);
@@ -254,7 +254,7 @@ public class OrderServiceImpl implements OrderService {
         Long customerId = orderCancelRequestDTO.getCustomerId();
         String reason = orderCancelRequestDTO.getReason();
 
-        Order order = orderRepository.findByCustomer_IdAndId(customerId, orderId)
+        Order order = orderRepository.findByCustomerIdAndId(customerId, orderId)
                 .orElseThrow(() -> new NoSuchElementException("취소하려는 주문을 찾을 수 없습니다 : 주문 ID " + orderId + ", 고객 ID " + customerId));
 
         Optional<OrderDelivery> optionalOrderDelivery = orderDeliveryRepository.findByOrder(order);
@@ -299,7 +299,7 @@ public class OrderServiceImpl implements OrderService {
         Long orderId = orderConfirmRequestDTO.getOrderId();
         Long customerId = orderConfirmRequestDTO.getCustomerId();
 
-        Order order = orderRepository.findByCustomer_IdAndId(customerId, orderId)
+        Order order = orderRepository.findByCustomerIdAndId(customerId, orderId)
                 .orElseThrow(() -> new NoSuchElementException("구매확정 하려는 주문을 찾을 수 없습니다: 주문 ID " + orderId + ", 고객 ID " + customerId));
 
         OrderDelivery orderDelivery = orderDeliveryRepository.findByOrder(order)

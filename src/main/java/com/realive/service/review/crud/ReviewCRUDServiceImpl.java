@@ -39,7 +39,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
     @Transactional
     public ReviewResponseDTO createReview(ReviewCreateRequestDTO requestDTO, Long customerId) {
         // 이미 해당 주문, 고객, 판매자 조합으로 리뷰가 있는지 확인
-        reviewRepository.findByOrder_IdAndCustomer_IdAndSeller_Id(requestDTO.getOrderId(), customerId, requestDTO.getSellerId())
+        reviewRepository.findByOrderIdAndCustomerIdAndSellerId(requestDTO.getOrderId(), customerId, requestDTO.getSellerId())
                 .ifPresent(review -> {
                     log.warn("createReview - 이미 작성된 리뷰 시도: orderId={}, customerId={}, sellerId={}",
                             requestDTO.getOrderId(), customerId, requestDTO.getSellerId());
@@ -92,7 +92,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
             imageRepository.saveAll(reviewImagesToSave);
             log.info("createReview - 리뷰 이미지 DB 저장 완료: reviewId={}, 이미지 수: {}", savedReview.getId(), reviewImagesToSave.size());
 
-            savedImageUrls = imageRepository.findByReview_Id(savedReview.getId())
+            savedImageUrls = imageRepository.findByReviewId(savedReview.getId())
                     .stream()
                     .map(SellerReviewImage::getImageUrl)
                     .collect(Collectors.toList());
@@ -129,7 +129,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
             throw new SecurityException("리뷰를 수정할 수 있는 권한이 없습니다.");
         }
 
-        imageRepository.deleteByReview_Id(reviewId);
+        imageRepository.deleteByReviewId(reviewId);
         log.info("updateReview - 기존 리뷰 이미지 DB에서 삭제 완료: reviewId={}", reviewId);
 
         review.setRating(requestDTO.getRating());
@@ -152,7 +152,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
             imageRepository.saveAll(reviewImagesToSave);
             log.info("updateReview - 새 리뷰 이미지 DB 저장 완료: reviewId={}, 이미지 수: {}", updatedReview.getId(), reviewImagesToSave.size());
 
-            finalImageUrls = imageRepository.findByReview_Id(updatedReview.getId())
+            finalImageUrls = imageRepository.findByReviewId(updatedReview.getId())
                     .stream()
                     .map(SellerReviewImage::getImageUrl)
                     .collect(Collectors.toList());
@@ -189,7 +189,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
             throw new SecurityException("리뷰를 삭제하실 수 있는 권한이 없습니다.");
         }
 
-        imageRepository.deleteByReview_Id(reviewId);
+        imageRepository.deleteByReviewId(reviewId);
         log.info("deleteReview - 리뷰 이미지 DB에서 삭제 완료: reviewId={}", reviewId);
 
         reviewRepository.delete(review);
@@ -201,7 +201,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new EntityNotFoundException("존재하지 않는 고객입니다.: " + customerId));
 
-        List<OrderItem> orderItems = orderItemRepository.findByOrder_Id(orderId);
+        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
 
         if (orderItems.isEmpty()) {
             log.warn("checkReviewExistence - 주문 ID {}에 해당하는 OrderItem이 없습니다.", orderId);
@@ -215,11 +215,11 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
         // 현재 프론트엔드 로직은 단일 판매자에 대한 리뷰를 가정하고 있습니다.
         Long sellerIdOfFirstItemInOrder = orderItems.get(0).getProduct().getSeller().getId();
 
-        return reviewRepository.findByOrder_IdAndCustomer_IdAndSeller_Id(orderId, customerId, sellerIdOfFirstItemInOrder).isPresent();
+        return reviewRepository.findByOrderIdAndCustomerIdAndSellerId(orderId, customerId, sellerIdOfFirstItemInOrder).isPresent();
     }
 
     private String getProductNameForReview(Order order, Seller seller) {
-        return orderItemRepository.findByOrder_Id(order.getId()).stream()
+        return orderItemRepository.findByOrderId(order.getId()).stream()
                 .filter(orderItem -> orderItem.getProduct() != null && orderItem.getProduct().getSeller() != null &&
                         orderItem.getProduct().getSeller().getId().equals(seller.getId()))
                 .map(orderItem -> orderItem.getProduct().getName())

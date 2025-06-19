@@ -81,7 +81,7 @@ public class CartServiceImpl implements CartService {
         //     throw new IllegalArgumentException("상품 ID " + productId + "번이 활성화되어 있지 않거나 구매할 수 없는 상태입니다.");
         // }
 
-        Optional<CartItem> existingCartItem = cartItemRepository.findByCustomer_IdAndProduct_Id(customerId, productId);
+        Optional<CartItem> existingCartItem = cartItemRepository.findByCustomerIdAndProductId(customerId, productId);
 
         CartItem cartItem;
         if (existingCartItem.isPresent()) {
@@ -115,7 +115,7 @@ public class CartServiceImpl implements CartService {
     public CartItemResponseDTO updateCartItemQuantity(Long customerId, Long cartItemId, CartItemUpdateRequestDTO requestDTO) {
         int newQuantity = requestDTO.getQuantity();
 
-        CartItem cartItem = cartItemRepository.findByIdAndCustomer_Id(cartItemId, customerId)
+        CartItem cartItem = cartItemRepository.findByIdAndCustomerId(cartItemId, customerId)
                 .orElseThrow(() -> new EntityNotFoundException("ID " + cartItemId + "번 장바구니 항목을 찾을 수 없거나 권한이 없습니다."));
 
         if (newQuantity <= 0) {
@@ -150,7 +150,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public void removeCartItem(Long customerId, Long cartItemId) {
-        CartItem cartItem = cartItemRepository.findByIdAndCustomer_Id(cartItemId, customerId)
+        CartItem cartItem = cartItemRepository.findByIdAndCustomerId(cartItemId, customerId)
                 .orElseThrow(() -> new EntityNotFoundException("ID " + cartItemId + "번 장바구니 항목을 찾을 수 없거나 권한이 없습니다."));
 
         cartItemRepository.delete(cartItem);
@@ -161,7 +161,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public void clearCart(Long customerId) {
-        cartItemRepository.deleteByCustomer_Id(customerId);
+        cartItemRepository.deleteByCustomerId(customerId);
         log.info("고객 ID {}의 장바구니를 모두 삭제하였습니다.", customerId);
     }
 
@@ -300,7 +300,7 @@ public class CartServiceImpl implements CartService {
         // 장바구니에서 결제된 항목들 삭제
         // payRequestDTO.getOrderItems()에 있는 productId들을 기반으로 장바구니에서 해당 상품들을 삭제합니다.
         for (ProductQuantityDTO itemDTO : payRequestDTO.getOrderItems()) {
-            cartItemRepository.findByCustomer_IdAndProduct_Id(customer.getId(), itemDTO.getProductId())
+            cartItemRepository.findByCustomerIdAndProductId(customer.getId(), itemDTO.getProductId())
                     .ifPresent(cartItemRepository::delete);
         }
 
