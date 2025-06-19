@@ -36,6 +36,25 @@ export default function LoginForm() {
     e.preventDefault();
     setError('');
 
+    // 1. 이벤트(e)가 발생한 form 요소를 직접 가져옵니다.
+    const form = e.currentTarget;
+    // 2. form 안의 input 요소들을 이름으로 접근할 수 있도록 타입을 지정합니다.
+    const formElements = form.elements as typeof form.elements & {
+        email: { value: string };
+        password: { value: string };
+    };
+
+    // 3. state 대신, input 요소에서 직접 값을 읽어옵니다.
+    const payload = {
+        email: formElements.email.value,
+        password: formElements.password.value,
+    };
+
+    console.log("--- [최종 확인] 입력창에서 직접 읽은 데이터 ---");
+    console.log("전송할 페이로드:", payload);
+    console.log("전송할 비밀번호 값:", payload.password);
+    console.log("---------------------------------------");
+
     try {
       const data = await login(formData); // Spring 서버로 직접 요청
       if (data?.accessToken) {
@@ -53,10 +72,10 @@ export default function LoginForm() {
       }
 
     } catch (err) {
-      console.error('Login error:', err);
-      setError('로그인 처리 중 오류가 발생했습니다.');
+        console.error('Login error:', err);
+        setError('로그인 처리 중 오류가 발생했습니다.');
     }
-  };
+};
 
   const handleKakaoLogin = () => {
     const state = crypto.randomUUID();

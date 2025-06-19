@@ -2,7 +2,8 @@
 
 import Header from '@/components/Header';
 import SellerLayout from '@/components/layouts/SellerLayout';
-import { getDashboard, SellerDashboardResponse } from '@/service/sellerService';
+import { getDashboard } from '@/service/seller/sellerService';
+import { SellerDashboardResponse } from '@/types/seller/dashboard/sellerDashboardResponse';
 import { useEffect, useState } from 'react';
 
 export default function SellerDashboardPage() {

@@ -10,7 +10,7 @@ import {
   updateProfile,
   SellerProfile,
   SellerUpdateRequest,
-} from '@/service/sellerService';
+} from '@/service/seller/sellerService';
 import SellerLayout from '@/components/layouts/SellerLayout';
 
 export default function SellerMePage() {

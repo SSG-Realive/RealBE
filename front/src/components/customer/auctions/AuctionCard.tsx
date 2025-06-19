@@ -1,5 +1,6 @@
 import Link from "next/link";
 
+
 interface AuctionCardProps {
   auction: Auction | null | undefined;
   isLast: boolean;

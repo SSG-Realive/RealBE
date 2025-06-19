@@ -7,8 +7,8 @@ import SellerHeader from '@/components/seller/SellerHeader';
 import {
     getSellerSettlementList,
     getSellerSettlementListByDate,
-} from '@/service/sellerSettlementService';
-import { SellerSettlementResponse } from '@/types/sellersettlement/sellerSettlement';
+} from '@/service/seller/sellerSettlementService';
+import { SellerSettlementResponse } from '@/types/seller/sellersettlement/sellerSettlement';
 import useSellerAuthGuard from '@/hooks/useSellerAuthGuard';
 
 export default function SellerSettlementPage() {

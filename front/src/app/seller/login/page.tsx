@@ -2,7 +2,9 @@
 
 import { useState, FormEvent, ChangeEvent } from 'react';
 import { useRouter } from 'next/navigation';
-import { login, LoginResponse } from '@/service/sellerService';
+import { login } from '@/service/seller/sellerService'; // 👈 위에서 확인한 서비스 함수
+import { LoginResponse } from '@/types/seller/login/loginResponse';
+import { useSellerAuthStore } from '@/store/seller/useSellerAuthStore'; // 👈 [2단계]에서 만든 스토어
 
 export default function SellerLoginPage() {
   const [email, setEmail] = useState<string>('');
