@@ -115,7 +115,7 @@ public class CartServiceImpl implements CartService {
     public CartItemResponseDTO updateCartItemQuantity(Long customerId, Long cartItemId, CartItemUpdateRequestDTO requestDTO) {
         int newQuantity = requestDTO.getQuantity();
 
-        CartItem cartItem = cartItemRepository.findByIdAndCustomer_Id(cartItemId, customerId)
+        CartItem cartItem = cartItemRepository.findByIdAndCustomerId(cartItemId, customerId)
                 .orElseThrow(() -> new EntityNotFoundException("ID " + cartItemId + "번 장바구니 항목을 찾을 수 없거나 권한이 없습니다."));
 
         if (newQuantity <= 0) {
@@ -150,7 +150,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public void removeCartItem(Long customerId, Long cartItemId) {
-        CartItem cartItem = cartItemRepository.findByIdAndCustomer_Id(cartItemId, customerId)
+        CartItem cartItem = cartItemRepository.findByIdAndCustomerId(cartItemId, customerId)
                 .orElseThrow(() -> new EntityNotFoundException("ID " + cartItemId + "번 장바구니 항목을 찾을 수 없거나 권한이 없습니다."));
 
         cartItemRepository.delete(cartItem);
@@ -161,7 +161,7 @@ public class CartServiceImpl implements CartService {
     @Override
     @Transactional
     public void clearCart(Long customerId) {
-        cartItemRepository.deleteByCustomer_Id(customerId);
+        cartItemRepository.deleteByCustomerId(customerId);
         log.info("고객 ID {}의 장바구니를 모두 삭제하였습니다.", customerId);
     }
 

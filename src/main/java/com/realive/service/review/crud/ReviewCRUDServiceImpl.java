@@ -35,7 +35,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
     @Transactional
     public ReviewResponseDTO createReview(ReviewCreateRequestDTO requestDTO, Long customerId) {
         // 1. 중복 리뷰 확인
-        reviewRepository.findByOrder_IdAndCustomer_IdAndSeller_Id(
+        reviewRepository.findByOrderIdAndCustomerIdAndSellerId(
                         requestDTO.getOrderId(), customerId, requestDTO.getSellerId())
                 .ifPresent(review -> {
                     throw new IllegalStateException("A review for this order and seller by this customer already exists.");
@@ -146,6 +146,6 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
 
     @Override
     public boolean checkReviewExistence(Long orderId, Long customerId) {
-        return reviewRepository.findByOrder_IdAndCustomer_Id(orderId, customerId).isPresent();
+        return reviewRepository.findByOrderIdAndCustomerId(orderId, customerId).isPresent();
     }
 }
