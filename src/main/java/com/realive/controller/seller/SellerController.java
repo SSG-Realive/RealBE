@@ -2,6 +2,7 @@ package com.realive.controller.seller;
 
 import java.time.Duration;
 
+import com.realive.security.seller.SellerPrincipal;
 import org.springframework.http.ResponseCookie;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -46,7 +47,8 @@ public class SellerController {
         SellerLoginResponseDTO resdto = sellerService.login(reqdto);
 
         Seller seller = sellerService.getByEmail(reqdto.getEmail());
-        String refreshToken = jwtUtil.generateRefreshToken(seller);
+        SellerPrincipal principal = new SellerPrincipal(seller);
+        String refreshToken = jwtUtil.generateRefreshToken(principal);
 
         ResponseCookie refreshCookie = ResponseCookie.from("refreshToken", refreshToken)
                 .httpOnly(true)
