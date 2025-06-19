@@ -16,6 +16,7 @@ import com.realive.dto.product.ProductListDTO;
 import com.realive.dto.product.ProductResponseDTO;
 import com.realive.repository.customer.productview.ProductDetail;
 import com.realive.repository.customer.productview.ProductSearch;
+import com.realive.repository.customer.WishlistRepository;
 import com.realive.repository.product.ProductImageRepository;
 import com.realive.repository.product.ProductRepository;
 
@@ -32,18 +33,21 @@ public class ProductViewServiceImpl implements ProductViewService {
     private final ProductSearch productSearch;
     private final ProductDetail productDetail;
     private final ProductRepository productRepository;
-    private final ProductImageRepository productImageRepository; // ✅ 추가
+    private final ProductImageRepository productImageRepository;
+    private final WishlistRepository wishlistRepository;
 
     public ProductViewServiceImpl(
             @Qualifier("productSearchImpl") ProductSearch productSearch,
             @Qualifier("productDetailImpl") ProductDetail productDetail,
             ProductRepository productRepository,
-            ProductImageRepository productImageRepository // ✅ 생성자 주입
-    ) {
+            ProductImageRepository productImageRepository,
+            WishlistRepository wishlistRepository
+            ) {
         this.productSearch = productSearch;
         this.productDetail = productDetail;
         this.productRepository = productRepository;
         this.productImageRepository = productImageRepository;
+        this.wishlistRepository = wishlistRepository;
     }
 
     @Override
@@ -86,6 +90,26 @@ public class ProductViewServiceImpl implements ProductViewService {
         // 5. DTO 변환
         return relatedProducts.stream()
                 .map(product -> ProductListDTO.from(product, imageMap.get(product.getId())))
+                .toList();
+    }
+
+    // ✅ 찜이 많은 인기 상품 조회 (상위 6개)
+    public List<ProductListDTO> getPopularProducts() {
+        List<Product> products = wishlistRepository.findTop6PopularProducts();
+
+        List<Long> ids = products.stream()
+                .map(Product::getId)
+                .toList();
+
+        List<Object[]> rows = productImageRepository.findThumbnailUrlsByProductIds(ids, MediaType.IMAGE);
+        Map<Long, String> imageMap = rows.stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (String) row[1]
+                ));
+
+        return products.stream()
+                .map(p -> ProductListDTO.from(p, imageMap.get(p.getId())))
                 .toList();
     }
 }
