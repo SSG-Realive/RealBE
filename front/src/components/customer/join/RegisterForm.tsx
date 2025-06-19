@@ -19,8 +19,9 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import Link from 'next/link';
 
-import { GenderWithUnselected, MemberJoinDTO } from '@/types/custoemr/signup';
+
 import { signup } from '@/service/customer/signupService';
+import { GenderWithUnselected, MemberJoinDTO } from '@/types/customer/signup';
 
 export default function RegisterForm() {
   const router = useRouter();

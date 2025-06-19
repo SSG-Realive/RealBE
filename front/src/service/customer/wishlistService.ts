@@ -1,6 +1,6 @@
 import apiClient from '@/lib/apiClient';
 import { WishlistToggleRequest } from '@/types/customer/wishlist/wishlist';
-import { ProductListDTO } from '@/types/product';
+import { ProductListDTO } from '@/types/seller/product/product';
 
 // 찜 목록 조회
 export async function fetchWishlist(): Promise<ProductListDTO[]> {

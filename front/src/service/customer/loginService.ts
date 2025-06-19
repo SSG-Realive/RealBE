@@ -1,5 +1,6 @@
 import api from '@/lib/axios';
-import { LoginRequest, LoginResponse } from '@/types/custoemr/login';
+import { LoginRequest, LoginResponse } from '@/types/customer/login';
+
 
 // 로그인 API 호출
 export const login = async (credentials: LoginRequest): Promise<LoginResponse> => {

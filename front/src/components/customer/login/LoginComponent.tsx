@@ -36,18 +36,15 @@ export default function LoginForm() {
     e.preventDefault();
     setError('');
 
-    // 1. 이벤트(e)가 발생한 form 요소를 직접 가져옵니다.
-    const form = e.currentTarget;
-    // 2. form 안의 input 요소들을 이름으로 접근할 수 있도록 타입을 지정합니다.
+    const form = e.currentTarget as HTMLFormElement;
     const formElements = form.elements as typeof form.elements & {
-        email: { value: string };
-        password: { value: string };
+      email: HTMLInputElement;
+      password: HTMLInputElement;
     };
 
-    // 3. state 대신, input 요소에서 직접 값을 읽어옵니다.
     const payload = {
-        email: formElements.email.value,
-        password: formElements.password.value,
+      email: formElements.email.value,
+      password: formElements.password.value,
     };
 
     console.log("--- [최종 확인] 입력창에서 직접 읽은 데이터 ---");
