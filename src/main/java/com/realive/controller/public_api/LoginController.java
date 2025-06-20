@@ -108,6 +108,7 @@ public class LoginController {
                     .refreshToken(refreshToken)
                     .email(principal.getUsername())
                     .name(principal.getName())
+                    .id(principal.getId())
                     .build();
 
             log.info("--- [테스트] 고객 로그인 성공 ---");
