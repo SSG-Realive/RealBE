@@ -52,4 +52,11 @@ public class AdminQnaController {
         List<CustomerQnaListDTO> qnaList = adminQnaService.getCustomerQnaListByProduct(productId);
         return ResponseEntity.ok(qnaList);
     }
+
+    // 특정 고객 Q&A 삭제
+    @DeleteMapping("/customer/{qnaId}")
+    public ResponseEntity<Void> deleteCustomerQna(@PathVariable Long qnaId) {
+        adminQnaService.deleteCustomerQna(qnaId);
+        return ResponseEntity.noContent().build();
+    }
 }

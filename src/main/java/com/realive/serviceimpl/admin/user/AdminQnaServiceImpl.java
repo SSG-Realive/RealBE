@@ -74,4 +74,12 @@ public class AdminQnaServiceImpl implements AdminQnaService {
                         .build())
                 .collect(Collectors.toList());
     }
+
+    @Override
+    @Transactional
+    public void deleteCustomerQna(Long qnaId) {
+        CustomerQna qna = customerQnaRepository.findById(qnaId)
+                .orElseThrow(() -> new EntityNotFoundException("Q&A를 찾을 수 없습니다: " + qnaId));
+        customerQnaRepository.delete(qna);
+    }
 }

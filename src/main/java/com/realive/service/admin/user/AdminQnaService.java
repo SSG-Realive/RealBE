@@ -22,4 +22,6 @@ public interface AdminQnaService {
     // [옵션] 특정 상품에 대한 고객 Q&A 목록 조회
     List<CustomerQnaListDTO> getCustomerQnaListByProduct(Long productId);
 
+    // 고객 Q&A 삭제
+    void deleteCustomerQna(Long qnaId);
 }
