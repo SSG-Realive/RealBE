@@ -33,8 +33,14 @@ public class CustomerService {
     }
 
     public Customer getByEmail(String email) {
+        return customerRepository.findByEmail(email)
+                .orElseThrow(() -> new EntityNotFoundException("해당 이메일의 회원을 찾을 수 없습니다."));
+    }
+
+    public Customer getByEmailIncludingSocial(String email) {
         return customerRepository.findByEmailIncludingSocial(email)
                 .orElseThrow(() -> new EntityNotFoundException("해당 이메일의 회원을 찾을 수 없습니다."));
     }
 
 }
+
