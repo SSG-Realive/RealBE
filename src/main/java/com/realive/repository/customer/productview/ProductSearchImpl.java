@@ -1,11 +1,5 @@
 package com.realive.repository.customer.productview;
 
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-import java.util.HashMap;
-
 import com.querydsl.core.BooleanBuilder;
 import com.querydsl.core.Tuple;
 import com.querydsl.jpa.JPQLQuery;
@@ -17,10 +11,16 @@ import com.realive.domain.seller.QSeller;
 import com.realive.dto.page.PageRequestDTO;
 import com.realive.dto.page.PageResponseDTO;
 import com.realive.dto.product.ProductListDTO;
-
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
+import java.util.Map;
+import java.util.HashMap;
+import java.util.Collections;
+import java.util.stream.Collectors;
+
 
 @Log4j2
 @RequiredArgsConstructor
@@ -29,10 +29,6 @@ public class ProductSearchImpl implements ProductSearch {
 
     private final JPAQueryFactory queryFactory;
 
-    /**
-     * 주어진 카테고리 ID와 그 하위 카테고리 ID 리스트를 조회하는 메서드
-     * 자식 카테고리가 없으면 자기 자신 ID만 반환
-     */
     public List<Long> findSubCategoryIdsIncludingSelf(Long categoryId) {
         if (categoryId == null) {
             return Collections.emptyList();
@@ -56,7 +52,6 @@ public class ProductSearchImpl implements ProductSearch {
 
     @Override
     public PageResponseDTO<ProductListDTO> search(PageRequestDTO requestDTO, Long categoryId) {
-
         QProduct product = QProduct.product;
         QCategory category = QCategory.category;
         QProductImage productImage = QProductImage.productImage;
@@ -113,12 +108,10 @@ public class ProductSearchImpl implements ProductSearch {
 
         List<Tuple> productTuples = productQuery.fetch();
 
-        // 상품 ID 목록 추출
         List<Long> productIds = productTuples.stream()
                 .map(t -> t.get(product.id))
                 .toList();
 
-        // 썸네일 이미지 조회
         Map<Long, String> imageMap = productIds.isEmpty() ? new HashMap<>() :
                 queryFactory
                         .select(productImage.product.id, productImage.url)
@@ -130,10 +123,9 @@ public class ProductSearchImpl implements ProductSearch {
                         .collect(Collectors.toMap(
                                 row -> row.get(productImage.product.id),
                                 row -> row.get(productImage.url),
-                                (existing, replacement) -> existing // 중복 방지
+                                (existing, replacement) -> existing
                         ));
 
-        // DTO 매핑
         List<ProductListDTO> dtoList = productTuples.stream()
                 .map(row -> ProductListDTO.builder()
                         .id(row.get(product.id))
@@ -150,7 +142,6 @@ public class ProductSearchImpl implements ProductSearch {
                         .build())
                 .toList();
 
-        // 전체 개수 조회
         Long total = queryFactory
                 .select(product.count())
                 .from(product)
