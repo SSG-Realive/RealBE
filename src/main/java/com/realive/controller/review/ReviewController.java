@@ -10,13 +10,10 @@ import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.Map;
-
 @RestController
-@RequestMapping("/api/customer/reviews")
+@RequestMapping("/api/reviews")
 @Log4j2
 @RequiredArgsConstructor
 public class ReviewController {
@@ -24,49 +21,24 @@ public class ReviewController {
     private final ReviewCRUDService reviewCRUDService;
     private final ReviewViewService reviewViewService;
 
-    @GetMapping("/check")
-    public ResponseEntity<Map<String, Object>> checkReviewExistence(
-            @RequestParam Long orderId,
-            @AuthenticationPrincipal Long customerId // customerId는 @AuthenticationPrincipal로 받음
-    ) {
-        if (customerId == null) {
-            log.warn("checkReviewExistence - 인증되지 않은 사용자 접근 시도: orderId={}", orderId);
-            return ResponseEntity.status(401).body(Map.of("hasReview", false, "message", "로그인이 필요합니다."));
-        }
-
-        // ReviewCRUDService.checkReviewExistence는 orderId와 customerId만 받음
-        boolean hasReview = reviewCRUDService.checkReviewExistence(orderId, customerId);
-        log.info("리뷰 존재 여부 확인: orderId={}, customerId={}, hasReview={}", orderId, customerId, hasReview);
-        return ResponseEntity.ok(Map.of("hasReview", hasReview));
-    }
-
     // 리뷰 생성
     @PostMapping
     public ResponseEntity<ReviewResponseDTO> createReview(
-            @Valid @ConvertGroup(to = ReviewCreateRequestDTO.CreateValidation.class) @RequestBody ReviewCreateRequestDTO requestDTO,
-            @AuthenticationPrincipal Long customerId // customerId는 @AuthenticationPrincipal로 받음
+            @Valid @ConvertGroup(to = ReviewCreateRequestDTO.CreateValidation.class) @RequestBody ReviewCreateRequestDTO requestDTO
     ) {
-        if (customerId == null) {
-            log.warn("createReview - 인증되지 않은 사용자 접근 시도: requestDTO={}", requestDTO);
-            return ResponseEntity.status(401).build(); // 401 Unauthorized 반환
-        }
-        ReviewResponseDTO response = reviewCRUDService.createReview(requestDTO, customerId);
+        // customerId를 요청 DTO에서 직접 가져와 사용합니다. (현재 시스템 제약사항 고려)
+        ReviewResponseDTO response = reviewCRUDService.createReview(requestDTO, requestDTO.getCustomerId());
         return ResponseEntity.ok(response);
     }
 
     // 리뷰 수정
-    @PatchMapping("/{reviewId}")
+    @PutMapping("/{reviewId}")
     public ResponseEntity<ReviewResponseDTO> updateReview(
             @PathVariable Long reviewId,
-            @Valid @RequestBody ReviewUpdateRequestDTO requestDTO,
-            @AuthenticationPrincipal Long customerId // customerId는 @AuthenticationPrincipal로 받음
+            @Valid @RequestBody ReviewUpdateRequestDTO requestDTO
     ) {
-        if (customerId == null) {
-            log.warn("updateReview - 인증되지 않은 사용자 접근 시도: reviewId={}, requestDTO={}", reviewId, requestDTO);
-            return ResponseEntity.status(401).build(); // 401 Unauthorized 반환
-        }
-        // requestDTO에서 customerId를 사용하지 않고 @AuthenticationPrincipal에서 받은 customerId 사용
-        ReviewResponseDTO response = reviewCRUDService.updateReview(reviewId, requestDTO, customerId);
+        // customerId를 요청 DTO에서 직접 가져와 사용합니다. (현재 시스템 제약사항 고려)
+        ReviewResponseDTO response = reviewCRUDService.updateReview(reviewId, requestDTO, requestDTO.getCustomerId());
         return ResponseEntity.ok(response);
     }
 
@@ -74,42 +46,34 @@ public class ReviewController {
     @DeleteMapping("/{reviewId}")
     public ResponseEntity<Void> deleteReview(
             @PathVariable Long reviewId,
-            @AuthenticationPrincipal Long customerId // customerId는 @AuthenticationPrincipal로 받음
+            @RequestParam Long customerId // customerId를 쿼리 파라미터로 받습니다. (현재 시스템 제약사항 고려)
     ) {
-        if (customerId == null) {
-            log.warn("deleteReview - 인증되지 않은 사용자 접근 시도: reviewId={}", reviewId);
-            return ResponseEntity.status(401).build(); // 401 Unauthorized 반환
-        }
-        // @RequestParam Long customerId 제거
         reviewCRUDService.deleteReview(reviewId, customerId);
         return ResponseEntity.noContent().build();
     }
 
 
-    // 판매자의 판매품 리뷰 리스트 조회
+    // 판매자의 판매품 리뷰 리스트 조회 (경로 변경 및 반환 타입 변경)
+    // 기존 /{sellerId} 경로가 상세 조회와 중복되므로, 더 명확한 경로로 변경합니다.
     @GetMapping("/seller/{sellerId}")
     public ResponseEntity<ReviewListResponseDTO> getReviews(@PathVariable Long sellerId, Pageable pageable) {
+        // ReviewViewService에서 반환하는 ReviewListResponseDTO 타입과 일치시킵니다.
         ReviewListResponseDTO result = reviewViewService.getReviewList(sellerId, pageable);
         return ResponseEntity.ok(result);
     }
 
-    // 리뷰 상세 조회
+    // 리뷰 상세 조회 (경로 유지)
+    // 이 경로는 단일 리뷰 ID를 통해 상세 정보를 조회합니다.
     @GetMapping("/{id}")
     public ResponseEntity<ReviewResponseDTO> getReviewDetail(@PathVariable Long id) {
         ReviewResponseDTO result = reviewViewService.getReviewDetail(id);
         return ResponseEntity.ok(result);
     }
 
-    // 내가 작성한 리뷰 조회
+    // 내가 작성한 리뷰 조회 (반환 타입 변경)
+    // ReviewViewService에서 Page<MyReviewResponseDTO>를 반환하도록 변경했으므로, 이에 맞춥니다.
     @GetMapping("/my")
-    public ResponseEntity<Page<MyReviewResponseDTO>> getMyReviews(
-            @AuthenticationPrincipal Long customerId, // customerId는 @AuthenticationPrincipal로 받음
-            Pageable pageable
-    ) {
-        if (customerId == null) {
-            log.warn("getMyReviews - 인증되지 않은 사용자 접근 시도");
-            return ResponseEntity.status(401).build(); // 401 Unauthorized 반환
-        }
+    public ResponseEntity<Page<MyReviewResponseDTO>> getMyReviews(@RequestParam Long customerId, Pageable pageable) {
         log.info("Fetching my reviews for customerId: {}", customerId);
         Page<MyReviewResponseDTO> result = reviewViewService.getMyReviewList(customerId, pageable);
         return ResponseEntity.ok(result);
