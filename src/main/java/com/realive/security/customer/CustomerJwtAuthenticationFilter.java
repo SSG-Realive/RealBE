@@ -72,7 +72,7 @@ protected void doFilterInternal(HttpServletRequest request, HttpServletResponse 
                             List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
 
                             // ✅ CustomerPrincipal 사용을 위한 Customer 조회
-                            Customer customer = customerService.getByEmail(userEmail);
+                            Customer customer = customerService.getByEmailIncludingSocial(userEmail);
                             CustomerPrincipal principal = new CustomerPrincipal(customer);
                             Authentication authentication = new UsernamePasswordAuthenticationToken(principal, null, authorities);
                             SecurityContextHolder.getContext().setAuthentication(authentication);
