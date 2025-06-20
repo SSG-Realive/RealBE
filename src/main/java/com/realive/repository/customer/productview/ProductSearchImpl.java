@@ -2,9 +2,12 @@ package com.realive.repository.customer.productview;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+import java.util.HashMap;
 
 import com.querydsl.core.BooleanBuilder;
-import com.querydsl.core.types.Projections;
+import com.querydsl.core.Tuple;
 import com.querydsl.jpa.JPQLQuery;
 import com.querydsl.jpa.impl.JPAQueryFactory;
 import com.realive.domain.product.QCategory;
@@ -44,7 +47,6 @@ public class ProductSearchImpl implements ProductSearch {
                         .or(category.parent.id.eq(categoryId)))
                 .fetch();
 
-        // 자식 카테고리가 없으면 자기 자신만 포함되었는지 확인 후 보장
         if (!categoryIds.contains(categoryId)) {
             categoryIds.add(categoryId);
         }
@@ -82,31 +84,26 @@ public class ProductSearchImpl implements ProductSearch {
             log.info("📂 포함된 카테고리 ID 목록: {}", categoryIds);
             builder.and(product.category.id.in(categoryIds));
         } else {
-            // categoryId가 null이면 조건 없음 → 전체 상품 조회
             log.info("📂 전체 카테고리 대상 조회");
         }
 
         int offset = requestDTO.getOffset();
         int limit = requestDTO.getLimit();
 
-        JPQLQuery<ProductListDTO> query = queryFactory
-                .select(Projections.bean(ProductListDTO.class,
-                        product.id.as("id"),
-                        product.name.as("name"),
-                        product.price.as("price"),
-                        product.status.stringValue().as("status"),
-                        product.active.as("isActive"),
-                        productImage.url.as("imageThumbnailUrl"),
-                        category.parent.name.as("parentCategoryName"),
-                        seller.name.as("sellerName"),
-                        seller.id.as("sellerId"),
-                        category.name.as("categoryName"),
-                        product.stock.as("stock")
-                ))
+        JPQLQuery<Tuple> productQuery = queryFactory
+                .select(
+                        product.id,
+                        product.name,
+                        product.price,
+                        product.status,
+                        product.active,
+                        product.stock,
+                        seller.id,
+                        seller.name,
+                        category.name,
+                        category.parent.name
+                )
                 .from(product)
-                .leftJoin(productImage)
-                .on(productImage.product.eq(product)
-                        .and(productImage.isThumbnail.isTrue()))
                 .leftJoin(product.seller, seller)
                 .leftJoin(product.category, category)
                 .where(builder)
@@ -114,8 +111,46 @@ public class ProductSearchImpl implements ProductSearch {
                 .limit(limit)
                 .orderBy(product.id.desc());
 
-        List<ProductListDTO> dtoList = query.fetch();
+        List<Tuple> productTuples = productQuery.fetch();
 
+        // 상품 ID 목록 추출
+        List<Long> productIds = productTuples.stream()
+                .map(t -> t.get(product.id))
+                .toList();
+
+        // 썸네일 이미지 조회
+        Map<Long, String> imageMap = productIds.isEmpty() ? new HashMap<>() :
+                queryFactory
+                        .select(productImage.product.id, productImage.url)
+                        .from(productImage)
+                        .where(productImage.product.id.in(productIds)
+                                .and(productImage.isThumbnail.isTrue()))
+                        .fetch()
+                        .stream()
+                        .collect(Collectors.toMap(
+                                row -> row.get(productImage.product.id),
+                                row -> row.get(productImage.url),
+                                (existing, replacement) -> existing // 중복 방지
+                        ));
+
+        // DTO 매핑
+        List<ProductListDTO> dtoList = productTuples.stream()
+                .map(row -> ProductListDTO.builder()
+                        .id(row.get(product.id))
+                        .name(row.get(product.name))
+                        .price(row.get(product.price))
+                        .status(row.get(product.status).name())
+                        .isActive(row.get(product.active))
+                        .stock(row.get(product.stock))
+                        .sellerId(row.get(seller.id))
+                        .sellerName(row.get(seller.name))
+                        .categoryName(row.get(category.name))
+                        .parentCategoryName(row.get(category.parent.name))
+                        .imageThumbnailUrl(imageMap.get(row.get(product.id)))
+                        .build())
+                .toList();
+
+        // 전체 개수 조회
         Long total = queryFactory
                 .select(product.count())
                 .from(product)

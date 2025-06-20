@@ -17,7 +17,7 @@ import lombok.RequiredArgsConstructor;
 public class CustomerService {
 
     private final CustomerRepository customerRepository;
-    
+
 
     // 고객 ID로 활성화된 회원 정보 조회
     public Customer getActiveCustomerById(Long id) {
