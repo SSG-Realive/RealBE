@@ -47,7 +47,8 @@ public class ProductDetailImpl implements ProductDetail {
                         category.name.as("categoryName"),
                         category.id.as("categoryId"),
                         category.parent.id.as("parentCategoryId"),
-                        seller.name.as("sellerName")
+                        seller.name.as("sellerName"),
+                        seller.id.as("sellerId")
                 ))
                 .from(product)
                 .leftJoin(thumbnailImage).on(
