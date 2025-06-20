@@ -46,7 +46,7 @@ public class AdminReviewController {
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<Page<AdminReviewReportListItemDTO>>> getReportedReviews(
             @Parameter(description = "조회할 리뷰 신고의 처리 상태 (예: PENDING, RESOLVED_KEPT)")
-            @RequestParam ReviewReportStatus status,
+            @RequestParam Optional<ReviewReportStatus> status, //
             @PageableDefault(size = 10, sort = "createdAt,desc") Pageable pageable) {
         // ... (이전 최종본과 동일)
         log.info("GET /api/admin/reviews-reports/reports - status: {}, page: {}, size: {}, sort: {}",
