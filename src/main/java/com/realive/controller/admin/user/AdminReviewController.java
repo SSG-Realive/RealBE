@@ -164,7 +164,7 @@ public class AdminReviewController {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(responseCode = "500", description = "서버 내부 오류",
                     content = @Content(mediaType = "application/json", schema = @Schema(implementation = ApiResponse.class)))
     })
-    @PutMapping("/seller-reviews/{reviewId}/visibility")
+    @PatchMapping("/seller-reviews/{reviewId}") // <- 이 부분을 수정
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<String>> updateSellerReviewVisibility(
             @Parameter(description = "상태를 변경할 판매자 리뷰의 ID", required = true, example = "1")
@@ -173,7 +173,7 @@ public class AdminReviewController {
                     content = @Content(schema = @Schema(implementation = UpdateReviewVisibilityRequestDTO.class)))
             @Valid @RequestBody UpdateReviewVisibilityRequestDTO requestDTO) {
         // ... (이전 최종본과 동일)
-        log.info("PUT /api/admin/seller-reviews/{}/visibility - New isHidden status: {}", reviewId, requestDTO.getIsHidden());
+        log.info("PATCH /api/admin/seller-reviews/{} - New isHidden status: {}", reviewId, requestDTO.getIsHidden()); // <- 로그 메시지도 함께 수정
         try {
             adminReviewService.updateSellerReviewVisibility(reviewId, requestDTO.getIsHidden());
             String message = String.format("리뷰 ID %d의 숨김 상태가 '%s'(으)로 성공적으로 업데이트되었습니다.", reviewId, requestDTO.getIsHidden() ? "숨김" : "공개");
