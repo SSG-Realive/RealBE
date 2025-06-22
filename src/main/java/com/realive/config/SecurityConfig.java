@@ -108,7 +108,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/admin/login").permitAll()
+                        .requestMatchers("/api/admin/login","/api/admin/register").permitAll()
                         .anyRequest().hasAuthority("ROLE_ADMIN")
                 )
                 .addFilterBefore(adminJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -152,6 +152,7 @@ public class SecurityConfig {
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers("/api/public/**", "/api/auth/**").permitAll()
                         .requestMatchers("/api/oauth2/**").permitAll()
+                        .requestMatchers("/api/customer/update-info").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_USER")
                         .requestMatchers("/api/customer/**").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_USER")
                         .anyRequest().denyAll()
                 )
