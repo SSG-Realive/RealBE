@@ -108,7 +108,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/admin/login").permitAll()
+                        .requestMatchers("/api/admin/login","/api/admin/register").permitAll()
                         .anyRequest().hasAuthority("ROLE_ADMIN")
                 )
                 .addFilterBefore(adminJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
@@ -129,7 +129,7 @@ public class SecurityConfig {
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))  // ★ 추가!
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/api/seller/login", "/api/seller/signup").permitAll()
+                        .requestMatchers("/api/seller/login", "/api/seller/signup", "/api/seller/categories").permitAll()
                         .anyRequest().hasAuthority("ROLE_SELLER")
                 )
                 .addFilterBefore(sellerJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
