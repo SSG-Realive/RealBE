@@ -24,6 +24,8 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 
+import java.util.Map;
+
 // [Customer] 회원 관련 컨트롤러
 
 @Log4j2
@@ -62,7 +64,8 @@ public class MemberController {
         }
 
         memberService.updateTemporaryUserInfo(request, currentEmail);
-        return ResponseEntity.ok("회원정보가 정상적으로 수정되었습니다.");
+        return ResponseEntity.ok(Map.of("message", "회원정보가 정상적으로 수정되었습니다."));
+
     }
 
     // 회원정보조회

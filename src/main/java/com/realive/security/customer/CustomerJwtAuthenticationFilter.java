@@ -30,9 +30,9 @@ public class CustomerJwtAuthenticationFilter extends OncePerRequestFilter {
     private final JwtUtil jwtUtil;
     private final CustomerService customerService; // ✅ 이메일로 Customer 조회를 위해 필요
 
-@Override
-protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
-        throws ServletException, IOException {
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain)
+            throws ServletException, IOException {
 
         log.info("=== CustomerJwtFilter doFilterInternal 시작 ===");
         log.info("URI: {}", request.getRequestURI());
@@ -72,7 +72,7 @@ protected void doFilterInternal(HttpServletRequest request, HttpServletResponse 
                             List<GrantedAuthority> authorities = List.of(new SimpleGrantedAuthority(role));
 
                             // ✅ CustomerPrincipal 사용을 위한 Customer 조회
-                            Customer customer = customerService.getByEmail(userEmail);
+                            Customer customer = customerService.getByEmailIncludingSocial(userEmail);
                             CustomerPrincipal principal = new CustomerPrincipal(customer);
                             Authentication authentication = new UsernamePasswordAuthenticationToken(principal, null, authorities);
                             SecurityContextHolder.getContext().setAuthentication(authentication);
