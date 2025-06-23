@@ -261,15 +261,15 @@ public interface SalesLogRepository extends JpaRepository<SalesLog, Integer>, Jp
      * 특정 기간 동안의 월별 판매 요약을 조회 (Object[] 반환)
      */
     @Query("SELECT " +
-            "FUNCTION('YEAR', sl.soldAt), " +
-            "FUNCTION('MONTH', sl.soldAt), " +
+            "EXTRACT(YEAR FROM sl.soldAt), " +          // ← 이 부분
+            "EXTRACT(MONTH FROM sl.soldAt), " +         // ← 이 부분
             "COUNT(DISTINCT sl.orderItemId), " +
             "SUM(sl.totalPrice), " +
             "SUM(sl.quantity) " +
             "FROM SalesLog sl " +
             "WHERE sl.soldAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY FUNCTION('YEAR', sl.soldAt), FUNCTION('MONTH', sl.soldAt) " +
-            "ORDER BY FUNCTION('YEAR', sl.soldAt), FUNCTION('MONTH', sl.soldAt)")
+            "GROUP BY EXTRACT(YEAR FROM sl.soldAt), EXTRACT(MONTH FROM sl.soldAt) " +  // ← 이 부분
+            "ORDER BY EXTRACT(YEAR FROM sl.soldAt), EXTRACT(MONTH FROM sl.soldAt)")    // ← 이 부분
     List<Object[]> getMonthlySummariesForPeriodRaw(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
 }
