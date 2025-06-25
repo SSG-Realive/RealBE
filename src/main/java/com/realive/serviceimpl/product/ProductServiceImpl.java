@@ -3,10 +3,12 @@ package com.realive.serviceimpl.product;
 import com.realive.domain.common.enums.MediaType;
 import com.realive.domain.product.*;
 import com.realive.domain.seller.Seller;
+import com.realive.dto.admin.review.SellerRankingDTO;
 import com.realive.dto.page.PageResponseDTO;
 import com.realive.dto.product.*;
 import com.realive.repository.product.*;
 import com.realive.repository.seller.SellerRepository;
+import com.realive.service.admin.logs.StatService;
 import com.realive.service.common.FileUploadService;
 import com.realive.service.product.ProductService;
 import com.realive.service.seller.SellerService;
@@ -23,6 +25,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -44,6 +47,7 @@ public class ProductServiceImpl implements ProductService {
         private final DeliveryPolicyRepository deliveryPolicyRepository;
         private final FileUploadService fileUploadService;
         private final SellerService sellerService;
+        private final StatService statService;
 
         @Override
         public Long createProduct(ProductRequestDTO dto, Long sellerId) {
@@ -130,12 +134,11 @@ public class ProductServiceImpl implements ProductService {
                         throw new SecurityException("해당 상품에 대한 수정 권한이 없습니다.");
                 }
 
-                
                 // 대표 이미지 저장
                 if (dto.getImageThumbnail() != null && !dto.getImageThumbnail().isEmpty()) {
                         productImageRepository.findByProductId(productId).stream()
-                        .filter(img -> img.isThumbnail() && img.getMediaType() == MediaType.IMAGE)
-                        .forEach(productImageRepository::delete);
+                                        .filter(img -> img.isThumbnail() && img.getMediaType() == MediaType.IMAGE)
+                                        .forEach(productImageRepository::delete);
 
                         String imageUrl = fileUploadService.upload(dto.getImageThumbnail(), "product", sellerId);
                         productImageRepository.save(ProductImage.builder()
@@ -149,9 +152,9 @@ public class ProductServiceImpl implements ProductService {
                 // 대표 영상 저장
                 if (dto.getVideoThumbnail() != null && !dto.getVideoThumbnail().isEmpty()) {
                         productImageRepository.findByProductId(productId).stream()
-                        .filter(img -> img.isThumbnail() && img.getMediaType() == MediaType.VIDEO)
-                        .forEach(productImageRepository::delete);
-                        
+                                        .filter(img -> img.isThumbnail() && img.getMediaType() == MediaType.VIDEO)
+                                        .forEach(productImageRepository::delete);
+
                         String videoUrl = fileUploadService.upload(dto.getVideoThumbnail(), "product", sellerId);
                         productImageRepository.save(ProductImage.builder()
                                         .url(videoUrl)
@@ -185,7 +188,7 @@ public class ProductServiceImpl implements ProductService {
                 product.setDepth(dto.getDepth());
                 product.setHeight(dto.getHeight());
                 product.setStatus(dto.getStatus());
-                
+
                 // 🚩 isActive 처리 로직 수정
                 if (dto.getActive() != null && dto.getActive()) {
                         // 활성화 요청 시 → stock 검사
@@ -236,7 +239,7 @@ public class ProductServiceImpl implements ProductService {
         // 상품 목록 조회 (판매자 전용)
         @Override
         public PageResponseDTO<ProductListDTO> getProductsBySeller(Long sellerId, ProductSearchCondition condition) {
-                
+
                 Page<Product> result = productRepository.searchProducts(condition, sellerId);
                 List<Product> products = result.getContent();
 
@@ -263,7 +266,7 @@ public class ProductServiceImpl implements ProductService {
 
         @Override
         public ProductResponseDTO getProductDetail(Long productId, Long sellerId) {
-                
+
                 Product product = productRepository.findById(productId)
                                 .orElseThrow(() -> new IllegalArgumentException("상품을 찾을 수 없습니다."));
 
@@ -286,7 +289,8 @@ public class ProductServiceImpl implements ProductService {
                                 .videoThumbnailUrl(getThumbnailUrlByType(productId, MediaType.VIDEO))
                                 .categoryName(Category.getCategoryFullPath(product.getCategory()))
                                 .categoryId(category.getId())
-                                .parentCategoryId(category.getParent() != null ? category.getParent().getId() : null) // ✅ 추가
+                                .parentCategoryId(category.getParent() != null ? category.getParent().getId() : null) // ✅
+                                                                                                                      // 추가
                                 .sellerName(product.getSeller().getName())
                                 .sellerId(product.getSeller().getId())
                                 .build();
@@ -329,5 +333,64 @@ public class ProductServiceImpl implements ProductService {
                                 .dtoList(dtoList)
                                 .total((int) result.getTotalElements())
                                 .build();
+        }
+
+        /**
+         * 추천용: 후보 상위 candidateSize명 중 sellersPick명 랜덤 추출,
+         * 각 셀러당 productsPerSeller개 랜덤 상품을 뽑아 DTO로 반환
+         */
+        @Override
+        public List<FeaturedSellerProductsResponseDTO> getFeaturedSellersWithProducts(
+                        int candidateSize,
+                        int sellersPick,
+                        int productsPerSeller,
+                        long minReviews) {
+                // 1) 상위 후보 셀러 조회
+                List<SellerRankingDTO> rankings = statService
+                                .getRanking(minReviews, PageRequest.of(0, candidateSize))
+                                .getContent();
+
+                // 2) 랜덤 셔플 및 sellersPick 수만큼 선택
+                Collections.shuffle(rankings);
+                List<SellerRankingDTO> picked = rankings.subList(0, Math.min(sellersPick, rankings.size()));
+
+                // 3) 셀러별 랜덤 상품 + 썸네일 URL 매핑 → DTO
+                return picked.stream()
+                                .map(seller -> {
+                                        // (a) 랜덤 상품 조회
+                                        List<Product> prods = productRepository
+                                                        .findRandomProductsBySellerId(seller.getSellerId(),
+                                                                        productsPerSeller);
+
+                                        // (b) 상품 ID 목록 생성
+                                        List<Long> prodIds = prods.stream()
+                                                        .map(Product::getId)
+                                                        .collect(Collectors.toList());
+
+                                        // (c) productImageRepository를 통해 URL 맵 생성
+                                        List<Object[]> rows = productImageRepository
+                                                        .findThumbnailUrlsByProductIds(prodIds, MediaType.IMAGE);
+                                        Map<Long, String> urlMap = rows.stream()
+                                                        .collect(Collectors.toMap(
+                                                                        row -> (Long) row[0],
+                                                                        row -> (String) row[1]));
+
+                                        // (d) DTO 변환
+                                        List<FeaturedProductSummaryResponseDTO> summaryList = prods.stream()
+                                                        .map(p -> FeaturedProductSummaryResponseDTO.builder()
+                                                                        .productId(p.getId())
+                                                                        .name(p.getName())
+                                                                        .price(p.getPrice())
+                                                                        .imageThumbnailUrl(urlMap.get(p.getId()))
+                                                                        .build())
+                                                        .collect(Collectors.toList());
+
+                                        return FeaturedSellerProductsResponseDTO.builder()
+                                                        .sellerId(seller.getSellerId())
+                                                        .sellerName(seller.getSellerName())
+                                                        .products(summaryList)
+                                                        .build();
+                                })
+                                .collect(Collectors.toList());
         }
 }
