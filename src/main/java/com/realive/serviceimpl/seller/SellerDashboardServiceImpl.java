@@ -77,16 +77,16 @@ public class SellerDashboardServiceImpl implements SellerDashboardService {
     @Override
     public SellerSalesStatsDTO getSalesStatistics(Long sellerId, LocalDate startDate, LocalDate endDate) {
         Long totalOrders = salesLogRepository.countDistinctOrdersBySellerIdAndSoldAtBetween(sellerId.intValue(), startDate, endDate);
-        Integer totalRevenue = salesLogRepository.sumTotalPriceBySellerIdAndSoldAtBetween(sellerId.intValue(), startDate, endDate);
-        Integer totalFees = commissionLogRepository.sumCommissionAmountBySellerAndDateRange(sellerId.intValue(), startDate, endDate);
+        Number totalRevenueNum = salesLogRepository.sumTotalPriceBySellerIdAndSoldAtBetween(sellerId.intValue(), startDate, endDate);
+        Number totalFeesNum = commissionLogRepository.sumCommissionAmountBySellerAndDateRange(sellerId.intValue(), startDate, endDate);
 
         List<SellerSalesStatsDTO.DailySalesDTO> dailySalesTrend = getDailySalesTrend(sellerId, startDate, endDate);
         List<SellerSalesStatsDTO.MonthlySalesDTO> monthlySalesTrend = getMonthlySalesTrend(sellerId, startDate, endDate);
 
         return SellerSalesStatsDTO.builder()
                 .totalOrders(totalOrders != null ? totalOrders : 0L)
-                .totalRevenue(totalRevenue != null ? totalRevenue.doubleValue() : 0.0)
-                .totalFees(totalFees != null ? totalFees.doubleValue() : 0.0)
+                .totalRevenue(totalRevenueNum != null ? totalRevenueNum.doubleValue() : 0.0)
+                .totalFees(totalFeesNum != null ? totalFeesNum.doubleValue() : 0.0)
                 .dailySalesTrend(dailySalesTrend)
                 .monthlySalesTrend(monthlySalesTrend)
                 .build();
@@ -98,13 +98,13 @@ public class SellerDashboardServiceImpl implements SellerDashboardService {
                 .stream()
                 .map(row -> {
                     LocalDate date = (LocalDate) row[0];
-                    Long orderCount = (Long) row[1];
-                    Double revenue = (Double) row[2];
+                    Number orderCountNum = (Number) row[1];
+                    Number revenueNum = (Number) row[2];
 
                     return SellerSalesStatsDTO.DailySalesDTO.builder()
                             .date(date)
-                            .orderCount(orderCount != null ? orderCount : 0L)
-                            .revenue(revenue != null ? revenue : 0.0)
+                            .orderCount(orderCountNum != null ? orderCountNum.longValue() : 0L)
+                            .revenue(revenueNum != null ? revenueNum.doubleValue() : 0.0)
                             .build();
                 })
                 .collect(Collectors.toList());
@@ -116,13 +116,13 @@ public class SellerDashboardServiceImpl implements SellerDashboardService {
                 .stream()
                 .map(row -> {
                     String yearMonth = (String) row[0];
-                    Long orderCount = (Long) row[1];
-                    Double revenue = (Double) row[2];
+                    Number orderCountNum = (Number) row[1];
+                    Number revenueNum = (Number) row[2];
 
                     return SellerSalesStatsDTO.MonthlySalesDTO.builder()
                             .yearMonth(yearMonth)
-                            .orderCount(orderCount != null ? orderCount : 0L)
-                            .revenue(revenue != null ? revenue : 0.0)
+                            .orderCount(orderCountNum != null ? orderCountNum.longValue() : 0L)
+                            .revenue(revenueNum != null ? revenueNum.doubleValue() : 0.0)
                             .build();
                 })
                 .collect(Collectors.toList());
