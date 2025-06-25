@@ -114,25 +114,20 @@ public interface SellerReviewRepository extends JpaRepository<SellerReview, Long
      * 판매자별 평균 평점 내림차순, 리뷰 개수 내림차순으로 페이징된 랭킹을 조회합니다.
      * 리뷰 수가 minReviews 미만인 판매자는 제외합니다.
      */
-    @Query(value = """
-        SELECT new com.project.dto.SellerRankingDto(
-          sr.seller.id,
-          sr.seller.name,
-          AVG(sr.rating),
-          COUNT(sr)
-        )
-        FROM SellerReview sr
-        GROUP BY sr.seller.id, sr.seller.name
-        HAVING COUNT(sr) >= :minReviews
-        ORDER BY AVG(sr.rating) DESC, COUNT(sr) DESC
-        """,
-        countQuery = """
-        SELECT COUNT(DISTINCT sr.seller.id)
-        FROM SellerReview sr
-        HAVING COUNT(sr) >= :minReviews
-        """)
-    Page<SellerRankingDTO> findSellerRankings(
-        @Param("minReviews") long minReviews,
-        Pageable pageable
-    );
+    @Query("""
+    SELECT new com.realive.dto.admin.review.SellerRankingDTO(
+        sr.seller.id,
+        sr.seller.name,
+        AVG(sr.rating),
+        COUNT(sr)
+    )
+    FROM SellerReview sr
+    GROUP BY sr.seller.id, sr.seller.name
+    HAVING COUNT(sr) >= :minReviews
+    ORDER BY AVG(sr.rating) DESC, COUNT(sr) DESC
+""")
+Page<SellerRankingDTO> findSellerRankings(
+    @Param("minReviews") long minReviews,
+    Pageable pageable
+);
 }
