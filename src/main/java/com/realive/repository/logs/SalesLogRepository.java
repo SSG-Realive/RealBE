@@ -287,15 +287,18 @@ public interface SalesLogRepository extends JpaRepository<SalesLog, Integer>, Jp
                                            @Param("startDate") LocalDate startDate,
                                            @Param("endDate") LocalDate endDate);
 
-    /**
+     /**
      * 특정 판매자의 월별 매출 추이 조회
      */
-    @Query("SELECT CONCAT(EXTRACT(YEAR FROM sl.soldAt), '-', LPAD(EXTRACT(MONTH FROM sl.soldAt), 2, '0')), " +
-            "COUNT(DISTINCT sl.orderItemId), SUM(sl.totalPrice) " +
-            "FROM SalesLog sl " +
-            "WHERE sl.sellerId = :sellerId AND sl.soldAt BETWEEN :startDate AND :endDate " +
-            "GROUP BY EXTRACT(YEAR FROM sl.soldAt), EXTRACT(MONTH FROM sl.soldAt) " +
-            "ORDER BY EXTRACT(YEAR FROM sl.soldAt), EXTRACT(MONTH FROM sl.soldAt)")
+     @Query(
+             value = "SELECT CONCAT(EXTRACT(YEAR FROM sl.sold_at), '-', LPAD(CAST(EXTRACT(MONTH FROM sl.sold_at) AS TEXT), 2, '0')) AS yearMonth, " +
+                     "COUNT(DISTINCT sl.order_item_id), SUM(sl.total_price) " +
+                     "FROM sales_log sl " +
+                     "WHERE sl.seller_id = :sellerId AND sl.sold_at BETWEEN :startDate AND :endDate " +
+                     "GROUP BY EXTRACT(YEAR FROM sl.sold_at), EXTRACT(MONTH FROM sl.sold_at) " +  // ← 이 부분 수정
+                     "ORDER BY EXTRACT(YEAR FROM sl.sold_at), EXTRACT(MONTH FROM sl.sold_at)",     // ← 이 부분 수정
+             nativeQuery = true
+     )
     List<Object[]> getMonthlySalesBySellerId(@Param("sellerId") Long sellerId,
                                              @Param("startDate") LocalDate startDate,
                                              @Param("endDate") LocalDate endDate);
