@@ -293,7 +293,7 @@ public interface SalesLogRepository extends JpaRepository<SalesLog, Integer>, Jp
      @Query(
              value = "SELECT CONCAT(EXTRACT(YEAR FROM sl.sold_at), '-', LPAD(CAST(EXTRACT(MONTH FROM sl.sold_at) AS TEXT), 2, '0')) AS yearMonth, " +
                      "COUNT(DISTINCT sl.order_item_id), SUM(sl.total_price) " +
-                     "FROM sales_log sl " +
+                     "FROM sales_logs sl" +
                      "WHERE sl.seller_id = :sellerId AND sl.sold_at BETWEEN :startDate AND :endDate " +
                      "GROUP BY EXTRACT(YEAR FROM sl.sold_at), EXTRACT(MONTH FROM sl.sold_at) " +  // ← 이 부분 수정
                      "ORDER BY EXTRACT(YEAR FROM sl.sold_at), EXTRACT(MONTH FROM sl.sold_at)",     // ← 이 부분 수정
