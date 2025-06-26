@@ -104,6 +104,7 @@ public class OrderServiceImpl implements OrderService {
             }
 
             itemDTOs.add(OrderItemResponseDTO.builder()
+                    .id(orderItem.getId())
                     .productId(product.getId())
                     .productName(product.getName())
                     .quantity(orderItem.getQuantity())
@@ -183,6 +184,7 @@ public class OrderServiceImpl implements OrderService {
                 }
 
                 itemDTOs.add(OrderItemResponseDTO.builder()
+                        .id(item.getId())
                         .productId(product.getId())
                         .productName(product.getName())
                         .quantity(item.getQuantity())
@@ -231,10 +233,12 @@ public class OrderServiceImpl implements OrderService {
             }
         }
 
-        if (!(order.getStatus() == OrderStatus.PAYMENT_COMPLETED || order.getStatus() == OrderStatus.ORDER_RECEIVED || order.getStatus() == OrderStatus.INIT)) {
-            throw new IllegalStateException(String.format("현재 주문 상태가 '%s'이므로 삭제할 수 없습니다. 삭제 가능한 상태: (%s, %s, %s)",
-                    order.getStatus().getDescription(),
-                    OrderStatus.PAYMENT_COMPLETED.getDescription(), OrderStatus.ORDER_RECEIVED.getDescription(), OrderStatus.INIT.getDescription()));
+        if (!(order.getStatus() == OrderStatus.PAYMENT_CANCELED ||
+                order.getStatus() == OrderStatus.PURCHASE_CANCELED ||
+                order.getStatus() == OrderStatus.REFUND_COMPLETED ||
+                order.getStatus() == OrderStatus.PURCHASE_CONFIRMED)) {
+            throw new IllegalStateException(String.format("현재 주문 상태가 '%s'이므로 삭제할 수 없습니다.",
+                    order.getStatus().getDescription()));
         }
 
         List<OrderItem> orderItemsToDelete = orderItemRepository.findByOrderId(order.getId());

@@ -2,6 +2,9 @@ package com.realive.repository.logs;
 
 import com.realive.domain.logs.SalesLog;
 import com.realive.dto.logs.salessum.CategorySalesSummaryDTO;
+import com.realive.dto.logs.salessum.DailySalesSummaryDTO;
+import com.realive.dto.logs.salessum.MonthlySalesSummaryDTO;
+import com.realive.dto.logs.stats.SellerSalesDetailDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -226,4 +229,77 @@ public interface SalesLogRepository extends JpaRepository<SalesLog, Integer>, Jp
             "ORDER BY SUM(sl.totalPrice) DESC")
     List<CategorySalesSummaryDTO> findCategorySalesSummaryBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
+    // 기존 메소드들은 그대로 두고 아래 메소드만 추가
+    /**
+     * 특정 기간 동안의 일별 판매 요약을 한 번의 쿼리로 조회
+     */
+    @Query("SELECT new com.realive.dto.logs.salessum.DailySalesSummaryDTO(" +
+            "sl.soldAt, " +
+            "CAST(COUNT(sl) AS java.lang.Integer), " +
+            "CAST(SUM(sl.totalPrice) AS java.lang.Integer), " +
+            "CAST(SUM(sl.quantity) AS java.lang.Integer)) " +
+            "FROM SalesLog sl " +
+            "WHERE sl.soldAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY sl.soldAt " +
+            "ORDER BY sl.soldAt")
+    List<DailySalesSummaryDTO> getDailySummariesForPeriod(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    /**
+     * 특정 기간 동안의 판매자별 판매 상세 정보 조회
+     */
+    @Query("SELECT new com.realive.dto.logs.stats.SellerSalesDetailDTO(" +
+            "sl.sellerId, " +
+            "s.name, " +
+            "COUNT(sl), " +
+            "SUM(sl.totalPrice)) " +
+            "FROM SalesLog sl " +
+            "JOIN Seller s ON sl.sellerId = s.id " +
+            "WHERE sl.soldAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY sl.sellerId, s.name " +
+            "ORDER BY SUM(sl.totalPrice) DESC")
+    List<SellerSalesDetailDTO> getSellerSalesDetailsForPeriod(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+    /**
+     * 특정 기간 동안의 월별 판매 요약을 조회 (Object[] 반환)
+     */
+    @Query("SELECT " +
+            "EXTRACT(YEAR FROM sl.soldAt), " +          // ← 이 부분
+            "EXTRACT(MONTH FROM sl.soldAt), " +         // ← 이 부분
+            "COUNT(DISTINCT sl.orderItemId), " +
+            "SUM(sl.totalPrice), " +
+            "SUM(sl.quantity) " +
+            "FROM SalesLog sl " +
+            "WHERE sl.soldAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY EXTRACT(YEAR FROM sl.soldAt), EXTRACT(MONTH FROM sl.soldAt) " +  // ← 이 부분
+            "ORDER BY EXTRACT(YEAR FROM sl.soldAt), EXTRACT(MONTH FROM sl.soldAt)")    // ← 이 부분
+    List<Object[]> getMonthlySummariesForPeriodRaw(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    @Query("SELECT COUNT(DISTINCT sl.customerId) FROM SalesLog sl WHERE sl.sellerId = :sellerId")
+    Long countDistinctCustomersBySellerId(@Param("sellerId") Long sellerId);
+
+    /**
+     * 특정 판매자의 일별 매출 추이 조회
+     */
+    @Query("SELECT sl.soldAt, COUNT(DISTINCT sl.orderItemId), SUM(sl.totalPrice) " +
+            "FROM SalesLog sl " +
+            "WHERE sl.sellerId = :sellerId AND sl.soldAt BETWEEN :startDate AND :endDate " +
+            "GROUP BY sl.soldAt " +
+            "ORDER BY sl.soldAt")
+    List<Object[]> getDailySalesBySellerId(@Param("sellerId") Long sellerId,
+                                           @Param("startDate") LocalDate startDate,
+                                           @Param("endDate") LocalDate endDate);
+
+     /**
+     * 특정 판매자의 월별 매출 추이 조회
+     */
+     @Query(
+             value = "SELECT CONCAT(EXTRACT(YEAR FROM sl.sold_at), '-', LPAD(CAST(EXTRACT(MONTH FROM sl.sold_at) AS TEXT), 2, '0')) AS yearMonth, " +
+                     "COUNT(DISTINCT sl.order_item_id), SUM(sl.total_price) " +
+                     "FROM sales_logs sl " +
+                     "WHERE sl.seller_id = :sellerId AND sl.sold_at BETWEEN :startDate AND :endDate " +
+                     "GROUP BY EXTRACT(YEAR FROM sl.sold_at), EXTRACT(MONTH FROM sl.sold_at) " +  // ← 이 부분 수정
+                     "ORDER BY EXTRACT(YEAR FROM sl.sold_at), EXTRACT(MONTH FROM sl.sold_at)",     // ← 이 부분 수정
+             nativeQuery = true
+     )
+    List<Object[]> getMonthlySalesBySellerId(@Param("sellerId") Long sellerId,
+                                             @Param("startDate") LocalDate startDate,
+                                             @Param("endDate") LocalDate endDate);
 }

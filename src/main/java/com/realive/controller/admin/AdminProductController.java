@@ -1,16 +1,19 @@
 package com.realive.controller.admin;
 
+import com.realive.domain.product.Category;
 import com.realive.dto.admin.ProductDetailDTO;
 import com.realive.dto.auction.AdminPurchaseRequestDTO;
 import com.realive.dto.auction.AdminProductDTO;
 import com.realive.dto.common.ApiResponse;
 import com.realive.dto.page.PageResponseDTO;
 import com.realive.dto.product.ProductListDTO;
-import com.realive.dto.admin.ProductDetailDTO;
 import com.realive.dto.product.ProductSearchCondition;
+import com.realive.dto.product.MonthlyProductRegistrationDTO;
+import com.realive.dto.product.DailyProductRegistrationDTO;
 import com.realive.security.AdminPrincipal;
 import com.realive.service.product.ProductService;
 import com.realive.service.admin.product.AdminProductService;
+import com.realive.repository.product.CategoryRepository;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.slf4j.Logger;
@@ -20,6 +23,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
 import java.util.NoSuchElementException;
 
 @RestController
@@ -29,6 +33,7 @@ public class AdminProductController {
 
     private final ProductService productService;
     private final AdminProductService adminProductService;
+    private final CategoryRepository categoryRepository;
     private static final Logger log = LoggerFactory.getLogger(AdminProductController.class);
 
     /**
@@ -42,6 +47,17 @@ public class AdminProductController {
         log.info("관리자용 전체 상품 목록 조회 요청 - 조건: {}", condition);
         PageResponseDTO<ProductListDTO> response = productService.getAllProductsForAdmin(condition);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * 카테고리 목록 조회
+     * - 모든 카테고리를 조회
+     */
+    @GetMapping("/categories")
+    public ResponseEntity<List<Category>> getCategories() {
+        log.info("카테고리 목록 조회 요청");
+        List<Category> categories = categoryRepository.findAll();
+        return ResponseEntity.ok(categories);
     }
 
     /**
@@ -99,6 +115,30 @@ public class AdminProductController {
     public ResponseEntity<Void> deactivateProduct(@PathVariable Long productId) {
         adminProductService.deactivateProduct(productId);
         return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * 월별 상품 등록 통계 조회
+     * - 지정된 개월 수만큼의 월별 상품 등록 수를 조회
+     */
+    @GetMapping("/products/monthly-stats")
+    public ResponseEntity<List<MonthlyProductRegistrationDTO>> getMonthlyProductStats(
+            @RequestParam(defaultValue = "6") int months) {
+        log.info("월별 상품 등록 통계 조회 요청 - 개월 수: {}", months);
+        List<MonthlyProductRegistrationDTO> stats = productService.getMonthlyProductRegistrationStats(months);
+        return ResponseEntity.ok(stats);
+    }
+
+    /**
+     * 일별 상품 등록 통계 조회
+     * - 지정된 일 수만큼의 일별 상품 등록 수를 조회
+     */
+    @GetMapping("/products/daily-stats")
+    public ResponseEntity<List<DailyProductRegistrationDTO>> getDailyProductStats(
+            @RequestParam(defaultValue = "30") int days) {
+        log.info("일별 상품 등록 통계 조회 요청 - 일 수: {}", days);
+        List<DailyProductRegistrationDTO> stats = productService.getDailyProductRegistrationStats(days);
+        return ResponseEntity.ok(stats);
     }
 
     // 예외 처리 (선택)
