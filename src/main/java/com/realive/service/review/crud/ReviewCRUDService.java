@@ -10,4 +10,5 @@ public interface ReviewCRUDService {
     void deleteReview(Long reviewId, Long customerId);
 
     boolean checkReviewExistence(Long orderId, Long customerId, Long sellerId);
+
 }
