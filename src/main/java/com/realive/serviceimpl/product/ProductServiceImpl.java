@@ -25,6 +25,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -346,11 +347,12 @@ public class ProductServiceImpl implements ProductService {
                         int productsPerSeller,
                         long minReviews) {
                 // 1) 상위 후보 셀러 조회
-                List<SellerRankingDTO> rankings = statService
+                List<SellerRankingDTO> originalRankings  = statService
                                 .getRanking(minReviews, PageRequest.of(0, candidateSize))
                                 .getContent();
 
                 // 2) 랜덤 셔플 및 sellersPick 수만큼 선택
+                List<SellerRankingDTO> rankings = new ArrayList<>(originalRankings);
                 Collections.shuffle(rankings);
                 List<SellerRankingDTO> picked = rankings.subList(0, Math.min(sellersPick, rankings.size()));
 
