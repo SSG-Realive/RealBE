@@ -185,7 +185,6 @@ public interface StatService {
     List<DailySalesSummaryDTO> getDailySummariesForPeriod(LocalDate startDate, LocalDate endDate);
     List<SellerSalesDetailDTO> getSellerSalesDetailsForPeriod(LocalDate startDate, LocalDate endDate);
 
-
     /**
      * 최소 리뷰 수(minReviews) 이상인 판매자를 대상으로
      * 평균 평점 내림차순, 리뷰 개수 내림차순으로 페이징된 랭킹 정보를 조회합니다.
@@ -195,4 +194,13 @@ public interface StatService {
      * @return 랭킹 정보가 담긴 Page of SellerRankingDTO
      */
     Page<SellerRankingDTO> getRanking(long minReviews, Pageable pageable);
+  
+    /**
+     * 특정 기간 동안의 월별 판매 요약 정보 리스트를 조회합니다.
+     *
+     * @param startDate 조회 시작일.
+     * @param endDate 조회 종료일.
+     * @return {@link List<MonthlySalesSummaryDTO>} 해당 기간의 월별 판매 요약 정보 리스트.
+     */
+    List<MonthlySalesSummaryDTO> getMonthlySummariesForPeriod(LocalDate startDate, LocalDate endDate);
 }
