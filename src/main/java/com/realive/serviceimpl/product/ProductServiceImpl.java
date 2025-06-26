@@ -397,7 +397,7 @@ public class ProductServiceImpl implements ProductService {
                                                         .products(summaryList)
                                                         .build();
                                 })
-                                .collect(Collectors.toList());
+                                .collect(Collectors.toList());}
 
         public MonthlyProductRegistrationDTO getMonthlyProductRegistrationDTO(YearMonth yearMonth) {
                 // Implementation of the method
