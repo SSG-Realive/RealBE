@@ -85,7 +85,7 @@ public class ProductViewController {
         List<FeaturedSellerProductsResponseDTO> featured = productService.getFeaturedSellersWithProducts(
                 /* candidateSize= */10,
                 /* sellersPick= */1,
-                /* productsPerSeller= */4,
+                /* productsPerSeller= */5,
                 /* minReviews= */1L);
         return ResponseEntity.ok(featured);
     }
