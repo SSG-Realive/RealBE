@@ -75,10 +75,7 @@ public interface ProductService {
         int productsPerSeller,
         long minReviews
     );
-     * 월별 상품 등록 통계 조회
-     * - 지정된 기간 동안의 월별 상품 등록 수를 조회
-     * - 관리자 대시보드용
-     */
+
     List<MonthlyProductRegistrationDTO> getMonthlyProductRegistrationStats(int months);
 
     /**
