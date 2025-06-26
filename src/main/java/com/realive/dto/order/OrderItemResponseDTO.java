@@ -1,5 +1,6 @@
 package com.realive.dto.order;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -17,4 +18,8 @@ public class OrderItemResponseDTO {
     private int quantity;
     private int price;
     private String imageUrl;
+
+    // 프론트에서 review를 작성 할 때, sellerId를 사용하기 위해 추가
+    @JsonProperty("sellerId")
+    private Long sellerId;
 }

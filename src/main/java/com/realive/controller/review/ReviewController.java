@@ -82,4 +82,20 @@ public class ReviewController {
         Page<MyReviewResponseDTO> result = reviewViewService.getMyReviewList(customerId, pageable);
         return ResponseEntity.ok(result);
     }
+
+    // ✅ 리뷰 작성시 중복 체크
+    @GetMapping("/api/reviews/exists")
+    public ResponseEntity<Boolean> checkReviewExists(
+            @RequestParam(required = true) Long orderId,
+            @RequestParam(required = true) Long sellerId,
+            @AuthenticationPrincipal CustomerPrincipal userDetails
+    ) {
+        if (orderId == null || sellerId == null) {
+            throw new IllegalArgumentException("orderId와 sellerId를 가져오는데 오류가 발생했습니다.");
+        }
+
+        boolean exists = reviewCRUDService.checkReviewExistence(orderId, sellerId, userDetails.getId());
+        return ResponseEntity.ok(exists);
+    }
+
 }

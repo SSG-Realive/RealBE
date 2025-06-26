@@ -110,6 +110,7 @@ public class OrderServiceImpl implements OrderService {
                     .quantity(orderItem.getQuantity())
                     .price(orderItem.getPrice())
                     .imageUrl(imageUrl)
+                    .sellerId(product.getSeller().getId())
                     .build());
         }
 
@@ -190,6 +191,7 @@ public class OrderServiceImpl implements OrderService {
                         .quantity(item.getQuantity())
                         .price(item.getPrice())
                         .imageUrl(imageUrl)
+                        .sellerId(product.getSeller().getId())
                         .build());
             }
 
