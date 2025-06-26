@@ -10,6 +10,8 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 @AllArgsConstructor
 public class OrderItemResponseDTO {
+
+    private long id;
     private long productId;
     private String productName;
     private int quantity;
