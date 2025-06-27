@@ -361,49 +361,42 @@ public class ProductServiceImpl implements ProductService {
 
                 // 3) 셀러별 랜덤 상품 + 썸네일 URL 매핑 → DTO
                 return picked.stream()
-                        .map(seller -> {
-                                // (a) 랜덤 상품 조회
-                                List<Product> prods = productRepository
-                                        .findRandomProductsBySellerId(seller.getSellerId(),
-                                                productsPerSeller);
+                                .map(seller -> {
+                                        // (a) 랜덤 상품 조회
+                                        List<Product> prods = productRepository
+                                                        .findRandomProductsBySellerId(seller.getSellerId(),
+                                                                        productsPerSeller);
 
-                                // (b) 상품 ID 목록 생성
-                                List<Long> prodIds = prods.stream()
-                                        .map(Product::getId)
-                                        .collect(Collectors.toList());
+                                        // (b) 상품 ID 목록 생성
+                                        List<Long> prodIds = prods.stream()
+                                                        .map(Product::getId)
+                                                        .collect(Collectors.toList());
 
-                                // (c) productImageRepository를 통해 URL 맵 생성
-                                List<Object[]> rows = productImageRepository
-                                        .findThumbnailUrlsByProductIds(prodIds, MediaType.IMAGE);
-                                Map<Long, String> urlMap = rows.stream()
-                                        .collect(Collectors.toMap(
-                                                row -> (Long) row[0],
-                                                row -> (String) row[1]));
+                                        // (c) productImageRepository를 통해 URL 맵 생성
+                                        List<Object[]> rows = productImageRepository
+                                                        .findThumbnailUrlsByProductIds(prodIds, MediaType.IMAGE);
+                                        Map<Long, String> urlMap = rows.stream()
+                                                        .collect(Collectors.toMap(
+                                                                        row -> (Long) row[0],
+                                                                        row -> (String) row[1]));
 
-                                // (d) DTO 변환
-                                List<FeaturedProductSummaryResponseDTO> summaryList = prods.stream()
-                                        .map(p -> FeaturedProductSummaryResponseDTO.builder()
-                                                .productId(p.getId())
-                                                .name(p.getName())
-                                                .price(p.getPrice())
-                                                .imageThumbnailUrl(urlMap.get(p.getId()))
-                                                .build())
-                                        .collect(Collectors.toList());
+                                        // (d) DTO 변환
+                                        List<FeaturedProductSummaryResponseDTO> summaryList = prods.stream()
+                                                        .map(p -> FeaturedProductSummaryResponseDTO.builder()
+                                                                        .productId(p.getId())
+                                                                        .name(p.getName())
+                                                                        .price(p.getPrice())
+                                                                        .imageThumbnailUrl(urlMap.get(p.getId()))
+                                                                        .build())
+                                                        .collect(Collectors.toList());
 
-                                return FeaturedSellerProductsResponseDTO.builder()
-                                        .sellerId(seller.getSellerId())
-                                        .sellerName(seller.getSellerName())
-                                        .products(summaryList)
-                                        .build();
-                        })
-                        .collect(Collectors.toList());
-        }
-
-        public MonthlyProductRegistrationDTO getMonthlyProductRegistrationDTO(YearMonth yearMonth) {
-                // Implementation of the method
-                // This method should return a MonthlyProductRegistrationDTO object
-                // based on the given YearMonth
-                return null; // Placeholder return, actual implementation needed
+                                        return FeaturedSellerProductsResponseDTO.builder()
+                                                        .sellerId(seller.getSellerId())
+                                                        .sellerName(seller.getSellerName())
+                                                        .products(summaryList)
+                                                        .build();
+                                })
+                                .collect(Collectors.toList());
         }
 
         @Override
