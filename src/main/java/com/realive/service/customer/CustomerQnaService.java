@@ -39,7 +39,7 @@ public class CustomerQnaService {
 
     // 판매 상품 1:1 문의하기 + 상단에 상품 요약
     public Map<String, Object> createQnaWithProductSummary(CustomerQnaRequestDTO requestDTO) {
-        
+
         Product product = ProductViewRepository.findById(requestDTO.getProductId())
                 .orElseThrow(() -> new EntityNotFoundException("상품을 찾을 수 없습니다. ID=" + requestDTO.getProductId()));
 
@@ -67,14 +67,14 @@ public class CustomerQnaService {
                 .orElseThrow(() -> new EntityNotFoundException("상품 요약 정보를 찾을 수 없습니다."));
 
         return Map.of(
-            "qnaId", saved.getId(),
-            "product", productSummary
+                "qnaId", saved.getId(),
+                "product", productSummary
         );
     }
 
     // 내 문의 목록 조회
     public List<Map<String, Object>> listQnaWithProductSummary(Long customerId) {
-       
+
         List<CustomerQna> qnaList = customerQnaRepository.findByCustomerIdOrderByIdDesc(customerId);
 
         List<Long> productIds = qnaList.stream()
@@ -110,9 +110,9 @@ public class CustomerQnaService {
 
         CustomerQna qna = customerQnaRepository.findByIdAndCustomerId(id, customerId)
                 .orElseThrow(() -> new EntityNotFoundException("문의 정보를 찾을 수 없습니다. ID=" + id));
-        
+
         Product product = qna.getProduct();
-        
+
         ProductListDTO productSummary = productListRepository
                 .getWishlistedProducts(List.of(product.getId()))
                 .stream()
@@ -120,15 +120,15 @@ public class CustomerQnaService {
                 .orElseThrow(() -> new EntityNotFoundException("상품 요약 정보를 찾을 수 없습니다."));
 
         CustomerQnaDetailDTO qnaDetail = CustomerQnaDetailDTO.builder()
-            .id(qna.getId())
-            .title(qna.getTitle())
-            .content(qna.getContent())
-            .answer(qna.getAnswer())
-            .isAnswered(qna.getIsAnswered())
-            .createdAt(qna.getCreatedAt())
-            .updatedAt(qna.getUpdatedAt())
-            .answeredAt(qna.getAnsweredAt()) // nullable 가능
-            .build();
+                .id(qna.getId())
+                .title(qna.getTitle())
+                .content(qna.getContent())
+                .answer(qna.getAnswer())
+                .isAnswered(qna.getIsAnswered())
+                .createdAt(qna.getCreatedAt())
+                .updatedAt(qna.getUpdatedAt())
+                .answeredAt(qna.getAnsweredAt()) // nullable 가능
+                .build();
 
         Map<String, Object> result = new HashMap<>();
         result.put("qna", qnaDetail);
