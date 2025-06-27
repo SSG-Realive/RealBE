@@ -1,9 +1,9 @@
 package com.realive.dto.customer.customerqna;
 
-import java.time.LocalDateTime;
-
 import lombok.Builder;
 import lombok.Data;
+
+import java.time.LocalDateTime;
 
 // [Customer] 내 Q&A 상세 조회DTO
 
@@ -19,5 +19,10 @@ public class CustomerQnaDetailDTO {
     private LocalDateTime createdAt;    // 질문 작성일
     private LocalDateTime updatedAt;   
     private LocalDateTime answeredAt;   // 답변 작성일 (nullable)
+
+    // 판매자용 추가 필드들
+    private String customerName;        // 추가: 고객 이름
+    private String productName;         // 추가: 상품 이름
+    private Long productId;             // 추가: 상품 ID
 
 }

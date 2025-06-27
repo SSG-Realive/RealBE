@@ -1,14 +1,14 @@
 package com.realive.dto.customer.member;
 
-import java.time.LocalDate;
 import com.realive.domain.customer.Gender;
-
 import jakarta.validation.constraints.Email;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
+
+import java.time.LocalDate;
 
 // [Customer] 회원가입DTO
 
