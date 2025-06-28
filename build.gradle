@@ -74,7 +74,6 @@ dependencies {
    // implementation 'org.springframework.boot:spring-boot-starter-data-redis'
    // implementation 'io.lettuce:lettuce-core:6.3.1.RELEASE'
 
-   implementation 'org.springframework.boot:spring-boot-starter-mail'
 }
 
 tasks.named('test') {
