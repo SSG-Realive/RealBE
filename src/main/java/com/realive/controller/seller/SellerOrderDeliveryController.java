@@ -3,8 +3,10 @@ package com.realive.controller.seller;
 import com.realive.domain.seller.Seller;
 import com.realive.dto.order.DeliveryStatusUpdateDTO;
 import com.realive.dto.order.OrderDeliveryResponseDTO;
+import com.realive.dto.seller.SellerOrderDetailResponseDTO;
 import com.realive.security.seller.SellerPrincipal;
 import com.realive.service.order.OrderDeliveryService;
+import com.realive.service.order.SellerOrderService;
 import lombok.RequiredArgsConstructor;
 
 import java.util.List;
@@ -21,6 +23,23 @@ import org.springframework.web.bind.annotation.*;
 public class SellerOrderDeliveryController {
 
     private final OrderDeliveryService orderDeliveryService;
+    private final SellerOrderService sellerOrderService;  // 추가
+
+    // getOrderDetail 메서드에서 문제:
+    @GetMapping("/{orderId}")
+    public ResponseEntity<SellerOrderDetailResponseDTO> getOrderDetail(
+            @PathVariable Long orderId,
+            @AuthenticationPrincipal SellerPrincipal principal
+    ) {
+        if (principal == null) {
+            throw new IllegalArgumentException("판매자 인증 정보가 없습니다.");
+        }
+
+        // ❌ 문제: SellerOrderService에 getOrderDetail 메서드가 없음
+        SellerOrderDetailResponseDTO orderDetail = sellerOrderService.getOrderDetail(principal.getId(), orderId);
+        return ResponseEntity.ok(orderDetail);
+    }
+
 
     // PATCH /api/seller/orders/{orderId}/delivery
     @PatchMapping("/{orderId}/delivery")
