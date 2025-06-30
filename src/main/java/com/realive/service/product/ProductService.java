@@ -2,8 +2,10 @@ package com.realive.service.product;
 
 import com.realive.dto.page.PageResponseDTO;
 import com.realive.dto.product.*;
+import com.realive.dto.seller.SellerPublicResponseDTO;
 
 import java.util.List;
+import java.util.Optional;
 
 public interface ProductService {
 
@@ -73,4 +75,19 @@ public interface ProductService {
      * - 관리자 대시보드용
      */
     List<DailyProductRegistrationDTO> getDailyProductRegistrationStats(int days);
+
+    /**
+     * 특정 상품 ID를 통해 해당 상품의 판매자 ID를 조회합니다.
+     * @param productId 상품 ID
+     * @return 해당 상품의 판매자 ID (Optional<Long>로 반환)
+     */
+    Optional<Long> getSellerIdByProductId(Long productId);
+
+    /**
+     * 특정 상품 ID를 통해 해당 상품 판매자의 공개 정보를 조회합니다.
+     * 이 메서드는 ProductService와 SellerService 간의 협업을 보여줍니다.
+     * @param productId 상품 ID
+     * @return 고객에게 노출 가능한 판매자 정보 DTO (Optional<SellerPublicDto>로 반환)
+     */
+    Optional<SellerPublicResponseDTO> getPublicSellerInfoByProductId(Long productId);
 }

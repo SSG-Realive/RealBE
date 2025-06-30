@@ -1,5 +1,7 @@
 package com.realive.service.review.view;
 
+import com.realive.dto.page.PageRequestDTO;
+import com.realive.dto.page.PageResponseDTO;
 import com.realive.dto.review.MyReviewResponseDTO;
 import com.realive.dto.review.ReviewListResponseDTO;
 import com.realive.dto.review.ReviewResponseDTO;
@@ -8,6 +10,7 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -147,5 +150,34 @@ public class ReviewViewServiceImpl implements ReviewViewService {
 
         log.info("총 {}개의 내 리뷰를 조회했습니다.", myReviewsPage.getTotalElements());
         return myReviewsPage;
+    }
+
+    @Override
+    public PageResponseDTO<ReviewResponseDTO> getSellerReviews(Long sellerId, Pageable pageable) {
+        log.info("판매자 ID {} 에 대한 리뷰를 페이지 {} 로 가져오는 중입니다.", sellerId, pageable.getPageNumber());
+
+        Page<ReviewResponseDTO> reviewsPage = reviewViewRepository.findSellerReviewsBySellerId(sellerId, pageable);
+
+        // Pageable 객체에서 PageRequestDTO 생성
+        // Pageable의 getPageNumber()는 0-based 이므로, PageRequestDTO의 page(1-based)로 변환 시 +1
+        // 정렬 정보는 Pageable에서 직접 PageRequestDTO의 sort, direction 필드로 매핑
+        PageRequestDTO pageRequestDTO = PageRequestDTO.builder()
+                .page(pageable.getPageNumber() + 1) // 0-based -> 1-based
+                .size(pageable.getPageSize())
+                // Pageable의 Sort 객체에서 정렬 기준 필드와 방향을 추출
+                .sort(pageable.getSort().stream()
+                        .map(Sort.Order::getProperty)
+                        .findFirst().orElse("createdAt")) // 기본 정렬 필드
+                .direction(pageable.getSort().stream()
+                        .map(order -> order.getDirection().name()) // ASC/DESC 문자열로 변환
+                        .findFirst().orElse("DESC")) // 기본 정렬 방향
+                .build();
+
+        // PageResponseDTO의 withAll 빌더 메서드를 사용하여 생성합니다.
+        return PageResponseDTO.<ReviewResponseDTO>withAll()
+                .pageRequestDTO(pageRequestDTO)            // PageRequestDTO 객체 전달
+                .dtoList(reviewsPage.getContent())       // 실제 데이터 리스트
+                .total( (int) reviewsPage.getTotalElements()) // 전체 데이터 개수 (int로 캐스팅)
+                .build();
     }
 }
