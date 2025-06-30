@@ -55,4 +55,16 @@ public interface    ReviewViewRepository extends JpaRepository<SellerReview, Lon
     // OrderItem 엔티티가 Order와 Product를 가지고 있다고 가정합니다.
     @Query("SELECT oi.order.id, p.name FROM OrderItem oi JOIN oi.product p WHERE oi.order.id IN :orderIds GROUP BY oi.order.id, p.name")
     List<Object[]> findProductNamesByOrderIds(@Param("orderIds") List<Long> orderIds);
+
+    @Query("""
+        SELECT oi.order.id, p.name
+        FROM OrderItem oi
+        JOIN oi.product p
+        WHERE oi.order.id IN :orderIds
+          AND p.seller.id = :sellerId
+    """)
+    List<Object[]> findProductNamesByOrderIdsAndSellerId(@Param("orderIds") List<Long> orderIds,
+                                                         @Param("sellerId") Long sellerId);
+
+
 }

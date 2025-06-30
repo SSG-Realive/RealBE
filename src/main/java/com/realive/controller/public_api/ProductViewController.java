@@ -2,6 +2,9 @@ package com.realive.controller.public_api;
 
 import java.util.List;
 
+import com.realive.dto.review.ReviewListResponseDTO;
+import com.realive.service.review.view.ReviewViewService;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.ModelAttribute;
@@ -34,6 +37,7 @@ public class ProductViewController {
     private final ProductViewService productViewService;
     private final CustomerQnaService customerQnaService;
     private final ProductService productService;
+    private final ReviewViewService reviewViewService;
 
     // 상품 목록 조회 with 검색
     @GetMapping
@@ -88,5 +92,12 @@ public class ProductViewController {
                 /* productsPerSeller= */5,
                 /* minReviews= */1L);
         return ResponseEntity.ok(featured);
+    }
+
+    // ✅ 판매자의 리뷰 리스트 조회
+    @GetMapping("reviews/seller/{sellerId}")
+    public ResponseEntity<ReviewListResponseDTO> getReviews(@PathVariable Long sellerId, Pageable pageable) {
+        ReviewListResponseDTO result = reviewViewService.getReviewList(sellerId, pageable);
+        return ResponseEntity.ok(result);
     }
 }

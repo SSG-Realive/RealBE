@@ -1,4 +1,4 @@
-package com.realive.controller.review;
+package com.realive.controller.customer;
 
 import com.realive.dto.review.*;
 import com.realive.security.customer.CustomerPrincipal;
@@ -87,12 +87,7 @@ public class ReviewController {
         return ResponseEntity.noContent().build();
     }
 
-    // ✅ 판매자의 리뷰 리스트 조회
-    @GetMapping("/seller/{sellerId}")
-    public ResponseEntity<ReviewListResponseDTO> getReviews(@PathVariable Long sellerId, Pageable pageable) {
-        ReviewListResponseDTO result = reviewViewService.getReviewList(sellerId, pageable);
-        return ResponseEntity.ok(result);
-    }
+
 
     // ✅ 리뷰 상세 조회
     @GetMapping("/{id}")
