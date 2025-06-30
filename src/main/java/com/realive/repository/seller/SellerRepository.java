@@ -16,4 +16,7 @@ public interface SellerRepository extends JpaRepository<Seller,Long>, EmailLooku
     // 활성화된 판매자 수를 조회하는 메서드 추가
     long countByIsActiveTrue();
     long countByIsActiveFalse();
+
+    // 고객이 seller 정보 조회하기 위한 메서드 추가
+    Optional<Seller> findById(Long id);
 }
