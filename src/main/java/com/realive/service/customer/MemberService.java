@@ -104,12 +104,12 @@ public class MemberService {
         Customer customer = customerRepository.findByEmail(email)
                 .orElseThrow(() -> new EntityNotFoundException("회원이 존재하지 않습니다"));
 
-        customer.setName(dto.getName());
-        customer.setPhone(dto.getPhone());
-        customer.setAddress(dto.getAddress());
-        customer.setBirth(dto.getBirth());  
+        if (dto.getName()    != null) customer.setName(dto.getName());
+        if (dto.getPhone()   != null) customer.setPhone(dto.getPhone());
+        if (dto.getAddress() != null) customer.setAddress(dto.getAddress());
+        if (dto.getBirth()   != null) customer.setBirth(dto.getBirth());
 
-        customerRepository.save(customer); // JPA 더티 체킹으로 자동 반영
+        
     }
 
     // 회원 탈퇴(소프트): 비활성화
