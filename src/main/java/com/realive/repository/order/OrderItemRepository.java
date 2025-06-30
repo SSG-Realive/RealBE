@@ -67,8 +67,9 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
  @Query("""
     SELECT oi
     FROM OrderItem oi
-    JOIN oi.product p
-    JOIN oi.order o
+    JOIN FETCH oi.product p
+    JOIN FETCH p.seller
+    JOIN FETCH oi.order o         
     JOIN OrderDelivery od ON od.order.id = o.id
     WHERE p.seller.id = :sellerId
         AND od.status = 'DELIVERY_COMPLETED'
@@ -79,5 +80,7 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
          @Param("sellerId") Long sellerId,
          @Param("startDate") LocalDateTime startDate,
          @Param("endDate") LocalDateTime endDate);
+
+
 
 }
