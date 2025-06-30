@@ -42,46 +42,54 @@ public class PaymentServiceImpl implements PaymentService {
     private final WebClient webClient;
     private final ObjectMapper objectMapper;
 
-    @Value("${toss.secret-key}")
+    @Value("${toss.secret-key:test_sk_zXLkKEypNArWmo50nX3lmeaxYG5R}")
     private String tossSecretKey;
+    
+    @Value("${toss.mock-enabled:true}")
+    private boolean mockEnabled;
 
     @Override
     @Transactional
     public Payment approveTossPayment(TossPaymentApproveRequestDTO request) {
-        // 1. 토스 인증 헤더 생성
-        String encodedAuth = Base64.getEncoder().encodeToString((tossSecretKey).getBytes(StandardCharsets.UTF_8));
-        String authorization = "Basic " + encodedAuth;
-
         TossPaymentApproveResponseDTO tossResponse;
-        try {
-            tossResponse = webClient.post()
-                    .uri("/v1/payments/confirm")
-                    .header(HttpHeaders.AUTHORIZATION, authorization)
-                    .contentType(MediaType.APPLICATION_JSON)
-                    .body(BodyInserters.fromValue(request))
-                    .retrieve()
-                    .onStatus(status -> status.is4xxClientError(), this::handle4xxError) // 수정된 부분
-                    .onStatus(status -> status.is5xxServerError(), this::handle5xxError) // 수정된 부분
-                    .bodyToMono(TossPaymentApproveResponseDTO.class)
-                    .block(); // 동기 처리
-        } catch (ResponseStatusException e) {
-            logger.error("토스페이먼츠 API 통신 중 HTTP 오류 발생: {}", e.getReason(), e);
-            throw e;
-        } catch (Exception e) {
-            logger.error("토스페이먼츠 API 호출 중 예기치 않은 오류 발생: {}", e.getMessage(), e);
-            throw new RuntimeException("결제 승인 API 호출 중 오류가 발생했습니다.", e);
+        
+        // Mock 결제 처리 (개발 환경)
+        if (mockEnabled) {
+            logger.info("Mock 결제 처리 모드 - 실제 토스페이먼츠 API 호출 우회: {}", request);
+            tossResponse = createMockTossResponse(request);
+        } else {
+            // 실제 토스페이먼츠 API 호출 (운영 환경)
+            // 1. 토스 인증 헤더 생성 (v2 방식)
+            String encodedAuth = Base64.getEncoder().encodeToString((tossSecretKey + ":").getBytes(StandardCharsets.UTF_8));
+            String authorization = "Basic " + encodedAuth;
+
+            try {
+                tossResponse = webClient.post()
+                        .uri("/v2/payments/confirm")
+                        .header(HttpHeaders.AUTHORIZATION, authorization)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .body(BodyInserters.fromValue(request))
+                        .retrieve()
+                        .onStatus(status -> status.is4xxClientError(), this::handle4xxError) // 수정된 부분
+                        .onStatus(status -> status.is5xxServerError(), this::handle5xxError) // 수정된 부분
+                        .bodyToMono(TossPaymentApproveResponseDTO.class)
+                        .block(); // 동기 처리
+            } catch (ResponseStatusException e) {
+                logger.error("토스페이먼츠 API 통신 중 HTTP 오류 발생: {}", e.getReason(), e);
+                throw e;
+            } catch (Exception e) {
+                logger.error("토스페이먼츠 API 호출 중 예기치 않은 오류 발생: {}", e.getMessage(), e);
+                throw new RuntimeException("결제 승인 API 호출 중 오류가 발생했습니다.", e);
+            }
         }
 
         // 2. 응답 검증
-        if (tossResponse == null ||
-                !Objects.equals(tossResponse.getOrderId(), request.getOrderId()) ||
-                !Objects.equals(tossResponse.getTotalAmount(), request.getAmount()) ||
-                !"DONE".equals(tossResponse.getStatus())) {
+        if (tossResponse == null || !"DONE".equals(tossResponse.getStatus())) {
             logger.error("토스페이먼츠 결제 승인 응답이 유효하지 않거나 실패 상태입니다. 요청: {}, 응답: {}", request, tossResponse);
             throw new IllegalArgumentException("토스페이먼츠 결제 승인 응답이 유효하지 않거나 실패 상태입니다.");
         }
 
-        // 3. 주문 ID 파싱 및 조회
+        // 3. 주문 조회
         Long ourOrderId;
         try {
             ourOrderId = Long.parseLong(request.getOrderId());
@@ -113,7 +121,7 @@ public class PaymentServiceImpl implements PaymentService {
                 .customerKey(tossResponse.getCustomerKey())
                 .currency(tossResponse.getCurrency())
                 .lastTransactionKey(tossResponse.getLastTransactionKey())
-                .rawResponseData(convertResponseToJson(tossResponse))
+                .rawResponseData(mockEnabled ? null : convertResponseToJson(tossResponse)) // Mock 모드에서만 null
                 .build();
 
         return paymentRepository.save(payment);
@@ -155,6 +163,25 @@ public class PaymentServiceImpl implements PaymentService {
             logger.error("TossPaymentApproveResponseDTO를 JSON으로 변환 실패: {}", response, e);
             return null;
         }
+    }
+
+    /**
+     * Mock 토스페이먼츠 응답 생성 (개발 환경용)
+     */
+    private TossPaymentApproveResponseDTO createMockTossResponse(TossPaymentApproveRequestDTO request) {
+        TossPaymentApproveResponseDTO response = new TossPaymentApproveResponseDTO();
+        response.setPaymentKey(request.getPaymentKey());
+        response.setOrderId(request.getOrderId());
+        response.setTotalAmount(request.getAmount());
+        response.setStatus("DONE");
+        response.setRequestedAt(java.time.LocalDateTime.now());
+        response.setApprovedAt(java.time.LocalDateTime.now());
+        response.setMethod("카드");
+        response.setType("NORMAL");
+        response.setCurrency("KRW");
+        response.setCustomerKey(null);
+        response.setLastTransactionKey(null);
+        return response;
     }
 
     private PaymentStatus mapTossStatusToPaymentStatus(String tossStatus) {

@@ -382,19 +382,34 @@ public class OrderServiceImpl implements OrderService {
         // 최종 결제 금액 계산
         int finalTotalPrice = calculatedTotalProductPrice + totalDeliveryFee;
 
-        // ------------------ 실제 토스페이먼츠 결제 승인 요청 ------------------
-        // PayRequestDTO에서 받은 paymentKey와 tossOrderId를 사용
+        // ------------------ 주문 생성 (Mock 모드에서는 결제 승인 우회) ------------------
+        Order order = Order.builder()
+                .customer(customer)
+                .status(OrderStatus.INIT) // 초기 상태로 생성
+                .totalPrice(finalTotalPrice)
+                .deliveryAddress(deliveryAddress)
+                .orderedAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .paymentMethod(paymentType.getDescription())
+                .build();
+        order = orderRepository.save(order);
+
+        for (OrderItem item : orderItemsToSave) {
+            item.setOrder(order);
+        }
+        orderItemRepository.saveAll(orderItemsToSave);
+
+        // PayRequestDTO에서 받은 paymentKey와 생성된 주문 ID를 사용
         TossPaymentApproveRequestDTO tossApproveRequest = TossPaymentApproveRequestDTO.builder()
                 .paymentKey(payRequestDTO.getPaymentKey())
-                .orderId(payRequestDTO.getTossOrderId()) // 토스페이먼츠 위젯에서 받은 orderId 사용
-                .amount((long) finalTotalPrice) // Long 타입으로 캐스팅
+                .orderId(String.valueOf(order.getId())) // 생성된 주문 ID 사용
+                .amount((long) finalTotalPrice)
                 .build();
 
         try {
             // PaymentService를 통해 토스페이먼츠 API 결제 승인 요청
-            // 이 호출이 성공하면 결제가 최종적으로 완료된 것임.
             paymentService.approveTossPayment(tossApproveRequest);
-            log.info("토스페이먼츠 결제 승인 성공: paymentKey={}, orderId={}", payRequestDTO.getPaymentKey(), payRequestDTO.getTossOrderId());
+            log.info("토스페이먼츠 결제 승인 성공: paymentKey={}, orderId={}", payRequestDTO.getPaymentKey(), order.getId());
         } catch (ResponseStatusException e) {
             log.error("토스페이먼츠 API 통신 중 HTTP 오류 발생: {}. 결제 실패", e.getReason(), e);
             throw new IllegalStateException("결제 처리 중 외부 API 오류가 발생했습니다: " + e.getReason(), e);
@@ -407,22 +422,10 @@ public class OrderServiceImpl implements OrderService {
         }
         // --------------------------------------------------------------------
 
-        // ------------------ 결제 성공 후 DB에 주문 정보 저장 ------------------
-        Order order = Order.builder()
-                .customer(customer)
-                .status(OrderStatus.PAYMENT_COMPLETED) // 주문 상태는 결제 완료
-                .totalPrice(finalTotalPrice)
-                .deliveryAddress(deliveryAddress)
-                .orderedAt(LocalDateTime.now())
-                .updatedAt(LocalDateTime.now())
-                .paymentMethod(paymentType.getDescription()) // PaymentType Enum의 설명을 저장
-                .build();
+        // ------------------ 결제 성공 후 주문 상태 업데이트 ------------------
+        order.setStatus(OrderStatus.PAYMENT_COMPLETED);
+        order.setUpdatedAt(LocalDateTime.now());
         order = orderRepository.save(order);
-
-        for (OrderItem item : orderItemsToSave) {
-            item.setOrder(order);
-        }
-        orderItemRepository.saveAll(orderItemsToSave); // 모든 주문 항목 한 번에 저장
 
         // OrderDelivery 상태를 INIT으로 설정
         OrderDelivery orderDelivery = OrderDelivery.builder()

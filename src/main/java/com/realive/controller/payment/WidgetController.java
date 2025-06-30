@@ -55,7 +55,7 @@ public class WidgetController {
         String authorizations = "Basic " + new String(encodedBytes);
 
         // 결제를 승인하면 결제수단에서 금액이 차감돼요.
-        URL url = new URL("https://api.tosspayments.com/v1/payments/confirm");
+        URL url = new URL("https://api.tosspayments.com/v2/payments/confirm");
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestProperty("Authorization", authorizations);
         connection.setRequestProperty("Content-Type", "application/json");
