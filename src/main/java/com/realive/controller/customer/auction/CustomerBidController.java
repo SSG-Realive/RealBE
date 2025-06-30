@@ -6,6 +6,7 @@ import com.realive.dto.bid.BidResponseDTO;
 import com.realive.dto.common.ApiResponse;
 import com.realive.dto.customer.member.MemberLoginDTO;
 import com.realive.repository.auction.AuctionRepository;
+import com.realive.security.customer.CustomerPrincipal;
 import com.realive.service.admin.auction.BidService;
 import com.realive.util.TickSizeCalculator;
 import jakarta.validation.Valid;
@@ -41,11 +42,11 @@ public class CustomerBidController {
         }
         
         Object principal = authentication.getPrincipal();
-        if (!(principal instanceof MemberLoginDTO)) {
+        if (!(principal instanceof CustomerPrincipal)) {
             throw new AccessDeniedException("유효하지 않은 인증 정보입니다.");
         }
         
-        return ((MemberLoginDTO) principal).getId();
+        return ((CustomerPrincipal) principal).getId();
     }
 
     @PostMapping
