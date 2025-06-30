@@ -87,7 +87,7 @@ public class CustomerQnaService {
 
         List<ProductListDTO> productSummaries = productListRepository.getWishlistedProducts(productIds);
         Map<Long, ProductListDTO> productMap = productSummaries.stream()
-                .collect(Collectors.toMap(ProductListDTO::getId, dto -> dto));
+                .collect(Collectors.toMap(ProductListDTO::getId, dto -> dto, (existing, replacement) -> existing));
 
         List<Map<String, Object>> resultList = qnaList.stream().map(qna -> {
             Map<String, Object> result = new HashMap<>();
@@ -166,7 +166,7 @@ public class CustomerQnaService {
 
         List<ProductListDTO> productSummaries = productListRepository.getWishlistedProducts(productIds);
         Map<Long, ProductListDTO> productMap = productSummaries.stream()
-                .collect(Collectors.toMap(ProductListDTO::getId, dto -> dto));
+                .collect(Collectors.toMap(ProductListDTO::getId, dto -> dto, (existing, replacement) -> existing));
 
         List<Map<String, Object>> resultList = qnaList.stream().map(qna -> {
             Map<String, Object> result = new HashMap<>();
@@ -267,7 +267,8 @@ public class CustomerQnaService {
 
         List<ProductListDTO> productSummaries = productListRepository.getWishlistedProducts(productIds);
         Map<Long, ProductListDTO> productMap = productSummaries.stream()
-                .collect(Collectors.toMap(ProductListDTO::getId, dto -> dto));
+                .collect(Collectors.toMap(ProductListDTO::getId, dto -> dto, (existing, replacement) -> existing  // 🛠️ 추가 필요
+                         ));
 
         Page<Map<String, Object>> resultPage = qnaPage.map(qna -> {
             Map<String, Object> result = new HashMap<>();
