@@ -21,4 +21,5 @@ public interface ReviewViewService {
     // 판매자 리뷰들 조회(고객 기준)
     PageResponseDTO<ReviewResponseDTO> getSellerReviews(Long sellerId, Pageable pageable);
 
+
 }
