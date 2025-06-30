@@ -511,13 +511,16 @@ public class ProductServiceImpl implements ProductService {
                         double finalAverageRating = (averageRating != null) ? averageRating : 0.0;
                         long finalTotalReviews = (totalReviews != null) ? totalReviews : 0L;
 
-                        return SellerPublicResponseDTO.builder() // SellerPublicResponseDTO DTO 사용
+                        return SellerPublicResponseDTO.builder()
                                 .id(seller.getId())
                                 .name(seller.getName())
                                 //.profileImageUrl(seller.getProfileImage())
                                 //.isApproved(seller.isApproved())
                                 .averageRating(finalAverageRating)
                                 .totalReviews(finalTotalReviews)
+                                .createdAt(seller.getCreatedAt())
+                                .contactNumber(seller.getPhone())
+                                .businessNumber(seller.getBusinessNumber())
                                 .build();
                 });
         }
