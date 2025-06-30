@@ -1,4 +1,4 @@
-package com.realive.service.auth; // 실제 서비스 패키지 경로에 맞게 수정해주세요.
+package com.realive.service.auth;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;
@@ -21,7 +21,7 @@ public class EmailService {
     public void sendEmail(String to, String subject, String text) {
         // 1. 간단한 텍스트 이메일을 위한 객체 생성
         SimpleMailMessage message = new SimpleMailMessage();
-        message.setFrom("jungchanho3887@gamil.com"); // 발신자 이메일 주소 (실제 발신자 이메일로 변경 필요)
+        message.setFrom("pjh99998@gmail.com"); // 발신자 이메일 주소 (실제 발신자 이메일로 변경 필요)
 
         // 2. 메일 정보 설정
         message.setTo(to);
