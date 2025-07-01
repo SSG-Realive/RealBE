@@ -59,7 +59,8 @@ public class Payment extends BaseTimeEntity {
     @Column(name = "last_transaction_key", length = 255)
     private String lastTransactionKey;
 
-    @Column(name = "raw_response_data", columnDefinition = "jsonb")
+    @Column(name = "raw_response_data", nullable = true)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private String rawResponseData;
 
     @PrePersist
