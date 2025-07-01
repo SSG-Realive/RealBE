@@ -20,12 +20,14 @@ public class MyReviewResponseDTO {
     private List<String> imageUrls;
     private LocalDateTime createdAt;
 
-    public MyReviewResponseDTO(Long reviewId, Long orderId,
+    public MyReviewResponseDTO(Long reviewId, Long orderId, Long sellerId,
                                double rating, String content, LocalDateTime createdAt) {
         this.reviewId = reviewId;
         this.orderId = orderId;
+        this.sellerId = sellerId;
         this.rating = rating;
         this.content = content;
         this.createdAt = createdAt;
     }
+
 }

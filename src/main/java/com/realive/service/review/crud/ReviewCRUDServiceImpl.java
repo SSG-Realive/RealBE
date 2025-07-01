@@ -56,7 +56,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
                 .customer(customer)
                 .order(order)
                 .seller(seller)
-                .rating(requestDTO.getRating().intValue())
+                .rating(requestDTO.getRating())
                 .content(requestDTO.getContent())
                 .isHidden(false)
                 .build();
@@ -91,27 +91,36 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
             throw new SecurityException("리뷰 수정 권한이 없습니다.");
         }
 
-        review.setRating(requestDTO.getRating().intValue());
+        review.setRating(requestDTO.getRating());
         review.setContent(requestDTO.getContent());
 
+        // 기존 이미지 삭제
         imageRepository.deleteByReviewId(reviewId);
-        List<String> savedImageUrls = saveImages(review, requestDTO.getImageUrls());
 
+        // 새 이미지 저장 (ReviewImageService가 처리하도록 한 경우라면 따로 수행)
+        saveImages(review, requestDTO.getImageUrls());
+
+        // 리뷰 업데이트
         SellerReview updatedReview = reviewRepository.save(review);
+
+        List<String> imageUrls = imageRepository.findByReviewId(reviewId).stream()
+                .map(SellerReviewImage::getImageUrl)
+                .collect(Collectors.toList());
 
         return ReviewResponseDTO.builder()
                 .reviewId(updatedReview.getId())
                 .orderId(updatedReview.getOrder().getId())
                 .customerId(customerId)
                 .sellerId(updatedReview.getSeller().getId())
-                .productName(null) // 필요시 세팅
+                .productName(null)
                 .rating(updatedReview.getRating())
                 .content(updatedReview.getContent())
-                .imageUrls(savedImageUrls)
+                .imageUrls(imageUrls) // 여기로 세팅
                 .createdAt(updatedReview.getCreatedAt())
                 .isHidden(updatedReview.isHidden())
                 .build();
     }
+
 
     @Override
     @Transactional

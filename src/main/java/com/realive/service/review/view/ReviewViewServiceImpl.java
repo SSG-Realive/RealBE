@@ -1,5 +1,6 @@
 package com.realive.service.review.view;
 
+import com.realive.dto.product.ProductSummaryDTO;
 import com.realive.dto.review.MyReviewResponseDTO;
 import com.realive.dto.review.ReviewListResponseDTO;
 import com.realive.dto.review.ReviewResponseDTO;
@@ -74,6 +75,8 @@ public class ReviewViewServiceImpl implements ReviewViewService {
                 .build();
     }
 
+
+
     // 리뷰 상세
     @Override
     public ReviewResponseDTO getReviewDetail(Long id) {
@@ -86,12 +89,14 @@ public class ReviewViewServiceImpl implements ReviewViewService {
         Optional<ReviewResponseDTO> reviewOpt = reviewViewRepository.findReviewDetailById(id);
 
         reviewOpt.ifPresent(reviewDto -> {
+            // 이미지 URL 세팅
             List<String> imageUrls = reviewViewRepository.findImageUrlsByReviewIds(List.of(reviewDto.getReviewId()))
                     .stream()
                     .map(tuple -> (String) tuple[1])
                     .collect(Collectors.toList());
             reviewDto.setImageUrls(imageUrls);
 
+            // 상품명 세팅
             if (reviewDto.getOrderId() != null && reviewDto.getSellerId() != null) {
                 List<Object[]> productNames = reviewViewRepository.findProductNamesByOrderIdsAndSellerId(
                         List.of(reviewDto.getOrderId()), reviewDto.getSellerId()
@@ -100,11 +105,17 @@ public class ReviewViewServiceImpl implements ReviewViewService {
                         .map(tuple -> (String) tuple[1])
                         .collect(Collectors.toList());
                 reviewDto.setProductName(summarizeProductNames(names));
+
+                // 상품 요약 정보 세팅
+                List<ProductSummaryDTO> productSummaryList = reviewViewRepository
+                        .findProductSummaryByOrderIdsAndSellerId(List.of(reviewDto.getOrderId()), reviewDto.getSellerId());
+                reviewDto.setProductSummaryList(productSummaryList);
             }
         });
 
         return reviewOpt.orElseThrow(() -> new IllegalArgumentException("Review not found with id: " + id));
     }
+
 
     // 내가 작성한 리뷰 목록
     @Override

@@ -64,7 +64,7 @@ public class ReviewController {
         return ResponseEntity.ok(response);
     }
 
-    // ✅ 리뷰 수정
+    // 리뷰 수정
     @PutMapping("/{reviewId}")
     public ResponseEntity<ReviewResponseDTO> updateReview(
             @AuthenticationPrincipal CustomerPrincipal customerPrincipal,
@@ -76,7 +76,7 @@ public class ReviewController {
         return ResponseEntity.ok(response);
     }
 
-    // ✅ 리뷰 삭제
+    // 리뷰 삭제
     @DeleteMapping("/{reviewId}")
     public ResponseEntity<Void> deleteReview(
             @AuthenticationPrincipal CustomerPrincipal customerPrincipal,

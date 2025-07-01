@@ -1,6 +1,7 @@
 package com.realive.repository.review.view;
 
 import com.realive.domain.review.SellerReview;
+import com.realive.dto.product.ProductSummaryDTO;
 import com.realive.dto.review.MyReviewResponseDTO;
 import com.realive.dto.review.ReviewResponseDTO;
 import org.springframework.data.domain.Page;
@@ -40,7 +41,7 @@ public interface    ReviewViewRepository extends JpaRepository<SellerReview, Lon
     // productName 필드를 DTO 생성자에서 제거하고, 서비스 계층에서 처리하도록 변경
     @Query(value = "SELECT new com.realive.dto.review.MyReviewResponseDTO(" +
             "sr.id, sr.order.id, " +
-            "sr.rating, sr.content, sr.createdAt) " + // productName 제거
+            "sr.seller.id, sr.rating, sr.content, sr.createdAt) " + // productName 제거
             "FROM SellerReview sr " +
             "WHERE sr.customer.id = :customerId " +
             "ORDER BY sr.createdAt DESC",
@@ -65,6 +66,19 @@ public interface    ReviewViewRepository extends JpaRepository<SellerReview, Lon
     """)
     List<Object[]> findProductNamesByOrderIdsAndSellerId(@Param("orderIds") List<Long> orderIds,
                                                          @Param("sellerId") Long sellerId);
+
+    @Query("""
+    SELECT new com.realive.dto.product.ProductSummaryDTO(
+        p.id, p.name, img.url
+    )
+    FROM OrderItem oi
+    JOIN oi.product p
+    LEFT JOIN ProductImage img ON img.product = p AND img.isThumbnail = true
+    WHERE oi.order.id IN :orderIds AND p.seller.id = :sellerId
+""")
+    List<ProductSummaryDTO> findProductSummaryByOrderIdsAndSellerId(@Param("orderIds") List<Long> orderIds,
+                                                                    @Param("sellerId") Long sellerId);
+
 
 
 }
