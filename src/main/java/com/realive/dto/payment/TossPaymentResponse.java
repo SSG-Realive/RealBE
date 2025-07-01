@@ -1,4 +1,4 @@
-package com.realive.dto.response;
+package com.realive.dto.payment;
 
 import lombok.Data;
 import lombok.NoArgsConstructor;

@@ -37,6 +37,8 @@ public class BidServiceImpl implements BidService {
     // 동시성 제어
     @Override
     public BidResponseDTO placeBid(Integer auctionId, Long customerId, BidRequestDTO requestDTO) {
+        log.info("🎯 입찰 시작 - 경매ID: {}, 고객ID: {}, 입찰가: {}", auctionId, customerId, requestDTO.getBidPrice());
+        
         Auction auction = auctionRepository.findByIdWithLock(auctionId)
                 .orElseThrow(() -> new IllegalArgumentException("경매를 찾을 수 없습니다."));
         
@@ -68,6 +70,12 @@ public class BidServiceImpl implements BidService {
 
         Bid savedBid = bidRepository.save(bid);
 
+        // 경매 현재가 업데이트
+        log.info("🔥 현재가 업데이트 전: {} -> 후: {}", auction.getCurrentPrice(), requestDTO.getBidPrice());
+        auction.setCurrentPrice(requestDTO.getBidPrice());
+        Auction updatedAuction = auctionRepository.save(auction);
+        log.info("🔥 경매 저장 완료. 업데이트된 현재가: {}", updatedAuction.getCurrentPrice());
+
         // 이전 입찰자에게 알림
 //        if (auction.getCurrentPrice() != null && auction.getCurrentPrice() < requestDTO.getBidPrice()) {
 //            // 현재 입찰자 ID를 가져오기 위해 가장 최근 입찰 조회
@@ -83,7 +91,9 @@ public class BidServiceImpl implements BidService {
 //            }
 //        }
 
-        return BidResponseDTO.fromEntity(savedBid, customer.getName());
+        BidResponseDTO response = BidResponseDTO.fromEntity(savedBid, customer.getName());
+        log.info("✅ 입찰 완료 - 경매ID: {}, 고객ID: {}, 입찰가: {}", auctionId, customerId, requestDTO.getBidPrice());
+        return response;
     }
 
     @Override
