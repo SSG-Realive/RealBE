@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -33,6 +34,54 @@ public interface PayoutLogRepository extends JpaRepository<PayoutLog, Integer> {
 
     // 특정 기간 동안 처리된(processedAt 기준) 정산 내역 조회
     List<PayoutLog> findByProcessedAtBetween(LocalDateTime startDateTime, LocalDateTime endDateTime);
+
+    // === 관리자 대시보드용 집계 메서드들 ===
+    
+    /**
+     * 특정 날짜에 처리된 정산 건수 조회
+     */
+    @Query("SELECT COUNT(pl) FROM PayoutLog pl WHERE DATE(pl.processedAt) = :date")
+    Long countPayoutsByDate(@Param("date") LocalDate date);
+
+    /**
+     * 특정 기간에 처리된 정산 건수 조회
+     */
+    @Query("SELECT COUNT(pl) FROM PayoutLog pl WHERE DATE(pl.processedAt) BETWEEN :startDate AND :endDate")
+    Long countPayoutsByDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    /**
+     * 특정 날짜/시간 범위에 처리된 정산 건수 조회 (시간 포함)
+     */
+    @Query("SELECT COUNT(pl) FROM PayoutLog pl WHERE pl.processedAt BETWEEN :startDateTime AND :endDateTime")
+    Long countPayoutsByDateTime(@Param("startDateTime") LocalDateTime startDateTime, @Param("endDateTime") LocalDateTime endDateTime);
+
+    /**
+     * 특정 날짜에 처리된 총 정산 금액 조회
+     */
+    @Query("SELECT COALESCE(SUM(pl.payoutAmount), 0) FROM PayoutLog pl WHERE DATE(pl.processedAt) = :date")
+    Long sumPayoutAmountByDate(@Param("date") LocalDate date);
+
+    /**
+     * 특정 기간에 처리된 총 정산 금액 조회
+     */
+    @Query("SELECT COALESCE(SUM(pl.payoutAmount), 0) FROM PayoutLog pl WHERE DATE(pl.processedAt) BETWEEN :startDate AND :endDate")
+    Long sumPayoutAmountByDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    /**
+     * 특정 날짜/시간 범위에 처리된 총 정산 금액 조회 (시간 포함)
+     */
+    @Query("SELECT COALESCE(SUM(pl.payoutAmount), 0) FROM PayoutLog pl WHERE pl.processedAt BETWEEN :startDateTime AND :endDateTime")
+    Long sumPayoutAmountByDateTime(@Param("startDateTime") LocalDateTime startDateTime, @Param("endDateTime") LocalDateTime endDateTime);
+
+    /**
+     * 매출 추이 그래프용 - 기간별 일일 매출 합계 조회
+     */
+    @Query("SELECT DATE(pl.processedAt) as date, COALESCE(SUM(pl.payoutAmount), 0) as totalAmount " +
+           "FROM PayoutLog pl " +
+           "WHERE DATE(pl.processedAt) BETWEEN :startDate AND :endDate " +
+           "GROUP BY DATE(pl.processedAt) " +
+           "ORDER BY DATE(pl.processedAt)")
+    List<Object[]> getDailyPayoutSummary(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     /**
      * 중복 로그 방지를 위한 체크 → 이건 payoutLogRepository 에 추가
