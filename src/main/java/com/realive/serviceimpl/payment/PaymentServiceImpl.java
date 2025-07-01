@@ -28,6 +28,7 @@ import reactor.core.publisher.Mono;
 
 import java.nio.charset.StandardCharsets;
 import java.util.Base64;
+import java.util.List;
 import java.util.Objects;
 
 @Service
@@ -91,18 +92,38 @@ public class PaymentServiceImpl implements PaymentService {
 
         // 3. 주문 조회
         Long ourOrderId;
-        try {
-            ourOrderId = Long.parseLong(request.getOrderId());
-        } catch (NumberFormatException e) {
-            logger.error("Toss Payment에서 받은 orderId 형식이 올바르지 않습니다: {}", request.getOrderId(), e);
-            throw new IllegalArgumentException("주문 ID 형식이 올바르지 않습니다.", e);
+        Order order;
+        
+        if (mockEnabled) {
+            // Mock 모드에서는 orderId 파싱을 우회하고, 대신 결제 금액으로 주문을 찾음
+            logger.info("Mock 모드: orderId 파싱 우회, 결제 금액 {}원으로 주문 조회 중...", tossResponse.getTotalAmount());
+            
+            // Mock 모드에서는 결제 금액을 기준으로 가장 최근 INIT 상태 주문을 찾음
+            // 실제로는 주문 ID를 별도로 관리해야 하지만, 개발 환경에서는 이렇게 처리
+            order = orderRepository.findAll().stream()
+                    .filter(o -> o.getStatus() == OrderStatus.INIT)
+                    .filter(o -> o.getTotalPrice() == tossResponse.getTotalAmount().intValue())
+                    .max((o1, o2) -> o1.getOrderedAt().compareTo(o2.getOrderedAt())) // 가장 최근 주문
+                    .orElseThrow(() -> new IllegalArgumentException("결제 금액 " + tossResponse.getTotalAmount() + "원과 일치하는 대기 중인 주문을 찾을 수 없습니다"));
+            
+            logger.info("Mock 모드: 주문 조회 성공 - 주문 ID: {}, 금액: {}원", order.getId(), order.getTotalPrice());
+        } else {
+            // 실제 모드에서는 기존 로직 사용
+            try {
+                ourOrderId = Long.parseLong(request.getOrderId());
+            } catch (NumberFormatException e) {
+                logger.error("Toss Payment에서 받은 orderId 형식이 올바르지 않습니다: {}", request.getOrderId(), e);
+                throw new IllegalArgumentException("주문 ID 형식이 올바르지 않습니다.", e);
+            }
+            
+            order = orderRepository.findById(ourOrderId)
+                    .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다: " + ourOrderId));
         }
 
-        Order order = orderRepository.findById(ourOrderId)
-                .orElseThrow(() -> new IllegalArgumentException("해당 주문을 찾을 수 없습니다: " + ourOrderId));
-
-        // 4. 주문 상태 변경
+        // 4. 주문 상태 변경 및 실제 결제수단으로 업데이트
         order.setStatus(OrderStatus.PAYMENT_COMPLETED);
+        // 토스페이먼츠에서 받은 실제 결제수단으로 업데이트 (데이터 일관성 보장)
+        order.setPaymentMethod(tossResponse.getMethod());
         orderRepository.save(order);
 
         // 5. 결제 정보 저장
@@ -169,6 +190,12 @@ public class PaymentServiceImpl implements PaymentService {
      * Mock 토스페이먼츠 응답 생성 (개발 환경용)
      */
     private TossPaymentApproveResponseDTO createMockTossResponse(TossPaymentApproveRequestDTO request) {
+        // Mock 모드에서는 "토스결제"로 통일 (개발환경 식별용)
+        // 실제 환경에서는 토스페이먼츠가 사용자가 선택한 정확한 결제수단을 반환함
+        String mockMethod = "토스결제"; // Mock 개발환경임을 명확히 표시
+        
+        logger.info("Mock 결제수단 설정: {} (개발환경 - 실제 환경에서는 사용자 선택에 따라 달라짐)", mockMethod);
+        
         TossPaymentApproveResponseDTO response = new TossPaymentApproveResponseDTO();
         response.setPaymentKey(request.getPaymentKey());
         response.setOrderId(request.getOrderId());
@@ -176,7 +203,7 @@ public class PaymentServiceImpl implements PaymentService {
         response.setStatus("DONE");
         response.setRequestedAt(java.time.LocalDateTime.now());
         response.setApprovedAt(java.time.LocalDateTime.now());
-        response.setMethod("카드");
+        response.setMethod(mockMethod);
         response.setType("NORMAL");
         response.setCurrency("KRW");
         response.setCustomerKey(null);
