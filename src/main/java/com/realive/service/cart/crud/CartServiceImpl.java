@@ -246,36 +246,10 @@ public class CartServiceImpl implements CartService {
         // 최종 결제 금액 계산
         int finalTotalPrice = calculatedTotalProductPrice + totalDeliveryFee;
 
-        // ------------------ 실제 토스페이먼츠 결제 승인 요청 ------------------
-        // PayRequestDTO에서 받은 paymentKey와 tossOrderId를 사용
-        TossPaymentApproveRequestDTO tossApproveRequest = TossPaymentApproveRequestDTO.builder()
-                .paymentKey(payRequestDTO.getPaymentKey())
-                .orderId(payRequestDTO.getTossOrderId()) // 토스페이먼츠 위젯에서 받은 orderId 사용
-                .amount((long) finalTotalPrice) // Long 타입으로 캐스팅
-                .build();
-
-        try {
-            // PaymentService를 통해 토스페이먼츠 API 결제 승인 요청
-            // 이 호출이 성공하면 결제가 최종적으로 완료된 것임.
-            paymentService.approveTossPayment(tossApproveRequest);
-            log.info("토스페이먼츠 결제 승인 성공: paymentKey={}, orderId={}", payRequestDTO.getPaymentKey(), payRequestDTO.getTossOrderId());
-        } catch (ResponseStatusException e) {
-            log.error("토스페이먼츠 API 통신 중 HTTP 오류 발생: {}. 결제 실패", e.getReason(), e);
-            throw new IllegalStateException("결제 처리 중 외부 API 오류가 발생했습니다: " + e.getReason(), e);
-        } catch (IllegalArgumentException e) {
-            log.error("토스페이먼츠 결제 응답 유효성 검증 실패 또는 비즈니스 로직 오류: {}. 결제 실패", e.getMessage(), e);
-            throw new IllegalStateException("결제 데이터 불일치 또는 비정상 상태: " + e.getMessage(), e);
-        } catch (Exception e) {
-            log.error("토스페이먼츠 결제 승인 중 예기치 않은 오류 발생: {}. 결제 실패", e.getMessage(), e);
-            throw new RuntimeException("결제 처리 중 알 수 없는 오류가 발생했습니다.", e);
-        }
-        // --------------------------------------------------------------------
-
-        // ------------------ 결제 성공 후 DB에 주문 정보 저장 ------------------
-        // OrderService 대신 CartService에서 직접 주문 생성 로직 수행
+        // ------------------ 주문 먼저 생성 (바로결제와 동일한 순서) ------------------
         Order order = Order.builder()
                 .customer(customer)
-                .status(OrderStatus.PAYMENT_COMPLETED) // 주문 상태는 결제 완료
+                .status(OrderStatus.INIT) // 초기 상태로 생성
                 .totalPrice(finalTotalPrice)
                 .deliveryAddress(deliveryAddress)
                 .orderedAt(LocalDateTime.now())
@@ -288,6 +262,35 @@ public class CartServiceImpl implements CartService {
             item.setOrder(order);
         }
         orderItemRepository.saveAll(orderItemsToSave); // 모든 주문 항목 한 번에 저장
+
+        // ------------------ 생성된 주문 ID로 토스페이먼츠 결제 승인 요청 ------------------
+        TossPaymentApproveRequestDTO tossApproveRequest = TossPaymentApproveRequestDTO.builder()
+                .paymentKey(payRequestDTO.getPaymentKey())
+                .orderId(String.valueOf(order.getId())) // 생성된 주문 ID 사용 (바로결제와 동일)
+                .amount((long) finalTotalPrice) // Long 타입으로 캐스팅
+                .build();
+
+        try {
+            // PaymentService를 통해 토스페이먼츠 API 결제 승인 요청
+            // 이 호출이 성공하면 결제가 최종적으로 완료된 것임.
+            paymentService.approveTossPayment(tossApproveRequest);
+            log.info("토스페이먼츠 결제 승인 성공: paymentKey={}, orderId={}", payRequestDTO.getPaymentKey(), order.getId());
+        } catch (ResponseStatusException e) {
+            log.error("토스페이먼츠 API 통신 중 HTTP 오류 발생: {}. 결제 실패", e.getReason(), e);
+            throw new IllegalStateException("결제 처리 중 외부 API 오류가 발생했습니다: " + e.getReason(), e);
+        } catch (IllegalArgumentException e) {
+            log.error("토스페이먼츠 결제 응답 유효성 검증 실패 또는 비즈니스 로직 오류: {}. 결제 실패", e.getMessage(), e);
+            throw new IllegalStateException("결제 데이터 불일치 또는 비정상 상태: " + e.getMessage(), e);
+        } catch (Exception e) {
+            log.error("토스페이먼츠 결제 승인 중 예기치 않은 오류 발생: {}. 결제 실패", e.getMessage(), e);
+            throw new RuntimeException("결제 처리 중 알 수 없는 오류가 발생했습니다.", e);
+        }
+        // --------------------------------------------------------------------
+
+        // ------------------ 결제 성공 후 주문 상태 업데이트 및 배송 정보 생성 ------------------
+        // 주문 상태를 결제 완료로 변경 (PaymentServiceImpl에서 이미 처리되지만 명시적으로 확인)
+        order.setStatus(OrderStatus.PAYMENT_COMPLETED);
+        order = orderRepository.save(order);
 
         // OrderDelivery 상태를 INIT으로 설정
         OrderDelivery orderDelivery = OrderDelivery.builder()
