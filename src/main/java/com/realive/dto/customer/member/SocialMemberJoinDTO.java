@@ -5,6 +5,8 @@ import com.realive.domain.customer.Gender;
 import jakarta.validation.constraints.*;
 import lombok.Data;
 
+// [customer] 소셜회원가입용 DTO
+
 @Data
 public class SocialMemberJoinDTO {
 
