@@ -6,6 +6,7 @@ import com.realive.dto.bid.BidResponseDTO;
 import com.realive.dto.common.ApiResponse;
 import com.realive.dto.customer.member.MemberLoginDTO;
 import com.realive.repository.auction.AuctionRepository;
+import com.realive.security.customer.CustomerPrincipal;
 import com.realive.service.admin.auction.BidService;
 import com.realive.util.TickSizeCalculator;
 import jakarta.validation.Valid;
@@ -41,11 +42,11 @@ public class CustomerBidController {
         }
         
         Object principal = authentication.getPrincipal();
-        if (!(principal instanceof MemberLoginDTO)) {
+        if (!(principal instanceof CustomerPrincipal)) {
             throw new AccessDeniedException("유효하지 않은 인증 정보입니다.");
         }
         
-        return ((MemberLoginDTO) principal).getId();
+        return ((CustomerPrincipal) principal).getId();
     }
 
     @PostMapping
@@ -77,34 +78,34 @@ public class CustomerBidController {
         } catch (AccessDeniedException e) {
             log.error("입찰 권한 없음 - 요청: {}, CustomerId: {}", requestDto, 
                 SecurityContextHolder.getContext().getAuthentication() != null ? 
-                ((MemberLoginDTO)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId() : null, e);
+                ((CustomerPrincipal)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId() : null, e);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ApiResponse.error(HttpStatus.FORBIDDEN.value(), e.getMessage()));
         } catch (IllegalArgumentException e) {
             log.error("입찰 유효성 검증 실패 - 요청: {}, CustomerId: {}, 에러: {}", requestDto, 
                 SecurityContextHolder.getContext().getAuthentication() != null ? 
-                ((MemberLoginDTO)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId() : null, 
+                ((CustomerPrincipal)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId() : null, 
                 e.getMessage());
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), e.getMessage()));
         } catch (IllegalStateException e) {
             log.error("입찰 상태 오류 - 요청: {}, CustomerId: {}, 에러: {}", requestDto, 
                 SecurityContextHolder.getContext().getAuthentication() != null ? 
-                ((MemberLoginDTO)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId() : null, 
+                ((CustomerPrincipal)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId() : null, 
                 e.getMessage());
             return ResponseEntity.badRequest()
                     .body(ApiResponse.error(HttpStatus.BAD_REQUEST.value(), e.getMessage()));
         } catch (NoSuchElementException e) {
             log.error("입찰 대상 조회 실패 - 요청: {}, CustomerId: {}, 에러: {}", requestDto, 
                 SecurityContextHolder.getContext().getAuthentication() != null ? 
-                ((MemberLoginDTO)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId() : null, 
+                ((CustomerPrincipal)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId() : null, 
                 e.getMessage());
             return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(ApiResponse.error(HttpStatus.NOT_FOUND.value(), e.getMessage()));
         } catch (Exception e) {
             log.error("입찰 중 알 수 없는 오류 발생 - 요청: {}, CustomerId: {}", requestDto, 
                 SecurityContextHolder.getContext().getAuthentication() != null ? 
-                ((MemberLoginDTO)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId() : null, e);
+                ((CustomerPrincipal)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId() : null, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "입찰 중 오류가 발생했습니다."));
         }
@@ -122,13 +123,13 @@ public class CustomerBidController {
         } catch (AccessDeniedException e) {
             log.error("입찰 내역 조회 권한 없음 - CustomerId: {}", 
                 SecurityContextHolder.getContext().getAuthentication() != null ? 
-                ((MemberLoginDTO)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId() : null, e);
+                ((CustomerPrincipal)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId() : null, e);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .body(ApiResponse.error(HttpStatus.FORBIDDEN.value(), e.getMessage()));
         } catch (Exception e) {
             log.error("나의 입찰 내역 조회 중 알 수 없는 오류 발생 - CustomerId: {}", 
                 SecurityContextHolder.getContext().getAuthentication() != null ? 
-                ((MemberLoginDTO)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId() : null, e);
+                ((CustomerPrincipal)SecurityContextHolder.getContext().getAuthentication().getPrincipal()).getId() : null, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "입찰 내역 조회 중 오류가 발생했습니다."));
         }

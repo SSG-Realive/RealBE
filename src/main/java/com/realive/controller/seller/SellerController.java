@@ -105,6 +105,7 @@ public class SellerController {
     
 
         sellerService.updateSeller(seller, dto);
+        sellerRepository.save(seller);  // ← 이 줄 추가!
         return ResponseEntity.ok().build();
     }
 }

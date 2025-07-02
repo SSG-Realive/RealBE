@@ -6,14 +6,15 @@ import com.realive.domain.seller.Seller;
 import com.realive.dto.admin.review.SellerRankingDTO;
 import com.realive.dto.page.PageResponseDTO;
 import com.realive.dto.product.*;
+import com.realive.dto.seller.SellerPublicResponseDTO;
 import com.realive.repository.product.*;
+import com.realive.repository.review.SellerReviewRepository;
 import com.realive.repository.seller.SellerRepository;
 import com.realive.service.admin.logs.StatService;
 import com.realive.service.common.FileUploadService;
 import com.realive.service.product.ProductService;
 import com.realive.service.seller.SellerService;
 
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
@@ -23,12 +24,10 @@ import org.springframework.data.domain.Sort;
 import org.springframework.data.jpa.domain.Specification;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.stream.Collectors;
 
 import org.slf4j.Logger;
@@ -53,6 +52,7 @@ public class ProductServiceImpl implements ProductService {
         private final FileUploadService fileUploadService;
         private final SellerService sellerService;
         private final StatService statService;
+        private final SellerReviewRepository sellerReviewRepository; // SellerReviewRepository 주입
 
         @Override
         public Long createProduct(ProductRequestDTO dto, Long sellerId) {
@@ -453,5 +453,75 @@ public class ProductServiceImpl implements ProductService {
                                         .build();
                         })
                         .collect(Collectors.toList());
+        }
+
+
+        @Override
+        @Transactional(readOnly = true) // 읽기 전용 트랜잭션
+        public Optional<Long> getSellerIdByProductId(Long productId) {
+                log.info("상품 ID {} 에 대한 판매자 ID를 가져오려 시도 중입니다.", productId);
+                // Product 엔티티가 Seller 객체를 직접 참조하므로, .getSeller().getId()를 사용합니다.
+                // 이때, product.seller가 로드되어 있지 않거나 null일 수 있으므로 Optional.map을 통해 안전하게 접근합니다.
+                return productRepository.findById(productId)
+                        .map(Product::getSeller) // Product에서 Seller 객체를 가져옴
+                        .map(Seller::getId);     // Seller 객체에서 ID를 가져옴
+        }
+
+        @Override
+        @Transactional(readOnly = true)
+        public Optional<SellerPublicResponseDTO> getPublicSellerInfoByProductId(Long productId) { // 메서드 이름 일치!
+                log.info("상품 ID {} 에 대한 공개 판매자 정보를 가져오려 시도 중입니다.", productId);
+
+                // 1. ProductRepository를 사용하여 productId로 Product 엔티티 조회
+                Optional<Product> productOptional = productRepository.findById(productId);
+
+                // 상품이 존재하지 않으면 빈 Optional 반환
+                if (productOptional.isEmpty()) {
+                        log.warn("상품 ID {} 를 찾을 수 없습니다.", productId);
+                        return Optional.empty();
+                }
+
+                // Product 객체에서 Seller 객체를 가져오고, 그 Seller 객체에서 ID를 추출
+                // Product 엔티티의 seller 필드가 ManyToOne 관계이므로 안전하게 접근해야 합니다.
+                Optional<Long> sellerIdOptional = productOptional
+                        .map(Product::getSeller) // Product에서 Seller 객체를 가져옴
+                        .map(Seller::getId);     // Seller 객체에서 ID를 가져옴
+
+                if (sellerIdOptional.isEmpty()) {
+                        log.warn("상품 ID {} 에 대한 판매자 ID를 가져올 수 없습니다.", productId);
+                        return Optional.empty(); // Seller 객체가 null이거나 ID를 가져올 수 없는 경우
+                }
+                Long sellerId = sellerIdOptional.get();
+
+                log.debug("상품 ID {} 에 대한 판매자 ID {} 를 찾았습니다.", productId, sellerId);
+
+                // 2. SellerRepository를 사용하여 sellerId로 Seller 엔티티 조회
+                Optional<Seller> sellerOptional = sellerRepository.findById(sellerId);
+
+                // 판매자가 존재하면 Seller 엔티티를 SellerPublicResponseDTO로 변환하여 반환
+                return sellerOptional.map(seller -> {
+                        log.info("판매자 ID {} 에 대한 공개 판매자 정보를 성공적으로 가져왔습니다.", seller.getId());
+
+                        // 3. SellerReviewRepository를 사용하여 해당 판매자의 리뷰 정보 집계
+                        // sellerReviewRepository에 정의된 메서드 활용
+                        Double averageRating = sellerReviewRepository.getAverageRatingBySellerId(sellerId);
+                        Long totalReviews = sellerReviewRepository.countReviewsBySellerId(sellerId);
+
+                        // null 처리: 리뷰가 없을 경우 getAverageRatingBySellerId는 null을 반환할 수 있으므로 0.0으로 처리
+                        double finalAverageRating = (averageRating != null) ? averageRating : 0.0;
+                        long finalTotalReviews = (totalReviews != null) ? totalReviews : 0L;
+
+                        return SellerPublicResponseDTO.builder()
+                                .id(seller.getId())
+                                .name(seller.getName())
+                                //.profileImageUrl(seller.getProfileImage())
+                                //.isApproved(seller.isApproved())
+                                .averageRating(finalAverageRating)
+                                .totalReviews(finalTotalReviews)
+                                .createdAt(seller.getCreatedAt())
+                                .contactNumber(seller.getPhone())
+                                .businessNumber(seller.getBusinessNumber())
+                                .build();
+                });
         }
 }

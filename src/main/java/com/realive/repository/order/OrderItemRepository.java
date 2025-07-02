@@ -61,4 +61,26 @@ public interface OrderItemRepository extends JpaRepository<OrderItem, Long> {
          @Param("startDate") LocalDateTime startDate,
          @Param("endDate") LocalDateTime endDate);
 
+ /**
+  * 배송완료된 주문 중, 특정 판매자의 정산 기간 내 판매건 상세 조회
+  */
+ @Query("""
+    SELECT oi
+    FROM OrderItem oi
+    JOIN FETCH oi.product p
+    JOIN FETCH p.seller
+    JOIN FETCH oi.order o         
+    JOIN OrderDelivery od ON od.order.id = o.id
+    WHERE p.seller.id = :sellerId
+        AND od.status = 'DELIVERY_COMPLETED'
+        AND od.updatedAt BETWEEN :startDate AND :endDate
+    ORDER BY od.updatedAt DESC
+""")
+ List<OrderItem> findDeliveredBySellerAndPeriod(
+         @Param("sellerId") Long sellerId,
+         @Param("startDate") LocalDateTime startDate,
+         @Param("endDate") LocalDateTime endDate);
+
+
+
 }

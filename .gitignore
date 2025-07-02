@@ -38,13 +38,14 @@ hs_err_pid*
 replay_pid*
 .gradletasknamecache
 
+# -------------------------------------
 # Spring Boot 설정 파일 (로컬 환경 설정)
-application.yml
-application-*.yml
-application.properties
-.env.properties
-.env.properties
-*.pem
+**/application.yml
+**/application-*.yml
+**/application.properties
+**/.env
+**/.env.properties
+**/*.pem
 
 # -------------------------------------
 # QueryDSL
@@ -55,7 +56,7 @@ build/generated/
 !**/config/QuerydslConfig.java
 
 # -------------------------------------
-# IntelliJ / Eclipse
+# IntelliJ / Eclipse 추가 무시 항목
 .idea/**/workspace.xml
 .idea/**/tasks.xml
 .idea/**/usage.statistics.xml
@@ -96,6 +97,7 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
+
 .vite/
 
 # coverage & reports
@@ -120,4 +122,3 @@ dist/
 # -------------------------------------
 # 업로드 파일 / 기타
 uploads/
-.idea/workspace.xml

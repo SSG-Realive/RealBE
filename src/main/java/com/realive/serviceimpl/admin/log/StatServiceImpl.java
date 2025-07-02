@@ -2,6 +2,8 @@
 package com.realive.serviceimpl.admin.log;
 
 // --- 기존 import 문들 ---
+import com.realive.domain.auction.Auction;
+import com.realive.domain.auction.Bid;
 import com.realive.domain.logs.CommissionLog;
 import com.realive.domain.logs.PayoutLog;
 import com.realive.domain.logs.PenaltyLog;
@@ -26,9 +28,12 @@ import com.realive.repository.logs.CommissionLogRepository;
 import com.realive.repository.logs.PayoutLogRepository;
 import com.realive.repository.logs.PenaltyLogRepository;
 import com.realive.repository.logs.SalesLogRepository;
+import com.realive.repository.payment.PaymentRepository;
 import com.realive.repository.product.ProductRepository;
 import com.realive.repository.review.SellerReviewRepository;
 import com.realive.repository.seller.SellerRepository;
+import com.realive.repository.auction.AuctionRepository;
+import com.realive.repository.auction.BidRepository;
 // import com.realive.repository.user.UserRepository;
 
 // --- DTO stats 패키지 import ---
@@ -72,13 +77,16 @@ public class StatServiceImpl implements StatService {
     private final ProductRepository productRepository;
     private final PayoutLogRepository payoutLogRepository;
     private final CommissionLogRepository commissionLogRepository;
+    private final PaymentRepository paymentRepository;
     private final SellerRepository sellerRepository;
     private final CustomerRepository customerRepository;
     private final SellerReviewRepository reviewRepository;
+    private final AuctionRepository auctionRepository;
+    private final BidRepository bidRepository;
 
     @Override
     public AdminDashboardDTO getAdminDashboard(LocalDate date, String periodType) {
-        log.info("getAdminDashboard 호출됨 - 날짜: {}, 기간타입: {}", date, periodType);
+        log.info("관리자 대시보드 조회 - 날짜: {}, 기간: {}", date, periodType);
 
         LocalDate startDate = date;
         LocalDate endDate = date;
@@ -94,7 +102,6 @@ public class StatServiceImpl implements StatService {
             log.warn("지원하지 않는 periodType: {}. DAILY로 처리합니다.", periodType);
             periodType = "DAILY";
         }
-        log.debug("조회 기간 설정: {} ~ {}", startDate, endDate);
 
         // 1. 승인 대기 판매자 수
         int pendingSellerCount = 0;
@@ -168,24 +175,52 @@ public class StatServiceImpl implements StatService {
                 .activeUsersInPeriod(activeSellers + activeCustomers)
                 .build();
 
-        // 6. 판매 통계
-        Integer totalSalesAmount = salesLogRepository.sumTotalPriceBySoldAtBetween(startDate, endDate);
-        Long totalOrders = salesLogRepository.countDistinctOrdersBySoldAtBetween(startDate, endDate);
+        // 6. 판매 통계 조회
+        Long totalOrderCount;
+        if ("DAILY".equalsIgnoreCase(periodType)) {
+            totalOrderCount = paymentRepository.countCompletedPaymentsByDateTime(startDateTime, endDateTime);
+        } else {
+            totalOrderCount = paymentRepository.countCompletedPaymentsByDateBetween(startDate, endDate);
+        }
+        
+        Long totalRevenueAmount;
+        if ("DAILY".equalsIgnoreCase(periodType)) {
+            totalRevenueAmount = payoutLogRepository.sumPayoutAmountByDateTime(startDateTime, endDateTime);
+        } else {
+            totalRevenueAmount = payoutLogRepository.sumPayoutAmountByDateBetween(startDate, endDate);
+        }
+        
         Integer totalFees = commissionLogRepository.sumCommissionAmountBySellerAndDateRange(null, startDate, endDate);
 
         SalesSummaryStatsDTO salesSummaryStats = SalesSummaryStatsDTO.builder()
-                .totalOrdersInPeriod(totalOrders != null ? totalOrders : 0L)
-                .totalRevenueInPeriod(totalSalesAmount != null ? totalSalesAmount.doubleValue() : 0.0)
+                .totalOrdersInPeriod(totalOrderCount != null ? totalOrderCount : 0L)
+                .totalRevenueInPeriod(totalRevenueAmount != null ? totalRevenueAmount.doubleValue() : 0.0)
                 .totalFeesInPeriod(totalFees != null ? totalFees.doubleValue() : 0.0)
                 .build();
 
-        // 7. 경매 통계 (TODO: 실제 경매 관련 Repository 구현 필요)
+        // 7. 경매 통계 조회
+        Long totalAuctions;
+        Long totalBids;
+        
+        if ("DAILY".equalsIgnoreCase(periodType)) {
+            totalAuctions = auctionRepository.countAuctionsByDateTime(startDateTime, endDateTime);
+            totalBids = bidRepository.countBidsByDateTime(startDateTime, endDateTime);
+        } else {
+            totalAuctions = auctionRepository.countAuctionsByDateBetween(startDate, endDate);
+            totalBids = bidRepository.countBidsByDateBetween(startDate, endDate);
+        }
+        
+        double averageBidsPerAuction = 0.0;
+        if (totalAuctions != null && totalAuctions > 0 && totalBids != null) {
+            averageBidsPerAuction = (double) totalBids / totalAuctions;
+        }
+
         AuctionSummaryStatsDTO auctionSummaryStats = AuctionSummaryStatsDTO.builder()
-                .totalAuctionsInPeriod(0L)
-                .totalBidsInPeriod(0L)
-                .averageBidsPerAuctionInPeriod(0.0)
-                .successRate(0.0)
-                .failureRate(0.0)
+                .totalAuctionsInPeriod(totalAuctions != null ? totalAuctions : 0L)
+                .totalBidsInPeriod(totalBids != null ? totalBids : 0L)
+                .averageBidsPerAuctionInPeriod(averageBidsPerAuction)
+                .successRate(0.0) // TODO: 낙찰 성공률 계산 (winningCustomerId가 있는 경매 비율)
+                .failureRate(0.0) // TODO: 낙찰 실패율 계산
                 .build();
 
         // 8. 리뷰 통계 (TODO: 실제 리뷰 관련 Repository 구현 필요)
@@ -195,6 +230,52 @@ public class StatServiceImpl implements StatService {
                 .averageRatingInPeriod(0.0)
                 .deletionRate(0.0)
                 .build();
+
+        // 9. 매출 추이 데이터 생성
+        List<DateBasedValueDTO<Double>> dailyRevenueTrend = new ArrayList<>();
+        
+        try {
+            List<Object[]> dailyPayoutData = payoutLogRepository.getDailyPayoutSummary(startDate, endDate);
+            
+            // PayoutLog 데이터가 없으면 Payment 데이터로 매출 추이 생성
+            if (dailyPayoutData.isEmpty()) {
+                // Payment 데이터로 일별 매출 추이 생성
+                for (LocalDate currentDate = startDate; !currentDate.isAfter(endDate); currentDate = currentDate.plusDays(1)) {
+                    Long dayPayment = paymentRepository.sumCompletedPaymentAmountByDate(currentDate);
+                    double amount = dayPayment != null ? dayPayment.doubleValue() : 0.0;
+                    dailyRevenueTrend.add(new DateBasedValueDTO<>(currentDate, amount));
+                }
+            } else {
+                // PayoutLog 기반 매출 추이 생성
+                for (LocalDate currentDate = startDate; !currentDate.isAfter(endDate); currentDate = currentDate.plusDays(1)) {
+                    final LocalDate searchDate = currentDate;
+                    Object[] foundData = dailyPayoutData.stream()
+                        .filter(data -> {
+                            if (data[0] instanceof java.sql.Date) {
+                                LocalDate dbDate = ((java.sql.Date) data[0]).toLocalDate();
+                                return searchDate.equals(dbDate);
+                            } else if (data[0] instanceof LocalDate) {
+                                return searchDate.equals(data[0]);
+                            } else {
+                                return searchDate.toString().equals(data[0].toString());
+                            }
+                        })
+                        .findFirst()
+                        .orElse(null);
+                    
+                    double amount = 0.0;
+                    if (foundData != null && foundData[1] != null) {
+                        amount = ((Number) foundData[1]).doubleValue();
+                    }
+                    
+                    dailyRevenueTrend.add(new DateBasedValueDTO<>(currentDate, amount));
+                }
+            }
+        } catch (Exception e) {
+            log.error("매출 추이 데이터 생성 중 오류 발생", e);
+            // 오류 시 빈 리스트로 설정
+            dailyRevenueTrend = new ArrayList<>();
+        }
 
         return AdminDashboardDTO.builder()
                 .queryDate(date)
@@ -206,6 +287,7 @@ public class StatServiceImpl implements StatService {
                 .salesSummaryStats(salesSummaryStats)
                 .auctionSummaryStats(auctionSummaryStats)
                 .reviewSummaryStats(reviewSummaryStats)
+                .dailyRevenueTrend(dailyRevenueTrend)
                 .build();
     }
 

@@ -1,5 +1,6 @@
 package com.realive.service.review.view;
 
+import com.realive.dto.page.PageResponseDTO;
 import com.realive.dto.review.MyReviewResponseDTO;
 import com.realive.dto.review.ReviewListResponseDTO;
 import com.realive.dto.review.ReviewResponseDTO;
@@ -16,4 +17,9 @@ public interface ReviewViewService {
 
     // 내가 작성한 리뷰 목록 조회
     Page<MyReviewResponseDTO> getMyReviewList(Long customerId, Pageable pageable);
+
+    // 판매자 리뷰들 조회(고객 기준)
+    PageResponseDTO<ReviewResponseDTO> getSellerReviews(Long sellerId, Pageable pageable);
+
+
 }

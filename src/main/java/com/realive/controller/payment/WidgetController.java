@@ -22,7 +22,6 @@ public class WidgetController {
 
     private final Logger logger = LoggerFactory.getLogger(this.getClass());
 
-    // .properties 파일에서 토스 시크릿 키를 주입받습니다.
     @Value("${toss.secret-key}")
     private String tossSecretKey;
 
@@ -34,7 +33,6 @@ public class WidgetController {
         String amount;
         String paymentKey;
         try {
-            // 클라이언트에서 받은 JSON 요청 바디입니다.
             JSONObject requestData = (JSONObject) parser.parse(jsonBody);
             paymentKey = (String) requestData.get("paymentKey");
             orderId = (String) requestData.get("orderId");
@@ -48,14 +46,14 @@ public class WidgetController {
         obj.put("amount", amount);
         obj.put("paymentKey", paymentKey);
 
-        // 토스페이먼츠 API는 시크릿 키를 사용자 ID로 사용하고, 비밀번호는 사용하지 않습니다.
+        // 시크릿 키를 사용자 ID로 사용
         String widgetSecretKey = tossSecretKey;
         Base64.Encoder encoder = Base64.getEncoder();
         byte[] encodedBytes = encoder.encode((widgetSecretKey).getBytes(StandardCharsets.UTF_8));
         String authorizations = "Basic " + new String(encodedBytes);
 
-        // 결제를 승인하면 결제수단에서 금액이 차감돼요.
-        URL url = new URL("https://api.tosspayments.com/v1/payments/confirm");
+        // 결제를 승인하면 결제수단에서 금액 차감.
+        URL url = new URL("https://api.tosspayments.com/v2/payments/confirm");
         HttpURLConnection connection = (HttpURLConnection) url.openConnection();
         connection.setRequestProperty("Authorization", authorizations);
         connection.setRequestProperty("Content-Type", "application/json");
@@ -70,7 +68,6 @@ public class WidgetController {
 
         InputStream responseStream = isSuccess ? connection.getInputStream() : connection.getErrorStream();
 
-        // 결제 성공 및 실패 비즈니스 로직을 구현하세요.
         Reader reader = new InputStreamReader(responseStream, StandardCharsets.UTF_8);
         JSONObject jsonObject = (JSONObject) parser.parse(reader);
         responseStream.close();

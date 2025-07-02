@@ -1,4 +1,4 @@
-package com.realive.service.auth; // 실제 서비스 패키지 경로에 맞게 수정해주세요.
+package com.realive.service.auth;
 
 import lombok.RequiredArgsConstructor;
 import org.springframework.mail.SimpleMailMessage;

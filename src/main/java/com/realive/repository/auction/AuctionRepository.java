@@ -10,6 +10,8 @@ import org.springframework.stereotype.Repository;
 
 import jakarta.persistence.LockModeType;
 import jakarta.persistence.QueryHint;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -73,4 +75,26 @@ public interface AuctionRepository extends JpaRepository<Auction, Integer>, JpaS
      * 특정 낙찰자가 낙찰한 경매 목록을 페이징하여 조회
      */
     Page<Auction> findByWinningCustomerIdAndStatus(Long winningCustomerId, AuctionStatus status, Pageable pageable);
+
+    // === 관리자 대시보드용 통계 메서드들 ===
+    
+    /**
+     * 특정 날짜에 생성된 경매 건수 조회
+     */
+    @Query("SELECT COUNT(a) FROM Auction a WHERE DATE(a.createdAt) = :date")
+    Long countAuctionsByDate(@Param("date") LocalDate date);
+
+
+
+    /**
+     * 특정 기간에 생성된 경매 건수 조회
+     */
+    @Query("SELECT COUNT(a) FROM Auction a WHERE DATE(a.createdAt) BETWEEN :startDate AND :endDate")
+    Long countAuctionsByDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    /**
+     * 특정 날짜/시간 범위에 생성된 경매 건수 조회 (시간 포함)
+     */
+    @Query("SELECT COUNT(a) FROM Auction a WHERE a.createdAt BETWEEN :startDateTime AND :endDateTime")
+    Long countAuctionsByDateTime(@Param("startDateTime") LocalDateTime startDateTime, @Param("endDateTime") LocalDateTime endDateTime);
 }

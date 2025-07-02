@@ -1,15 +1,14 @@
 package com.realive.dto.payment;
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
+import lombok.AllArgsConstructor;
 
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
-@Builder
-public class TossPaymentApproveRequestDTO {
+public class TossPaymentConfirmRequest {
+
     private String paymentKey;
     private String orderId;
     private Long amount;

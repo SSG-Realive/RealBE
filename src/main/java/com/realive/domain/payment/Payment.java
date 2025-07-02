@@ -37,9 +37,9 @@ public class Payment extends BaseTimeEntity {
     @Column(name = "method", nullable = false, length = 50)
     private String method;
 
-    @Enumerated(EnumType.STRING) // Enum으로 변경
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private PaymentStatus status; // String에서 PaymentStatus로 변경!
+    private PaymentStatus status;
 
     @Column(name = "requested_at", nullable = false, updatable = false)
     private LocalDateTime requestedAt;
@@ -59,7 +59,8 @@ public class Payment extends BaseTimeEntity {
     @Column(name = "last_transaction_key", length = 255)
     private String lastTransactionKey;
 
-    @Column(name = "raw_response_data", columnDefinition = "jsonb")
+    @Column(name = "raw_response_data", nullable = true)
+    @org.hibernate.annotations.JdbcTypeCode(org.hibernate.type.SqlTypes.JSON)
     private String rawResponseData;
 
     @PrePersist
