@@ -1,5 +1,6 @@
 package com.realive.controller.customer;
 
+import com.realive.dto.customer.member.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -11,10 +12,6 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.realive.dto.customer.member.MemberJoinDTO;
-import com.realive.dto.customer.member.MemberLoginDTO;
-import com.realive.dto.customer.member.MemberModifyDTO;
-import com.realive.dto.customer.member.MemberReadDTO;
 import com.realive.exception.UnauthorizedException;
 import com.realive.security.customer.CustomerPrincipal;
 import com.realive.service.auth.LogoutService;
@@ -49,7 +46,7 @@ public class MemberController {
     // 임시회원: 소셜 로그인 후 임시회원으로 전회원을 회원으로 전환
     @PutMapping("/update-info")
     public ResponseEntity<?> updateTemporaryUserInfo(
-            @RequestBody @Valid MemberJoinDTO request,
+            @RequestBody @Valid SocialMemberJoinDTO request,
             Authentication authentication) {
 
         log.info("updateTemporaryUserInfo 호출됨");

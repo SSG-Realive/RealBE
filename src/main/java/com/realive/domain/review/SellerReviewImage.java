@@ -11,7 +11,7 @@ import lombok.*;
 @AllArgsConstructor
 @NoArgsConstructor
 @EqualsAndHashCode(callSuper = false)
-public class SellerReviewImage extends BaseTimeEntity { // BaseTimeEntity 상속
+public class SellerReviewImage extends BaseTimeEntity {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -21,11 +21,19 @@ public class SellerReviewImage extends BaseTimeEntity { // BaseTimeEntity 상속
     @JoinColumn(name = "review_id")
     private SellerReview review;
 
-    @Column(nullable = false) // 필수값으로 설정
+    // DB 컬럼명 url 매핑
+    @Column(name = "url", nullable = false)
+    private String url;
+
+    // DB 컬럼명 image_url 매핑 (임시로 사용 필요 시)
+    @Column(name = "image_url", nullable = false)
     private String imageUrl;
 
-    @Column(nullable = false) // 필수값으로 설정
-    private boolean thumbnail;
+    // is_thumbnail 컬럼 매핑 (nullable 이므로 Boolean)
+    @Column(name = "is_thumbnail")
+    private Boolean isThumbnail;
 
-    // BaseTimeEntity 상속으로 createdAt, updatedAt 필드 제거
+    // thumbnail 컬럼 매핑
+    @Column(name = "thumbnail", nullable = false)
+    private boolean thumbnail;
 }
