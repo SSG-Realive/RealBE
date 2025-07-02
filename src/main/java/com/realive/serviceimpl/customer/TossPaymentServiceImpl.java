@@ -1,7 +1,7 @@
 package com.realive.serviceimpl.customer;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.realive.dto.response.TossPaymentResponse;
+import com.realive.dto.payment.TossPaymentResponse;
 import com.realive.service.customer.TossPaymentService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;

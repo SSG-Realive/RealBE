@@ -23,7 +23,4 @@ public interface PaymentService {
      */
     Payment getPaymentByOrderId(Long orderId);
 
-    // 필요하다면 다른 결제 관련 비즈니스 메서드 (예: 환불, 결제 상태 변경 등)를 여기에 추가
-    // void refundPayment(Long paymentId, int amount);
-    // Payment updatePaymentStatus(Long paymentId, String newStatus);
 }

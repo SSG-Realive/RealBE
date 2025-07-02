@@ -1,6 +1,6 @@
 package com.realive.service.customer;
 
-import com.realive.dto.response.TossPaymentResponse;
+import com.realive.dto.payment.TossPaymentResponse;
 
 public interface TossPaymentService {
     

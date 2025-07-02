@@ -1,5 +1,6 @@
 package com.realive.dto.review;
 
+import com.realive.dto.product.ProductSummaryDTO;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -24,6 +25,9 @@ public class ReviewResponseDTO {
     private List<String> imageUrls;
     private LocalDateTime createdAt;
     private boolean isHidden;
+
+    private List<ProductSummaryDTO> productSummaryList;
+
 
     public ReviewResponseDTO(Long reviewId, Long orderId, Long customerId, Long sellerId,
                              double rating, String content,

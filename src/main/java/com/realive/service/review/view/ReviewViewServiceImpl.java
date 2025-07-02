@@ -1,5 +1,6 @@
 package com.realive.service.review.view;
 
+import com.realive.dto.product.ProductSummaryDTO;
 import com.realive.dto.page.PageRequestDTO;
 import com.realive.dto.page.PageResponseDTO;
 import com.realive.dto.review.MyReviewResponseDTO;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Sort;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -42,10 +44,6 @@ public class ReviewViewServiceImpl implements ReviewViewService {
                 .map(ReviewResponseDTO::getReviewId)
                 .collect(Collectors.toList());
 
-        List<Long> orderIds = reviewsPage.getContent().stream()
-                .map(ReviewResponseDTO::getOrderId)
-                .collect(Collectors.toList());
-
         // 이미지 조회
         Map<Long, List<String>> reviewImageUrlsMap = reviewViewRepository.findImageUrlsByReviewIds(reviewIds)
                 .stream()
@@ -54,20 +52,24 @@ public class ReviewViewServiceImpl implements ReviewViewService {
                         Collectors.mapping(tuple -> (String) tuple[1], Collectors.toList())
                 ));
 
-        // 상품명 조회
-        Map<Long, String> productNamesMap = reviewViewRepository.findProductNamesByOrderIds(orderIds)
-                .stream()
-                .collect(Collectors.toMap(
-                        tuple -> (Long) tuple[0], // orderId
-                        tuple -> (String) tuple[1] // productName
-                ));
+        // 리뷰별로 상품명 조회 (orderId + sellerId 기반)
+        Map<Long, List<String>> productNamesMap = new HashMap<>();
+        reviewsPage.getContent().forEach(reviewDto -> {
+            List<Object[]> productNames = reviewViewRepository.findProductNamesByOrderIdsAndSellerId(
+                    List.of(reviewDto.getOrderId()), reviewDto.getSellerId()
+            );
+            List<String> names = productNames.stream()
+                    .map(tuple -> (String) tuple[1])
+                    .collect(Collectors.toList());
+            productNamesMap.put(reviewDto.getReviewId(), names);
+        });
 
         // 리뷰 DTO에 세팅
         reviewsPage.getContent().forEach(reviewDto -> {
             reviewDto.setImageUrls(reviewImageUrlsMap.getOrDefault(reviewDto.getReviewId(), List.of()));
-            if (reviewDto.getOrderId() != null) {
-                reviewDto.setProductName(productNamesMap.get(reviewDto.getOrderId()));
-            }
+            reviewDto.setProductName(
+                    summarizeProductNames(productNamesMap.getOrDefault(reviewDto.getReviewId(), List.of()))
+            );
         });
 
         log.info("판매자 ID {}에 대한 총 {}개의 리뷰를 조회했습니다.", sellerId, reviewsPage.getTotalElements());
@@ -92,16 +94,27 @@ public class ReviewViewServiceImpl implements ReviewViewService {
         Optional<ReviewResponseDTO> reviewOpt = reviewViewRepository.findReviewDetailById(id);
 
         reviewOpt.ifPresent(reviewDto -> {
+            // 이미지 URL 세팅
             List<String> imageUrls = reviewViewRepository.findImageUrlsByReviewIds(List.of(reviewDto.getReviewId()))
                     .stream()
                     .map(tuple -> (String) tuple[1])
                     .collect(Collectors.toList());
             reviewDto.setImageUrls(imageUrls);
 
-            if (reviewDto.getOrderId() != null) {
-                reviewViewRepository.findProductNamesByOrderIds(List.of(reviewDto.getOrderId()))
-                        .stream().findFirst()
-                        .ifPresent(tuple -> reviewDto.setProductName((String) tuple[1]));
+            // 상품명 세팅
+            if (reviewDto.getOrderId() != null && reviewDto.getSellerId() != null) {
+                List<Object[]> productNames = reviewViewRepository.findProductNamesByOrderIdsAndSellerId(
+                        List.of(reviewDto.getOrderId()), reviewDto.getSellerId()
+                );
+                List<String> names = productNames.stream()
+                        .map(tuple -> (String) tuple[1])
+                        .collect(Collectors.toList());
+                reviewDto.setProductName(summarizeProductNames(names));
+
+                // 상품 요약 정보 세팅
+                List<ProductSummaryDTO> productSummaryList = reviewViewRepository
+                        .findProductSummaryByOrderIdsAndSellerId(List.of(reviewDto.getOrderId()), reviewDto.getSellerId());
+                reviewDto.setProductSummaryList(productSummaryList);
             }
         });
 
@@ -134,22 +147,33 @@ public class ReviewViewServiceImpl implements ReviewViewService {
                         Collectors.mapping(tuple -> (String) tuple[1], Collectors.toList())
                 ));
 
-        Map<Long, String> productNamesMap = reviewViewRepository.findProductNamesByOrderIds(orderIds)
-                .stream()
-                .collect(Collectors.toMap(
-                        tuple -> (Long) tuple[0],
-                        tuple -> (String) tuple[1]
-                ));
+        Map<Long, List<String>> productNamesMap = new HashMap<>();
+        myReviewsPage.getContent().forEach(reviewDto -> {
+            List<Object[]> productNames = reviewViewRepository.findProductNamesByOrderIdsAndSellerId(
+                    List.of(reviewDto.getOrderId()), reviewDto.getSellerId()
+            );
+            List<String> names = productNames.stream()
+                    .map(tuple -> (String) tuple[1])
+                    .collect(Collectors.toList());
+            productNamesMap.put(reviewDto.getReviewId(), names);
+        });
 
         myReviewsPage.getContent().forEach(reviewDto -> {
             reviewDto.setImageUrls(reviewImageUrlsMap.getOrDefault(reviewDto.getReviewId(), List.of()));
-            if (reviewDto.getOrderId() != null) {
-                reviewDto.setProductName(productNamesMap.get(reviewDto.getOrderId()));
-            }
+            reviewDto.setProductName(
+                    summarizeProductNames(productNamesMap.getOrDefault(reviewDto.getReviewId(), List.of()))
+            );
         });
 
         log.info("총 {}개의 내 리뷰를 조회했습니다.", myReviewsPage.getTotalElements());
         return myReviewsPage;
+    }
+
+    // 상품명이 여러 개일 경우 "첫 상품 외 N개" 형태로 요약
+    private String summarizeProductNames(List<String> names) {
+        if (names == null || names.isEmpty()) return null;
+        if (names.size() == 1) return names.get(0);
+        return names.get(0) + " 외 " + (names.size() - 1) + "개";
     }
 
     @Override
