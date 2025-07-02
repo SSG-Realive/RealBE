@@ -37,9 +37,9 @@ public class Payment extends BaseTimeEntity {
     @Column(name = "method", nullable = false, length = 50)
     private String method;
 
-    @Enumerated(EnumType.STRING) // Enum으로 변경
+    @Enumerated(EnumType.STRING)
     @Column(nullable = false, length = 50)
-    private PaymentStatus status; // String에서 PaymentStatus로 변경!
+    private PaymentStatus status;
 
     @Column(name = "requested_at", nullable = false, updatable = false)
     private LocalDateTime requestedAt;

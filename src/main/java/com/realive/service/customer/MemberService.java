@@ -5,6 +5,7 @@ import com.realive.domain.customer.SignupMethod;
 import com.realive.dto.customer.member.MemberJoinDTO;
 import com.realive.dto.customer.member.MemberModifyDTO;
 import com.realive.dto.customer.member.MemberReadDTO;
+import com.realive.dto.customer.member.SocialMemberJoinDTO;
 import com.realive.exception.DuplicateEmailException;
 import com.realive.repository.customer.CustomerRepository;
 import com.realive.security.customer.JwtTokenProvider;
@@ -27,7 +28,7 @@ public class MemberService {
 
 
     // 회원가입: 소셜로그인(임시회원정보 수정)
-    public void updateTemporaryUserInfo(MemberJoinDTO request, String authenticatedEmail) {
+    public void updateTemporaryUserInfo(SocialMemberJoinDTO request, String authenticatedEmail) {
         
         // 인증된 사용자 이메일로 회원 조회
         Customer customer = customerRepository.findByEmailIncludingSocial(authenticatedEmail)

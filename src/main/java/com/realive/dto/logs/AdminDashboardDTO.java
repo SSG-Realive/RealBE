@@ -2,6 +2,7 @@ package com.realive.dto.logs; // 또는 com.realive.dto.admin 등 적절한 패�
 
 
 import com.realive.dto.logs.stats.AuctionSummaryStatsDTO;
+import com.realive.dto.logs.stats.DateBasedValueDTO;
 import com.realive.dto.logs.stats.MemberSummaryStatsDTO;
 import com.realive.dto.logs.stats.ReviewSummaryStatsDTO;
 import com.realive.dto.logs.stats.SalesSummaryStatsDTO;
@@ -31,4 +32,7 @@ public class AdminDashboardDTO {
     private SalesSummaryStatsDTO salesSummaryStats;
     private AuctionSummaryStatsDTO auctionSummaryStats;
     private ReviewSummaryStatsDTO reviewSummaryStats;
+    
+    // === 추이 데이터 ===
+    private List<DateBasedValueDTO<Double>> dailyRevenueTrend;
 }

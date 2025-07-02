@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 
@@ -56,4 +58,24 @@ public interface BidRepository extends JpaRepository<Bid, Integer> {
     List<Bid> findTopByAuctionIdOrderByBidPriceDesc(@Param("auctionId") Integer auctionId);
 
     boolean existsByAuctionIdAndBidPrice(Integer auctionId, Integer bidPrice);
+
+    // === 관리자 대시보드용 통계 메서드들 ===
+    
+    /**
+     * 특정 날짜에 이루어진 입찰 건수 조회
+     */
+    @Query("SELECT COUNT(b) FROM Bid b WHERE DATE(b.bidTime) = :date")
+    Long countBidsByDate(@Param("date") LocalDate date);
+
+    /**
+     * 특정 기간에 이루어진 입찰 건수 조회
+     */
+    @Query("SELECT COUNT(b) FROM Bid b WHERE DATE(b.bidTime) BETWEEN :startDate AND :endDate")
+    Long countBidsByDateBetween(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
+
+    /**
+     * 특정 날짜/시간 범위에 이루어진 입찰 건수 조회 (시간 포함)
+     */
+    @Query("SELECT COUNT(b) FROM Bid b WHERE b.bidTime BETWEEN :startDateTime AND :endDateTime")
+    Long countBidsByDateTime(@Param("startDateTime") LocalDateTime startDateTime, @Param("endDateTime") LocalDateTime endDateTime);
 }

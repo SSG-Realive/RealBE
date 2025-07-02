@@ -54,13 +54,13 @@ public class PaymentServiceImpl implements PaymentService {
     public Payment approveTossPayment(TossPaymentApproveRequestDTO request) {
         TossPaymentApproveResponseDTO tossResponse;
         
-        // Mock 결제 처리 (개발 환경)
+        // Mock 결제 처리 (개발)
         if (mockEnabled) {
             logger.info("Mock 결제 처리 모드 - 실제 토스페이먼츠 API 호출 우회: {}", request);
             tossResponse = createMockTossResponse(request);
         } else {
-            // 실제 토스페이먼츠 API 호출 (운영 환경)
-            // 1. 토스 인증 헤더 생성 (v2 방식)
+            // 토스페이먼츠 API 호출 (운영)
+            // 1. 토스 인증 헤더 생성
             String encodedAuth = Base64.getEncoder().encodeToString((tossSecretKey + ":").getBytes(StandardCharsets.UTF_8));
             String authorization = "Basic " + encodedAuth;
 
@@ -122,7 +122,7 @@ public class PaymentServiceImpl implements PaymentService {
 
         // 4. 주문 상태 변경 및 실제 결제수단으로 업데이트
         order.setStatus(OrderStatus.PAYMENT_COMPLETED);
-        // 토스페이먼츠에서 받은 실제 결제수단으로 업데이트 (데이터 일관성 보장)
+        // 토스페이먼츠에서 받은 실제 결제수단으로 업데이트 (데이터) 일관성 보장
         order.setPaymentMethod(tossResponse.getMethod());
         orderRepository.save(order);
 
@@ -191,7 +191,7 @@ public class PaymentServiceImpl implements PaymentService {
      */
     private TossPaymentApproveResponseDTO createMockTossResponse(TossPaymentApproveRequestDTO request) {
         // Mock 모드에서는 "토스결제"로 통일 (개발환경 식별용)
-        // 실제 환경에서는 토스페이먼츠가 사용자가 선택한 정확한 결제수단을 반환함
+        // 실제 환경에서는 토스페이먼츠가 사용자가 선택한 정확한 결제수단을 반환
         String mockMethod = "토스결제"; // Mock 개발환경임을 명확히 표시
         
         logger.info("Mock 결제수단 설정: {} (개발환경 - 실제 환경에서는 사용자 선택에 따라 달라짐)", mockMethod);
