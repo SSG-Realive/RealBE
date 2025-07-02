@@ -73,11 +73,6 @@ public class SellerPayoutServiceImpl implements SellerPayoutService {
         for (Long sellerId : sellerIds) {
             Integer intSellerId = sellerId.intValue();
 
-            // 이미 정산 로그가 있다면 스킵
-            boolean exists = payoutLogRepository.existsBySellerIdAndPeriodStartAndPeriodEnd(
-                    intSellerId, periodStart, periodEnd);
-            if (exists) continue;
-
             // 매출 집계
             Integer totalSales = orderItemRepository.sumDeliveredSalesBySellerAndPeriod(
                     sellerId, startDateTime, endDateTime);
@@ -87,18 +82,30 @@ public class SellerPayoutServiceImpl implements SellerPayoutService {
             int commission = (int) (totalSales * 0.1); // 10% 수수료
             int payout = totalSales - commission;
 
-            PayoutLog log = new PayoutLog();
-            log.setSellerId(intSellerId);
-            log.setPeriodStart(periodStart);
-            log.setPeriodEnd(periodEnd);
-            log.setTotalSales(totalSales);
-            log.setTotalCommission(commission);
-            log.setPayoutAmount(payout);
-            log.setProcessedAt(LocalDateTime.now());
-
-            payoutLogRepository.save(log);
+            // 기존 PayoutLog 찾기
+            PayoutLog existingLog = payoutLogRepository.findBySellerIdAndPeriodStartAndPeriodEnd(
+                    intSellerId, periodStart, periodEnd).orElse(null);
+            
+            if (existingLog != null) {
+                // 기존 로그 업데이트
+                existingLog.setTotalSales(totalSales);
+                existingLog.setTotalCommission(commission);
+                existingLog.setPayoutAmount(payout);
+                existingLog.setProcessedAt(LocalDateTime.now()); // 처리 시간 갱신
+                payoutLogRepository.save(existingLog);
+            } else {
+                // 새 로그 생성
+                PayoutLog log = new PayoutLog();
+                log.setSellerId(intSellerId);
+                log.setPeriodStart(periodStart);
+                log.setPeriodEnd(periodEnd);
+                log.setTotalSales(totalSales);
+                log.setTotalCommission(commission);
+                log.setPayoutAmount(payout);
+                log.setProcessedAt(LocalDateTime.now());
+                payoutLogRepository.save(log);
+            }
         }
-
     }
 
     @Override
