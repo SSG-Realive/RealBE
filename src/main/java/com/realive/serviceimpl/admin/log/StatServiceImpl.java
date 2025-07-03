@@ -185,9 +185,9 @@ public class StatServiceImpl implements StatService {
         
         Long totalRevenueAmount;
         if ("DAILY".equalsIgnoreCase(periodType)) {
-            totalRevenueAmount = payoutLogRepository.sumPayoutAmountByDateTime(startDateTime, endDateTime);
+            totalRevenueAmount = paymentRepository.sumCompletedPaymentAmountByDateTime(startDateTime, endDateTime);
         } else {
-            totalRevenueAmount = payoutLogRepository.sumPayoutAmountByDateBetween(startDate, endDate);
+            totalRevenueAmount = paymentRepository.sumCompletedPaymentAmountByDateBetween(startDate, endDate);
         }
         
         Integer totalFees = commissionLogRepository.sumCommissionAmountBySellerAndDateRange(null, startDate, endDate);
