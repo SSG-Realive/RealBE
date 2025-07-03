@@ -5,6 +5,7 @@ import com.realive.security.seller.SellerPrincipal;
 import com.realive.service.review.view.ReviewViewService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -55,8 +56,9 @@ public class SellerReviewController {
             Long sellerId = sellerPrincipal.getId();
             log.info("판매자 ID {}의 리뷰 통계 조회 요청", sellerId);
 
-            // 기존 서비스를 활용한 통계 조회
-            ReviewListResponseDTO allReviews = reviewViewService.getReviewList(sellerId, Pageable.unpaged());
+            // Unpaged 대신 충분히 큰 페이지 사이즈 사용
+            Pageable largePage = PageRequest.of(0, 10000);
+            ReviewListResponseDTO allReviews = reviewViewService.getReviewList(sellerId, largePage);
 
             // 간단한 통계 계산
             Map<String, Object> statistics = new HashMap<>();
