@@ -487,5 +487,77 @@ public class OrderServiceImpl implements OrderService {
                 .deliveryFee(deliveryFee)
                 .imageUrl(imageUrl)
                 .build();
+
+
     }
+
+    @Override
+    public OrderResponseDTO getRecentOrder(Long customerId) {
+        Order order = orderRepository.findFirstByCustomerIdOrderByOrderedAtDesc(customerId)
+                .orElseThrow(() -> new NoSuchElementException("최근 주문이 없습니다."));
+
+        List<OrderItem> orderItems = orderItemRepository.findByOrderId(order.getId());
+
+        if (orderItems.isEmpty()) {
+            throw new NoSuchElementException("주문 항목이 없습니다.");
+        }
+
+        List<Long> productIds = orderItems.stream()
+                .map(item -> item.getProduct().getId())
+                .collect(Collectors.toList());
+
+        Map<Long, String> thumbnailUrls = productImageRepository.findThumbnailUrlsByProductIds(productIds, MediaType.IMAGE)
+                .stream()
+                .collect(Collectors.toMap(
+                        arr -> (Long) arr[0],
+                        arr -> (String) arr[1]
+                ));
+
+        Map<Long, DeliveryPolicy> deliveryPolicies = deliveryPolicyRepository.findAll().stream()
+                .filter(p -> p.getProduct() != null && productIds.contains(p.getProduct().getId()))
+                .collect(Collectors.toMap(p -> p.getProduct().getId(), Function.identity()));
+
+        List<OrderItemResponseDTO> itemDTOs = new ArrayList<>();
+        int totalDeliveryFee = 0;
+        Set<Long> processedProductIds = new HashSet<>();
+
+        for (OrderItem item : orderItems) {
+            Product product = item.getProduct();
+            String imageUrl = thumbnailUrls.getOrDefault(product.getId(), null);
+            DeliveryPolicy deliveryPolicy = deliveryPolicies.get(product.getId());
+
+            int itemDeliveryFee = 0;
+            if (deliveryPolicy != null &&
+                    deliveryPolicy.getType() == DeliveryType.유료배송 &&
+                    !processedProductIds.contains(product.getId())) {
+
+                itemDeliveryFee = deliveryPolicy.getCost();
+                totalDeliveryFee += itemDeliveryFee;
+                processedProductIds.add(product.getId());
+            }
+
+            itemDTOs.add(OrderItemResponseDTO.builder()
+                    .id(item.getId())
+                    .productId(product.getId())
+                    .productName(product.getName())
+                    .quantity(item.getQuantity())
+                    .price(item.getPrice())
+                    .imageUrl(imageUrl)
+                    .sellerId(product.getSeller().getId())
+                    .build());
+        }
+
+        String deliveryStatus = orderDeliveryRepository.findByOrder(order)
+                .map(delivery -> delivery.getStatus().getDescription())
+                .orElse(DeliveryStatus.INIT.getDescription());
+
+        return OrderResponseDTO.from(
+                order,
+                itemDTOs,
+                totalDeliveryFee,
+                order.getPaymentMethod(),
+                deliveryStatus
+        );
+    }
+
 }

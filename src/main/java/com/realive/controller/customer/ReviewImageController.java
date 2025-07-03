@@ -48,3 +48,4 @@ public class ReviewImageController {
         return ResponseEntity.ok("리뷰 이미지가 삭제되었습니다.");
     }
 }
+

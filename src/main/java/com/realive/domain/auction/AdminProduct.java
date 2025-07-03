@@ -5,6 +5,8 @@ import lombok.*;
 
 import java.time.LocalDateTime;
 
+import com.realive.dto.auction.AdminProductDTO;
+
 @Entity
 @Table(name = "admin_products")
 @Getter
@@ -32,6 +34,8 @@ public class AdminProduct {
 
     @Column(name = "is_auctioned")
     private boolean isAuctioned;
+
+    
 
 }
 

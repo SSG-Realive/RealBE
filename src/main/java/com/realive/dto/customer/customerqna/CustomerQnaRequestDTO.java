@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
@@ -27,6 +29,9 @@ public class CustomerQnaRequestDTO {
     private Long productId;
     
     private Long customerId;
+
+    // 추가 필요(not null)
+    private LocalDateTime createdAt;
 
 }
 

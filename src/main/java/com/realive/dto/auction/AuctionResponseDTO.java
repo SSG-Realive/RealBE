@@ -54,7 +54,7 @@ public class AuctionResponseDTO {
                 .build();
     }
 
-    private static String getStatusText(AuctionStatus status, LocalDateTime startTime) {
+    public static String getStatusText(AuctionStatus status, LocalDateTime startTime) {
         LocalDateTime now = LocalDateTime.now();
         
         switch (status) {

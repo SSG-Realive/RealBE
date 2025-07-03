@@ -19,6 +19,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -95,14 +96,18 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
         review.setRating(requestDTO.getRating());
         review.setContent(requestDTO.getContent());
 
-        // 이미지 관련 처리 완전 무시
-        // imageRepository.deleteByReviewId(reviewId);
-        // saveImages(review, requestDTO.getImageUrls());
+        // 기존 이미지 삭제
+        imageRepository.deleteByReviewId(reviewId);
 
+        // 새 이미지 저장 (ReviewImageService가 처리하도록 한 경우라면 따로 수행)
+        saveImages(review, requestDTO.getImageUrls());
+
+        // 리뷰 업데이트
         SellerReview updatedReview = reviewRepository.save(review);
 
-        // 이미지 리스트 강제로 빈 리스트 처리
-        List<String> imageUrls = Collections.emptyList();
+        List<String> imageUrls = imageRepository.findByReviewId(reviewId).stream()
+                .map(SellerReviewImage::getImageUrl)
+                .collect(Collectors.toList());
 
         return ReviewResponseDTO.builder()
                 .reviewId(updatedReview.getId())
@@ -112,12 +117,11 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
                 .productName(null)
                 .rating(updatedReview.getRating())
                 .content(updatedReview.getContent())
-                .imageUrls(imageUrls)
+                .imageUrls(imageUrls) // 여기로 세팅
                 .createdAt(updatedReview.getCreatedAt())
                 .isHidden(updatedReview.isHidden())
                 .build();
     }
-
 
 
     @Override

@@ -456,6 +456,7 @@ public class ProductServiceImpl implements ProductService {
         }
 
 
+        // productId로 sellerId 검색(고객용)
         @Override
         @Transactional(readOnly = true) // 읽기 전용 트랜잭션
         public Optional<Long> getSellerIdByProductId(Long productId) {
@@ -467,6 +468,7 @@ public class ProductServiceImpl implements ProductService {
                         .map(Seller::getId);     // Seller 객체에서 ID를 가져옴
         }
 
+        // productId로 sellerId를 검색한 다음 id로 sellerInfo 조회
         @Override
         @Transactional(readOnly = true)
         public Optional<SellerPublicResponseDTO> getPublicSellerInfoByProductId(Long productId) { // 메서드 이름 일치!
@@ -506,6 +508,7 @@ public class ProductServiceImpl implements ProductService {
                         // sellerReviewRepository에 정의된 메서드 활용
                         Double averageRating = sellerReviewRepository.getAverageRatingBySellerId(sellerId);
                         Long totalReviews = sellerReviewRepository.countReviewsBySellerId(sellerId);
+                        log.info("totalReviews: {}", totalReviews);
 
                         // null 처리: 리뷰가 없을 경우 getAverageRatingBySellerId는 null을 반환할 수 있으므로 0.0으로 처리
                         double finalAverageRating = (averageRating != null) ? averageRating : 0.0;

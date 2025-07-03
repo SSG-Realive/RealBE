@@ -231,23 +231,27 @@ public class StatServiceImpl implements StatService {
                 .deletionRate(0.0)
                 .build();
 
-        // 9. 매출 추이 데이터 생성
+        // 9. 매출 추이 데이터 생성 (지난 6개월 범위)
         List<DateBasedValueDTO<Double>> dailyRevenueTrend = new ArrayList<>();
         
         try {
-            List<Object[]> dailyPayoutData = payoutLogRepository.getDailyPayoutSummary(startDate, endDate);
+            // 매출 추이용 넓은 범위 설정 (지난 6개월)
+            LocalDate trendStartDate = date.minusMonths(5).withDayOfMonth(1); // 6개월 전 월 시작일
+            LocalDate trendEndDate = date.withDayOfMonth(date.lengthOfMonth()); // 현재 월 마지막일
+            
+            List<Object[]> dailyPayoutData = payoutLogRepository.getDailyPayoutSummary(trendStartDate, trendEndDate);
             
             // PayoutLog 데이터가 없으면 Payment 데이터로 매출 추이 생성
             if (dailyPayoutData.isEmpty()) {
                 // Payment 데이터로 일별 매출 추이 생성
-                for (LocalDate currentDate = startDate; !currentDate.isAfter(endDate); currentDate = currentDate.plusDays(1)) {
+                for (LocalDate currentDate = trendStartDate; !currentDate.isAfter(trendEndDate); currentDate = currentDate.plusDays(1)) {
                     Long dayPayment = paymentRepository.sumCompletedPaymentAmountByDate(currentDate);
                     double amount = dayPayment != null ? dayPayment.doubleValue() : 0.0;
                     dailyRevenueTrend.add(new DateBasedValueDTO<>(currentDate, amount));
                 }
             } else {
                 // PayoutLog 기반 매출 추이 생성
-                for (LocalDate currentDate = startDate; !currentDate.isAfter(endDate); currentDate = currentDate.plusDays(1)) {
+                for (LocalDate currentDate = trendStartDate; !currentDate.isAfter(trendEndDate); currentDate = currentDate.plusDays(1)) {
                     final LocalDate searchDate = currentDate;
                     Object[] foundData = dailyPayoutData.stream()
                         .filter(data -> {
