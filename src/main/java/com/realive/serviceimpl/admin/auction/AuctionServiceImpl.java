@@ -377,6 +377,9 @@ public class AuctionServiceImpl implements AuctionService {
         }
 
         // 4. 경매 정보 업데이트
+        if (requestDto.getStartTime() != null) {
+            auction.setStartTime(requestDto.getStartTime());
+        }
         if (requestDto.getEndTime() != null) {
             auction.setEndTime(requestDto.getEndTime());
         }

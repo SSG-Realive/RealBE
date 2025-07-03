@@ -18,6 +18,9 @@ public class AuctionUpdateRequestDTO {
     @NotNull(message = "경매 ID는 필수입니다.")
     private Integer id;
 
+    @Future(message = "시작 시간은 현재 시점 이후여야 합니다.")
+    private LocalDateTime startTime;
+
     @Future(message = "종료 시간은 현재 시점 이후여야 합니다.")
     private LocalDateTime endTime;
 
