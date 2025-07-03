@@ -79,6 +79,14 @@ public interface    ReviewViewRepository extends JpaRepository<SellerReview, Lon
     List<ProductSummaryDTO> findProductSummaryByOrderIdsAndSellerId(@Param("orderIds") List<Long> orderIds,
                                                                     @Param("sellerId") Long sellerId);
 
+    @Query("""
+        SELECT sr.seller.id
+        FROM SellerReview sr
+        WHERE sr.order.id = :orderId
+          AND sr.customer.id = :customerId
+    """)
+        List<Long> findReviewedSellerIds(@Param("orderId") Long orderId, @Param("customerId") Long customerId);
+
 
 
 }
