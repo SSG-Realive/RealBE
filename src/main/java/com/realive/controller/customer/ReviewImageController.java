@@ -7,6 +7,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.util.Collections;
 import java.util.List;
 
 @Slf4j
@@ -20,14 +21,21 @@ public class ReviewImageController {
     /**
      * 리뷰 이미지 업로드
      */
-    @PostMapping("/upload")
-    public ResponseEntity<List<String>> uploadImages(
-            @RequestParam Long reviewId,
-            @RequestParam(value = "files", required = false) List<MultipartFile> files) {
+//    @PostMapping("/upload")
+//    public ResponseEntity<List<String>> uploadImages(
+//            @RequestParam Long reviewId,
+//            @RequestParam(value = "files", required = false) List<MultipartFile> files) {
+//
+//        if (files == null || files.isEmpty()) {
+//            // 파일 없으면 빈 리스트 반환하거나 적절한 응답
+//            log.warn("업로드할 파일이 없습니다. reviewId={}", reviewId);
+//            return ResponseEntity.badRequest().body(Collections.emptyList());
+//        }
+//
+//        List<String> uploadedUrls = reviewImageService.uploadImages(reviewId, files);
+//        return ResponseEntity.ok(uploadedUrls);
+//    }
 
-        List<String> uploadedUrls = reviewImageService.uploadImages(reviewId, files);
-        return ResponseEntity.ok(uploadedUrls);
-    }
 
     /**
      * 리뷰 이미지 전체 삭제

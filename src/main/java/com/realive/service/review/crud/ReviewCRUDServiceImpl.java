@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -94,16 +95,14 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
         review.setRating(requestDTO.getRating());
         review.setContent(requestDTO.getContent());
 
+        // 이미지 관련 처리 완전 무시
         // imageRepository.deleteByReviewId(reviewId);
-        // saveImages(review, requestDTO.getImageUrls()); // 이미지 저장 미룸
+        // saveImages(review, requestDTO.getImageUrls());
 
-
-        // 리뷰 업데이트
         SellerReview updatedReview = reviewRepository.save(review);
 
-        List<String> imageUrls = imageRepository.findByReviewId(reviewId).stream()
-                .map(SellerReviewImage::getImageUrl)
-                .collect(Collectors.toList());
+        // 이미지 리스트 강제로 빈 리스트 처리
+        List<String> imageUrls = Collections.emptyList();
 
         return ReviewResponseDTO.builder()
                 .reviewId(updatedReview.getId())
@@ -113,11 +112,12 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
                 .productName(null)
                 .rating(updatedReview.getRating())
                 .content(updatedReview.getContent())
-                .imageUrls(imageUrls) // 여기로 세팅
+                .imageUrls(imageUrls)
                 .createdAt(updatedReview.getCreatedAt())
                 .isHidden(updatedReview.isHidden())
                 .build();
     }
+
 
 
     @Override
