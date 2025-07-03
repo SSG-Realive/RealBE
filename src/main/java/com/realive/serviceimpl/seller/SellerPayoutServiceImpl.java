@@ -182,7 +182,8 @@ public class SellerPayoutServiceImpl implements SellerPayoutService {
         salesLog.setCustomerId(orderItem.getOrder().getCustomer().getId());
         salesLog.setTotalPrice(orderItem.getPrice() * orderItem.getQuantity());
         salesLog.setQuantity(orderItem.getQuantity());
-        salesLog.setSoldAt(orderItem.getOrder().getOrderedAt().toLocalDate());
+        salesLog.setSoldAt(LocalDate.now());
+        salesLog.setUnitPrice(orderItem.getPrice());
 
         return salesLogRepository.save(salesLog);  // return 추가
     }
