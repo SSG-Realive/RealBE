@@ -83,5 +83,13 @@ public interface ProductRepository extends JpaRepository<Product, Long>, Product
       @Param("sellerId") Long sellerId,
       @Param("count") int count
     );
+
+    /**
+     * 재고가 특정 값보다 큰 상품 수 조회
+     * 
+     * @param stock 재고 기준값
+     * @return 재고가 기준값보다 큰 상품 수
+     */
+    long countByStockGreaterThan(int stock);
 }
 
