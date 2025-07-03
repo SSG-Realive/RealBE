@@ -31,6 +31,13 @@ public interface OrderService {
      */
     DirectPaymentInfoDTO getDirectPaymentInfo(Long productId, Integer quantity);
 
+    /**
+     * 최근 주문 1건 조회 (마이페이지 미리보기용)
+     * @param customerId 고객 ID
+     * @return OrderResponseDTO
+     */
+    OrderResponseDTO getRecentOrder(Long customerId);
+
     // TODO: 장바구니 결제 처리 후 최종 주문 생성 로직을 CartService에서 호출할 수 있도록
     //       새로운 private/protected 또는 패키지-private 메서드를 추가하거나,
     //       아니면 CartService에서 OrderService의 `processDirectPayment`와 유사한 방식으로
