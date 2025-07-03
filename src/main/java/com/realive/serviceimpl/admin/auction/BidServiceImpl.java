@@ -128,6 +128,16 @@ public class BidServiceImpl implements BidService {
                 });
     }
 
+    @Override
+    public Page<BidResponseDTO> getAllBids(Pageable pageable) {
+        return bidRepository.findAllByOrderByBidTimeDesc(pageable)
+                .map(bid -> {
+                    Customer customer = customerRepository.findById(bid.getCustomerId().longValue())
+                            .orElseThrow(() -> new IllegalArgumentException("고객을 찾을 수 없습니다."));
+                    return BidResponseDTO.fromEntity(bid, customer.getName());
+                });
+    }
+
     private void validateAuction(Auction auction) {
         if (auction.getStatus() != AuctionStatus.PROCEEDING) {
             throw new IllegalStateException("경매가 진행 중이 아닙니다.");

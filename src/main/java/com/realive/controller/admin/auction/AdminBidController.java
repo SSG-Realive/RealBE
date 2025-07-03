@@ -61,4 +61,20 @@ public class AdminBidController {
                     .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "입찰 내역 조회 중 오류가 발생했습니다."));
         }
     }
+
+    @GetMapping
+    public ResponseEntity<ApiResponse<Page<BidResponseDTO>>> getAllBids(
+            @PageableDefault(size = 20, sort = "bidTime", direction = Sort.Direction.DESC) Pageable pageable,
+            @AuthenticationPrincipal AdminPrincipal adminPrincipal) {
+        log.info("GET /api/admin/bids - 관리자가 전체 입찰 내역 조회. AdminId: {}", 
+                adminPrincipal.getAdmin().getId());
+        try {
+            Page<BidResponseDTO> bids = bidService.getAllBids(pageable);
+            return ResponseEntity.ok(ApiResponse.success(bids));
+        } catch (Exception e) {
+            log.error("관리자가 전체 입찰 내역 조회 중 알 수 없는 오류 발생", e);
+            return ResponseEntity.internalServerError()
+                    .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "입찰 내역 조회 중 오류가 발생했습니다."));
+        }
+    }
 } 

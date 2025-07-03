@@ -43,4 +43,12 @@ public interface BidService {
      * @return 입찰 내역 페이지
      */
     Page<BidResponseDTO> getBidsByCustomer(Long customerId, Pageable pageable);
+
+    /**
+     * 전체 입찰 내역을 페이징하여 조회합니다.
+     *
+     * @param pageable 페이징 정보
+     * @return 입찰 내역 페이지
+     */
+    Page<BidResponseDTO> getAllBids(Pageable pageable);
 }
