@@ -94,11 +94,9 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
         review.setRating(requestDTO.getRating());
         review.setContent(requestDTO.getContent());
 
-        // 기존 이미지 삭제
-        imageRepository.deleteByReviewId(reviewId);
+        // imageRepository.deleteByReviewId(reviewId);
+        // saveImages(review, requestDTO.getImageUrls()); // 이미지 저장 미룸
 
-        // 새 이미지 저장 (ReviewImageService가 처리하도록 한 경우라면 따로 수행)
-        saveImages(review, requestDTO.getImageUrls());
 
         // 리뷰 업데이트
         SellerReview updatedReview = reviewRepository.save(review);

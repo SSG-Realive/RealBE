@@ -23,7 +23,7 @@ public class ReviewImageController {
     @PostMapping("/upload")
     public ResponseEntity<List<String>> uploadImages(
             @RequestParam Long reviewId,
-            @RequestParam("files") List<MultipartFile> files) {
+            @RequestParam(value = "files", required = false) List<MultipartFile> files) {
 
         List<String> uploadedUrls = reviewImageService.uploadImages(reviewId, files);
         return ResponseEntity.ok(uploadedUrls);
@@ -40,4 +40,3 @@ public class ReviewImageController {
         return ResponseEntity.ok("리뷰 이미지가 삭제되었습니다.");
     }
 }
-
