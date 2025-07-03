@@ -4,6 +4,7 @@ import com.realive.dto.auction.AuctionWinResponseDTO;
 import com.realive.dto.auction.AuctionPaymentRequestDTO;
 import com.realive.dto.common.ApiResponse;
 import com.realive.dto.customer.member.MemberLoginDTO;
+import com.realive.security.customer.CustomerPrincipal;
 import com.realive.service.admin.auction.AuctionService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
@@ -35,11 +36,11 @@ public class CustomerAuctionWinController {
         }
         
         Object principal = authentication.getPrincipal();
-        if (!(principal instanceof MemberLoginDTO)) {
+        if (!(principal instanceof CustomerPrincipal)) {
             throw new AccessDeniedException("유효하지 않은 인증 정보입니다.");
         }
         
-        return ((MemberLoginDTO) principal).getId();
+        return ((CustomerPrincipal) principal).getId();
     }
 
     @GetMapping("/{auctionId}")

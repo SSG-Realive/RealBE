@@ -1,8 +1,12 @@
 package com.realive.controller.customer.auction;
 
 import com.realive.dto.auction.AuctionResponseDTO;
+import com.realive.dto.auction.AuctionWinnerResponseDTO;
 import com.realive.dto.common.ApiResponse;
+import com.realive.security.customer.CustomerPrincipal;
 import com.realive.service.admin.auction.AuctionService;
+import com.realive.service.auction.AuctionService2;
+
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -10,6 +14,7 @@ import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.data.domain.Sort;
 
@@ -22,6 +27,7 @@ import java.util.NoSuchElementException;
 public class CustomerAuctionController {
 
     private final AuctionService auctionService;
+    private final AuctionService2 customerAuctionService;
 
     @GetMapping
     public ResponseEntity<ApiResponse<Page<AuctionResponseDTO>>> getActiveAuctions(
@@ -60,5 +66,15 @@ public class CustomerAuctionController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body(ApiResponse.error(HttpStatus.INTERNAL_SERVER_ERROR.value(), "경매 상세 정보 조회 중 서버 내부 오류가 발생했습니다."));
         }
+    }
+
+     @GetMapping("/{id}/winner-detail")
+    public ResponseEntity<AuctionWinnerResponseDTO> getWinnerDetail(
+            @PathVariable("id") Integer auctionId,
+            @AuthenticationPrincipal CustomerPrincipal userDetails
+    ) {
+        Long customerId = userDetails.getId();
+        AuctionWinnerResponseDTO dto = customerAuctionService.getWinnerAuctionDetail(customerId, auctionId);
+        return ResponseEntity.ok(dto);
     }
 } 
