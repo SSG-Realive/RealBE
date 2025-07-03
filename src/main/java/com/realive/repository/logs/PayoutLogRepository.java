@@ -84,7 +84,12 @@ public interface PayoutLogRepository extends JpaRepository<PayoutLog, Integer> {
     List<Object[]> getDailyPayoutSummary(@Param("startDate") LocalDate startDate, @Param("endDate") LocalDate endDate);
 
     /**
-     * 중복 로그 방지를 위한 체크 → 이건 payoutLogRepository 에 추가
+     * 중복 로그 방지를 위한 체크
      */
      boolean existsBySellerIdAndPeriodStartAndPeriodEnd(Integer sellerId, LocalDate periodStart, LocalDate periodEnd);
+     
+    /**
+     * 특정 판매자의 특정 기간 PayoutLog 조회
+     */
+     Optional<PayoutLog> findBySellerIdAndPeriodStartAndPeriodEnd(Integer sellerId, LocalDate periodStart, LocalDate periodEnd);
 }

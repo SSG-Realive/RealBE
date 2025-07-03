@@ -22,4 +22,10 @@ public class OrderItemResponseDTO {
     // 프론트에서 review를 작성 할 때, sellerId를 사용하기 위해 추가
     @JsonProperty("sellerId")
     private Long sellerId;
+
+    @JsonProperty("sellerName")
+    private String sellerName;
+
+    @JsonProperty("reviewWritten")
+    private boolean reviewWritten;
 }

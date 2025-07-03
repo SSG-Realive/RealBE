@@ -4,6 +4,7 @@ package com.realive.serviceimpl.admin.log;
 // --- 기존 import 문들 ---
 import com.realive.domain.auction.Auction;
 import com.realive.domain.auction.Bid;
+import com.realive.domain.auction.AdminProduct;
 import com.realive.domain.logs.CommissionLog;
 import com.realive.domain.logs.PayoutLog;
 import com.realive.domain.logs.PenaltyLog;
@@ -34,6 +35,7 @@ import com.realive.repository.review.SellerReviewRepository;
 import com.realive.repository.seller.SellerRepository;
 import com.realive.repository.auction.AuctionRepository;
 import com.realive.repository.auction.BidRepository;
+import com.realive.repository.auction.AdminProductRepository;
 // import com.realive.repository.user.UserRepository;
 
 // --- DTO stats 패키지 import ---
@@ -83,6 +85,7 @@ public class StatServiceImpl implements StatService {
     private final SellerReviewRepository reviewRepository;
     private final AuctionRepository auctionRepository;
     private final BidRepository bidRepository;
+    private final AdminProductRepository adminProductRepository;
 
     @Override
     public AdminDashboardDTO getAdminDashboard(LocalDate date, String periodType) {
@@ -185,9 +188,9 @@ public class StatServiceImpl implements StatService {
         
         Long totalRevenueAmount;
         if ("DAILY".equalsIgnoreCase(periodType)) {
-            totalRevenueAmount = payoutLogRepository.sumPayoutAmountByDateTime(startDateTime, endDateTime);
+            totalRevenueAmount = paymentRepository.sumCompletedPaymentAmountByDateTime(startDateTime, endDateTime);
         } else {
-            totalRevenueAmount = payoutLogRepository.sumPayoutAmountByDateBetween(startDate, endDate);
+            totalRevenueAmount = paymentRepository.sumCompletedPaymentAmountByDateBetween(startDate, endDate);
         }
         
         Integer totalFees = commissionLogRepository.sumCommissionAmountBySellerAndDateRange(null, startDate, endDate);
@@ -231,23 +234,27 @@ public class StatServiceImpl implements StatService {
                 .deletionRate(0.0)
                 .build();
 
-        // 9. 매출 추이 데이터 생성
+        // 9. 매출 추이 데이터 생성 (지난 6개월 범위)
         List<DateBasedValueDTO<Double>> dailyRevenueTrend = new ArrayList<>();
         
         try {
-            List<Object[]> dailyPayoutData = payoutLogRepository.getDailyPayoutSummary(startDate, endDate);
+            // 매출 추이용 넓은 범위 설정 (지난 6개월)
+            LocalDate trendStartDate = date.minusMonths(5).withDayOfMonth(1); // 6개월 전 월 시작일
+            LocalDate trendEndDate = date.withDayOfMonth(date.lengthOfMonth()); // 현재 월 마지막일
+            
+            List<Object[]> dailyPayoutData = payoutLogRepository.getDailyPayoutSummary(trendStartDate, trendEndDate);
             
             // PayoutLog 데이터가 없으면 Payment 데이터로 매출 추이 생성
             if (dailyPayoutData.isEmpty()) {
                 // Payment 데이터로 일별 매출 추이 생성
-                for (LocalDate currentDate = startDate; !currentDate.isAfter(endDate); currentDate = currentDate.plusDays(1)) {
+                for (LocalDate currentDate = trendStartDate; !currentDate.isAfter(trendEndDate); currentDate = currentDate.plusDays(1)) {
                     Long dayPayment = paymentRepository.sumCompletedPaymentAmountByDate(currentDate);
                     double amount = dayPayment != null ? dayPayment.doubleValue() : 0.0;
                     dailyRevenueTrend.add(new DateBasedValueDTO<>(currentDate, amount));
                 }
             } else {
                 // PayoutLog 기반 매출 추이 생성
-                for (LocalDate currentDate = startDate; !currentDate.isAfter(endDate); currentDate = currentDate.plusDays(1)) {
+                for (LocalDate currentDate = trendStartDate; !currentDate.isAfter(trendEndDate); currentDate = currentDate.plusDays(1)) {
                     final LocalDate searchDate = currentDate;
                     Object[] foundData = dailyPayoutData.stream()
                         .filter(data -> {
@@ -548,12 +555,23 @@ public class StatServiceImpl implements StatService {
         }
         long totalProductsCount = 0L;
         long newProductsTodayCount = 0L;
+        long sellerProductsCount = 0L;
+        long adminProductsCount = 0L;
+        
         if (productRepository != null) {
             totalProductsCount = productRepository.count();
             LocalDateTime startOfDayForProduct = date.atStartOfDay();
             LocalDateTime tomorrowStartOfDay = date.plusDays(1).atStartOfDay();
             newProductsTodayCount = productRepository.countByCreatedAtBetween(startOfDayForProduct, tomorrowStartOfDay);
+            
+            // 판매자 상품 vs 관리자 상품 구분 (방안 6)
+            // 관리자 상품: AdminProduct 테이블의 레코드 수 (매입된 상품 개수)
+            adminProductsCount = adminProductRepository.count();
+            
+            // 판매자 상품: 전체 상품 - 매입된 상품 (정확한 계산)
+            sellerProductsCount = totalProductsCount - adminProductsCount;
         }
+        
         List<SalesWithCommissionDTO> salesWithCommissionsData = new ArrayList<>();
         if (salesLogRepository != null && commissionLogRepository != null) {
             List<SalesLog> dailySalesLogs = salesLogRepository.findBySoldAt(date);
@@ -594,6 +612,8 @@ public class StatServiceImpl implements StatService {
         dashboardData.put("penaltyLogs", penaltyLogDTOList);
         dashboardData.put("totalProducts", totalProductsCount);
         dashboardData.put("newProductsToday", newProductsTodayCount);
+        dashboardData.put("sellerProducts", sellerProductsCount);
+        dashboardData.put("adminProducts", adminProductsCount);
         DailySalesSummaryDTO todaySummary = getDailySalesSummary(date);
         dashboardData.put("todayTotalSalesAmount", todaySummary.getTotalSalesAmount());
         dashboardData.put("todayTotalSalesCount", todaySummary.getTotalSalesCount());

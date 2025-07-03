@@ -40,9 +40,8 @@ public class Order {
     @Column(name = "updated_at", nullable =  false)
     private LocalDateTime updatedAt;
 
-    // 새로운 필드: 결제 방식
     @Column(name = "payment_method", nullable = false, length = 50)
-    private String paymentMethod; // 예를 들어 "CARD", "CASH", "BANK_TRANSFER" 등
+    private String paymentMethod;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "customer_id", nullable = false)
