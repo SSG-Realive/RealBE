@@ -19,6 +19,7 @@ import com.realive.domain.seller.Seller;
 import com.realive.dto.customer.customerqna.CustomerQnaDetailDTO;
 import com.realive.dto.customer.customerqna.CustomerQnaListDTO;
 import com.realive.dto.customer.customerqna.CustomerQnaRequestDTO;
+import com.realive.dto.customer.customerqna.CustomerQnaListResponseDTO;
 import com.realive.dto.product.ProductListDTO;
 import com.realive.repository.customer.CustomerQnaRepository;
 import com.realive.repository.customer.CustomerRepository;
@@ -292,4 +293,26 @@ public class CustomerQnaService {
 
         return resultPage;
     }
+
+    // 판매물품 상세 페이지에서 사용하는 QnA List 조회
+    public List<CustomerQnaListResponseDTO> listProductQnaWithContent(Long productId) {
+        // 기존과 동일하게 엔티티 조회 (SQL 쿼리는 그대로 유지됨)
+        List<CustomerQna> qnas = customerQnaRepository.findByProductIdOrderByIdDesc(productId);
+
+        // 조회된 엔티티 리스트를 새로운 CustomerQnaListResponseDto 리스트로 변환
+        return qnas.stream().map(qna ->
+                CustomerQnaListResponseDTO.builder()
+                        .id(qna.getId())
+                        .title(qna.getTitle())
+                        .content(qna.getContent())
+                        .answer(qna.getAnswer())
+                        .createdAt(qna.getCreatedAt())
+                        .isAnswered(qna.getIsAnswered()) // 또는 qna.getAnswer() != null
+                        // .customerName(qna.getCustomer().getName()) // 만약 필요하다면 고객 엔티티에서 가져옴
+                        // .productName(qna.getProduct().getName())   // 만약 필요하다면 상품 엔티티에서 가져옴
+                        // .productId(qna.getProduct().getId())       // 만약 필요하다면 상품 엔티티에서 가져옴
+                        .build()
+        ).collect(Collectors.toList());
+    }
+
 }

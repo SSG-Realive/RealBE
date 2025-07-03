@@ -2,6 +2,7 @@ package com.realive.controller.public_api;
 
 import java.util.List;
 
+import com.realive.dto.customer.customerqna.CustomerQnaListResponseDTO;
 import com.realive.dto.review.ReviewListResponseDTO;
 import com.realive.service.review.view.ReviewViewService;
 import org.springframework.data.domain.Pageable;
@@ -99,5 +100,14 @@ public class ProductViewController {
     public ResponseEntity<ReviewListResponseDTO> getReviews(@PathVariable Long sellerId, Pageable pageable) {
         ReviewListResponseDTO result = reviewViewService.getReviewList(sellerId, pageable);
         return ResponseEntity.ok(result);
+    }
+
+    // 상품 Q&A 목록 조회
+    @GetMapping("/v1/qna/{productId}")
+    public ResponseEntity<List<CustomerQnaListResponseDTO>> getProductQnaListWithContent(@PathVariable("productId") Long productId) {
+
+        List<CustomerQnaListResponseDTO> qnaLists = customerQnaService.listProductQnaWithContent(productId);
+        return ResponseEntity.ok(qnaLists);
+
     }
 }
