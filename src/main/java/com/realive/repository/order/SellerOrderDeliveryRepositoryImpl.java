@@ -1,5 +1,7 @@
 package com.realive.repository.order;
 
+import com.realive.domain.common.enums.DeliveryStatus;
+import com.realive.dto.order.OrderStatisticsDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
@@ -94,5 +96,37 @@ public class SellerOrderDeliveryRepositoryImpl implements SellerOrderDeliveryRep
                 .fetchOne();
 
         return new PageImpl<>(results, pageable, total);
+    }
+
+    @Override
+    public OrderStatisticsDTO getOrderStatisticsBySeller(Long sellerId) {
+        QOrderItem orderItem = QOrderItem.orderItem;
+        QOrder order = QOrder.order;
+        QProduct product = QProduct.product;
+        QOrderDelivery delivery = QOrderDelivery.orderDelivery;
+        QSeller seller = QSeller.seller;
+
+        // 🔥 단일 쿼리로 모든 통계 한 번에 계산
+        var result = queryFactory
+                .select(
+                        order.count(),                                    // totalOrders
+                        delivery.status.when(DeliveryStatus.DELIVERY_PREPARING).then(1L).otherwise(0L).sum(), // preparing
+                        delivery.status.when(DeliveryStatus.DELIVERY_IN_PROGRESS).then(1L).otherwise(0L).sum(), // inProgress
+                        delivery.status.when(DeliveryStatus.DELIVERY_COMPLETED).then(1L).otherwise(0L).sum()   // completed
+                )
+                .from(orderItem)
+                .join(orderItem.order, order)
+                .join(orderItem.product, product)
+                .join(product.seller, seller)
+                .leftJoin(delivery).on(delivery.order.eq(order))
+                .where(seller.id.eq(sellerId))
+                .fetchOne();
+
+        return OrderStatisticsDTO.builder()
+                .totalOrders(result.get(0, Long.class))
+                .preparingOrders(result.get(1, Long.class))
+                .inProgressOrders(result.get(2, Long.class))
+                .completedOrders(result.get(3, Long.class))
+                .build();
     }
 }

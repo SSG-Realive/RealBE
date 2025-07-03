@@ -82,4 +82,6 @@ public interface OrderRepository extends JpaRepository<Order, Long> {
     Optional<Order> findBySellerIdAndOrderId(@Param("sellerId") Long sellerId, @Param("orderId") Long orderId);
 
     Optional<Order> findFirstByCustomerIdOrderByOrderedAtDesc(Long customerId);
+
+
 }
