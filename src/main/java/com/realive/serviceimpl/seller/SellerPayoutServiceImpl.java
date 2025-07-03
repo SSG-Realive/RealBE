@@ -1,11 +1,17 @@
 package com.realive.serviceimpl.seller;
 
+import com.realive.domain.logs.CommissionLog;
+import com.realive.domain.logs.SalesLog;
 import com.realive.domain.order.OrderItem;
+import com.realive.dto.logs.CommissionLogDTO;
 import com.realive.dto.logs.PayoutLogDTO;
 import com.realive.domain.logs.PayoutLog;
 import com.realive.dto.logs.PayoutLogDetailDTO;
+import com.realive.dto.logs.SalesLogDTO;
 import com.realive.dto.seller.SellerPayoutSummaryDTO;
+import com.realive.repository.logs.CommissionLogRepository;
 import com.realive.repository.logs.PayoutLogRepository;
+import com.realive.repository.logs.SalesLogRepository;
 import com.realive.repository.order.OrderItemRepository;
 import com.realive.service.seller.SellerPayoutService;
 import jakarta.persistence.EntityNotFoundException;
@@ -24,6 +30,8 @@ public class SellerPayoutServiceImpl implements SellerPayoutService {
 
     private final PayoutLogRepository payoutLogRepository;
     private final OrderItemRepository orderItemRepository;
+    private final SalesLogRepository salesLogRepository;
+    private final CommissionLogRepository commissionLogRepository;
 
     /**
      * 판매자 ID로 전체 정산 로그를 조회합니다.
@@ -60,6 +68,16 @@ public class SellerPayoutServiceImpl implements SellerPayoutService {
 
     @Override
     public void generatePayoutLogIfNotExists(Long orderId) {
+
+        List<OrderItem> orderItems = orderItemRepository.findByOrderId(orderId);
+
+        for (OrderItem item : orderItems) {
+            // 1. SalesLog 생성 및 저장된 객체 받기
+            SalesLog savedSalesLog = createSalesLog(item);
+
+            // 2. CommissionLog 생성 (주석 제거)
+            createCommissionLog(savedSalesLog.getId());
+        }
          List<Long> sellerIds = orderItemRepository.findSellerIdsByOrderId(orderId);
         if (sellerIds == null || sellerIds.isEmpty()) return;
 
@@ -154,4 +172,56 @@ public class SellerPayoutServiceImpl implements SellerPayoutService {
         return PayoutLogDetailDTO.from(log, items);
     }
 
+
+    @Override
+    public SalesLog createSalesLog(OrderItem orderItem) {  // void → SalesLog 변경
+        SalesLog salesLog = new SalesLog();
+        salesLog.setOrderItemId(orderItem.getId().intValue());
+        salesLog.setProductId(orderItem.getProduct().getId().intValue());
+        salesLog.setSellerId(orderItem.getProduct().getSeller().getId().intValue());
+        salesLog.setCustomerId(orderItem.getOrder().getCustomer().getId());
+        salesLog.setTotalPrice(orderItem.getPrice() * orderItem.getQuantity());
+        salesLog.setQuantity(orderItem.getQuantity());
+        salesLog.setSoldAt(orderItem.getOrder().getOrderedAt().toLocalDate());
+
+        return salesLogRepository.save(salesLog);  // return 추가
+    }
+
+    @Override
+    public void createCommissionLog(Integer salesLogId) {
+        SalesLog salesLog = salesLogRepository.findById(salesLogId)
+                .orElseThrow(() -> new EntityNotFoundException("SalesLog not found"));
+
+        CommissionLog commissionLog = new CommissionLog();
+        commissionLog.setSalesLogId(salesLogId);
+        commissionLog.setCommissionRate(java.math.BigDecimal.valueOf(0.1)); // 10%
+        commissionLog.setCommissionAmount((int)(salesLog.getTotalPrice() * 0.1));
+        commissionLog.setRecordedAt(java.time.LocalDateTime.now());
+
+        commissionLogRepository.save(commissionLog);
+    }
+
+    @Override
+    public List<SalesLogDTO> getSalesLogsBySeller(Long sellerId, LocalDate from, LocalDate to) {
+        return salesLogRepository.findBySoldAtBetween(from, to)  // ← 기존 메서드 사용
+                .stream()
+                .filter(salesLog -> salesLog.getSellerId().equals(sellerId.intValue()))  // ← 필터링 추가
+                .map(SalesLogDTO::fromEntity)
+                .toList();
+    }
+
+    @Override
+    public List<CommissionLogDTO> getCommissionLogsBySeller(Long sellerId, LocalDate from, LocalDate to) {
+        List<Integer> salesLogIds = salesLogRepository.findBySoldAtBetween(from, to)  // ← 기존 메서드 사용
+                .stream()
+                .filter(salesLog -> salesLog.getSellerId().equals(sellerId.intValue()))  // ← 필터링 추가
+                .map(SalesLog::getId)
+                .toList();
+
+        return commissionLogRepository.findBySalesLogIdIn(salesLogIds)
+                .stream()
+                .map(CommissionLogDTO::fromEntity)
+                .toList();
+    }
 }
+
