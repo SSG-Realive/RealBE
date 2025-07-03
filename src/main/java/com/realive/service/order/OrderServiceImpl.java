@@ -7,6 +7,7 @@ import com.realive.domain.order.OrderDelivery;
 import com.realive.domain.order.OrderItem;
 import com.realive.domain.product.DeliveryPolicy;
 import com.realive.domain.product.Product;
+import com.realive.domain.seller.Seller;
 import com.realive.dto.order.*;
 import com.realive.dto.payment.TossPaymentApproveRequestDTO;
 import com.realive.repository.customer.CustomerRepository;
@@ -16,6 +17,7 @@ import com.realive.repository.order.OrderRepository;
 import com.realive.repository.product.DeliveryPolicyRepository;
 import com.realive.repository.product.ProductImageRepository;
 import com.realive.repository.product.ProductRepository;
+import com.realive.repository.review.view.ReviewViewRepository;
 import com.realive.service.payment.PaymentService;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
@@ -45,6 +47,7 @@ public class OrderServiceImpl implements OrderService {
     private final CustomerRepository customerRepository;
     private final OrderDeliveryRepository orderDeliveryRepository;
     private final PaymentService paymentService; // PaymentService 주입
+    private final ReviewViewRepository reviewViewRepository;
 
     // 구매내역 조회
     @Override
@@ -59,7 +62,7 @@ public class OrderServiceImpl implements OrderService {
         }
 
         List<Long> productIdsInOrder = orderItems.stream()
-                .map(orderItem -> orderItem.getProduct().getId())
+                .map(oi -> oi.getProduct().getId())
                 .distinct()
                 .collect(Collectors.toList());
 
@@ -70,47 +73,51 @@ public class OrderServiceImpl implements OrderService {
                         arr -> (String) arr[1]
                 ));
 
-        // DeliveryPolicyRepository에 findByProductIds가 없으므로 findAll 후 필터링
         Map<Long, DeliveryPolicy> deliveryPoliciesByProductId = deliveryPolicyRepository.findAll().stream()
                 .filter(policy -> policy.getProduct() != null && productIdsInOrder.contains(policy.getProduct().getId()))
                 .collect(Collectors.toMap(policy -> policy.getProduct().getId(), Function.identity()));
 
+        // ✅ 리뷰 작성 여부 판단을 위해 작성된 sellerId 목록 조회
+        List<Long> reviewedSellerIds = reviewViewRepository.findReviewedSellerIds(orderId, customerId);
 
         List<OrderItemResponseDTO> itemDTOs = new ArrayList<>();
         int totalDeliveryFeeForOrder = 0;
-        List<Long> processedProductIdsForDelivery = new ArrayList<>();
+        Set<Long> processedProductIdsForDelivery = new HashSet<>();
 
         for (OrderItem orderItem : orderItems) {
             Product product = orderItem.getProduct();
+            Long productId = product.getId();
+            Seller seller = product.getSeller();
 
-            String imageUrl = thumbnailUrls.getOrDefault(product.getId(), null);
-
+            String imageUrl = thumbnailUrls.getOrDefault(productId, null);
             int itemDeliveryFee = 0;
-            DeliveryPolicy deliveryPolicy = deliveryPoliciesByProductId.get(product.getId());
 
-            if (deliveryPolicy != null && deliveryPolicy.getType() == DeliveryType.유료배송 && !processedProductIdsForDelivery.contains(product.getId())) {
+            DeliveryPolicy deliveryPolicy = deliveryPoliciesByProductId.get(productId);
+            if (deliveryPolicy != null && deliveryPolicy.getType() == DeliveryType.유료배송 && !processedProductIdsForDelivery.contains(productId)) {
                 itemDeliveryFee = deliveryPolicy.getCost();
                 totalDeliveryFeeForOrder += itemDeliveryFee;
-                processedProductIdsForDelivery.add(product.getId());
+                processedProductIdsForDelivery.add(productId);
             }
 
             itemDTOs.add(OrderItemResponseDTO.builder()
                     .id(orderItem.getId())
-                    .productId(product.getId())
+                    .productId(productId)
                     .productName(product.getName())
                     .quantity(orderItem.getQuantity())
                     .price(orderItem.getPrice())
                     .imageUrl(imageUrl)
-                    .sellerId(product.getSeller().getId())
+                    .sellerId(seller.getId())
+                    .sellerName(seller.getName()) // ✅ 추가
+                    .reviewWritten(reviewedSellerIds.contains(seller.getId())) // ✅ 추가
                     .build());
         }
 
-        // OrderDelivery 정보 조회
         Optional<OrderDelivery> optionalOrderDelivery = orderDeliveryRepository.findByOrder(order);
         String currentDeliveryStatus = optionalOrderDelivery
                 .map(delivery -> delivery.getStatus().getDescription())
                 .orElse(DeliveryStatus.INIT.getDescription());
-        String paymentType = order.getPaymentMethod(); // Order 엔티티에서 결제 방식 가져오기
+
+        String paymentType = order.getPaymentMethod();
 
         return OrderResponseDTO.from(
                 order,
@@ -120,6 +127,7 @@ public class OrderServiceImpl implements OrderService {
                 currentDeliveryStatus
         );
     }
+
 
     // 구매 내역 리스트 조회
     @Override
