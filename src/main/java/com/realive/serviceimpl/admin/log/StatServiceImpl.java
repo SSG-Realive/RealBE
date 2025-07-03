@@ -4,6 +4,7 @@ package com.realive.serviceimpl.admin.log;
 // --- 기존 import 문들 ---
 import com.realive.domain.auction.Auction;
 import com.realive.domain.auction.Bid;
+import com.realive.domain.auction.AdminProduct;
 import com.realive.domain.logs.CommissionLog;
 import com.realive.domain.logs.PayoutLog;
 import com.realive.domain.logs.PenaltyLog;
@@ -34,6 +35,7 @@ import com.realive.repository.review.SellerReviewRepository;
 import com.realive.repository.seller.SellerRepository;
 import com.realive.repository.auction.AuctionRepository;
 import com.realive.repository.auction.BidRepository;
+import com.realive.repository.auction.AdminProductRepository;
 // import com.realive.repository.user.UserRepository;
 
 // --- DTO stats 패키지 import ---
@@ -83,6 +85,7 @@ public class StatServiceImpl implements StatService {
     private final SellerReviewRepository reviewRepository;
     private final AuctionRepository auctionRepository;
     private final BidRepository bidRepository;
+    private final AdminProductRepository adminProductRepository;
 
     @Override
     public AdminDashboardDTO getAdminDashboard(LocalDate date, String periodType) {
@@ -552,12 +555,23 @@ public class StatServiceImpl implements StatService {
         }
         long totalProductsCount = 0L;
         long newProductsTodayCount = 0L;
+        long sellerProductsCount = 0L;
+        long adminProductsCount = 0L;
+        
         if (productRepository != null) {
             totalProductsCount = productRepository.count();
             LocalDateTime startOfDayForProduct = date.atStartOfDay();
             LocalDateTime tomorrowStartOfDay = date.plusDays(1).atStartOfDay();
             newProductsTodayCount = productRepository.countByCreatedAtBetween(startOfDayForProduct, tomorrowStartOfDay);
+            
+            // 판매자 상품 vs 관리자 상품 구분 (방안 6)
+            // 관리자 상품: AdminProduct 테이블의 레코드 수 (매입된 상품 개수)
+            adminProductsCount = adminProductRepository.count();
+            
+            // 판매자 상품: 전체 상품 - 매입된 상품 (정확한 계산)
+            sellerProductsCount = totalProductsCount - adminProductsCount;
         }
+        
         List<SalesWithCommissionDTO> salesWithCommissionsData = new ArrayList<>();
         if (salesLogRepository != null && commissionLogRepository != null) {
             List<SalesLog> dailySalesLogs = salesLogRepository.findBySoldAt(date);
@@ -598,6 +612,8 @@ public class StatServiceImpl implements StatService {
         dashboardData.put("penaltyLogs", penaltyLogDTOList);
         dashboardData.put("totalProducts", totalProductsCount);
         dashboardData.put("newProductsToday", newProductsTodayCount);
+        dashboardData.put("sellerProducts", sellerProductsCount);
+        dashboardData.put("adminProducts", adminProductsCount);
         DailySalesSummaryDTO todaySummary = getDailySalesSummary(date);
         dashboardData.put("todayTotalSalesAmount", todaySummary.getTotalSalesAmount());
         dashboardData.put("todayTotalSalesCount", todaySummary.getTotalSalesCount());
