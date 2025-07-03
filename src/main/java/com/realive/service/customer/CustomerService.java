@@ -1,6 +1,8 @@
 package com.realive.service.customer;
 
 import com.realive.domain.customer.Customer;
+import com.realive.dto.auction.CustomerProfileDTO;
+import com.realive.exception.NotFoundException;
 import com.realive.repository.customer.CustomerRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
@@ -38,5 +40,17 @@ public class CustomerService {
     public Customer getByEmailIncludingSocial(String email) {
         return customerRepository.findByEmailIncludingSocial(email)
                 .orElseThrow(() -> new EntityNotFoundException("해당 이메일의 회원을 찾을 수 없습니다."));
+    }
+    // 경매 낙찰 시 고객 프로필 정보 조회
+     public CustomerProfileDTO getProfile(Long customerId) {
+
+        Customer customer = customerRepository.findById(customerId)
+                .orElseThrow(() -> new NotFoundException("회원이 존재하지 않습니다."));
+
+        return CustomerProfileDTO.builder()
+                .receiverName(customer.getName())
+                .phone(customer.getPhone())
+                .deliveryAddress(customer.getAddress())
+                .build();
     }
 }

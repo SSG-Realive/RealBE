@@ -21,7 +21,7 @@ import java.util.Optional;
  * 기본 CRUD 및 동적 조회 기능을 제공합니다.
  */
 @Repository
-public interface AuctionRepository extends JpaRepository<Auction, Integer>, JpaSpecificationExecutor<Auction> {
+public interface AuctionRepository extends JpaRepository<Auction, Integer>, JpaSpecificationExecutor<Auction>, AuctionRepositoryCustom {
 
     /**
      * 특정 관리 상품에 등록된 경매 전체 조회

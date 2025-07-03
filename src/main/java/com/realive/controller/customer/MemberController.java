@@ -1,5 +1,6 @@
 package com.realive.controller.customer;
 
+import com.realive.dto.auction.CustomerProfileDTO;
 import com.realive.dto.customer.member.*;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.realive.exception.UnauthorizedException;
 import com.realive.security.customer.CustomerPrincipal;
 import com.realive.service.auth.LogoutService;
+import com.realive.service.customer.CustomerService;
 import com.realive.service.customer.MemberService;
 
 import jakarta.validation.Valid;
@@ -33,6 +35,7 @@ public class MemberController {
 
     private final MemberService memberService;
     private final LogoutService logoutService;
+    private final CustomerService customerService;
 
      @PostMapping("/logout")
     public ResponseEntity<Void> customerLogout(@AuthenticationPrincipal CustomerPrincipal principal) {
@@ -90,5 +93,12 @@ public class MemberController {
 
         memberService.deactivateByEmail(principal.getEmail());
         return ResponseEntity.ok("회원 탈퇴가 정상 처리되었습니다.");
+    }
+
+
+    @GetMapping("/me")
+    public CustomerProfileDTO getMyActionProfile(@AuthenticationPrincipal CustomerPrincipal user) {
+        log.info(">> /me called user={}", user);
+        return customerService.getProfile(user.getId());
     }
 }
