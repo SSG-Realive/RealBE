@@ -59,6 +59,7 @@ public class CustomerQnaService {
                 .title(requestDTO.getTitle())
                 .content(requestDTO.getContent())
                 .isAnswered(false)
+                .createdAt(LocalDateTime.now())
                 .build();
 
         CustomerQna saved = customerQnaRepository.save(qna);
