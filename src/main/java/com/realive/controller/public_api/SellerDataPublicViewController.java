@@ -1,17 +1,17 @@
 // src/main/java/com/realive/controller.public_api/SellerInfoDetailViewController.java
 package com.realive.controller.public_api;
 
-import com.realive.dto.page.PageRequestDTO; // PageRequestDTO import
-import com.realive.dto.page.PageResponseDTO; // PageResponseDTO import
-import com.realive.dto.product.ProductListDTO; // ProductListDTO import
-import com.realive.dto.product.ProductSearchCondition; // ProductSearchCondition import
-import com.realive.dto.review.ReviewResponseDTO; // ReviewResponseDTO import
-import com.realive.dto.seller.SellerPublicResponseDTO; // SellerPublicResponseDTO import
-import com.realive.service.product.ProductService; // ProductService import
-import com.realive.service.review.view.ReviewViewService;   // ReviewService import
+import com.realive.dto.page.PageRequestDTO;
+import com.realive.dto.page.PageResponseDTO;
+import com.realive.dto.product.ProductListDTO;
+import com.realive.dto.product.ProductSearchCondition;
+import com.realive.dto.review.ReviewResponseDTO;
+import com.realive.dto.seller.SellerPublicResponseDTO;
+import com.realive.service.product.ProductService;
+import com.realive.service.review.view.ReviewViewService;
 import lombok.RequiredArgsConstructor;
-import lombok.extern.log4j.Log4j2; // Log4j2 사용
-import org.springframework.data.domain.Pageable; // Spring Data의 Pageable import
+import lombok.extern.log4j.Log4j2;
+import org.springframework.data.domain.Pageable;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -21,13 +21,13 @@ import org.springframework.web.bind.annotation.RestController;
 import java.util.Optional;
 
 @RestController
-@RequestMapping("/api/public/seller") // 기본 경로: /api/public/seller
-@Log4j2 // 로깅 활성화
-@RequiredArgsConstructor // final 필드들을 자동으로 주입 (생성자 주입)
+@RequestMapping("/api/public/seller")
+@Log4j2
+@RequiredArgsConstructor
 public class SellerDataPublicViewController {
 
-    private final ProductService productService; // ProductService 주입
-    private final ReviewViewService reviewService;   // ReviewService 주입
+    private final ProductService productService;
+    private final ReviewViewService reviewService;
 
     /**
      * 특정 상품 ID를 통해 판매자의 공개 정보를 조회합니다.
