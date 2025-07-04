@@ -3,6 +3,7 @@ package com.realive.controller.seller;
 import com.realive.domain.seller.Seller;
 import com.realive.dto.order.DeliveryStatusUpdateDTO;
 import com.realive.dto.order.OrderDeliveryResponseDTO;
+import com.realive.dto.order.OrderStatisticsDTO;
 import com.realive.dto.seller.SellerOrderDetailResponseDTO;
 import com.realive.security.seller.SellerPrincipal;
 import com.realive.service.order.OrderDeliveryService;
@@ -80,6 +81,18 @@ public class SellerOrderDeliveryController {
         orderDeliveryService.cancelOrderDelivery(orderId, principal.getId());
 
         return ResponseEntity.ok().build();
+    }
+
+    /**
+     * 판매자 주문 통계 조회
+     * GET /api/seller/orders/statistics
+     */
+    @GetMapping("/statistics")
+    public ResponseEntity<OrderStatisticsDTO> getOrderStatistics(
+            @AuthenticationPrincipal SellerPrincipal principal) {
+
+        OrderStatisticsDTO statistics = sellerOrderService.getOrderStatistics(principal.getId());
+        return ResponseEntity.ok(statistics);
     }
 
 }
