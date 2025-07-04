@@ -15,6 +15,7 @@ import com.realive.repository.review.crud.SellerReviewImageRepository;
 import com.realive.repository.seller.SellerRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.log4j.Log4j2;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -25,6 +26,7 @@ import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
+@Log4j2
 public class ReviewCRUDServiceImpl implements ReviewCRUDService {
 
     private final ReviewCRUDRepository reviewRepository;
@@ -86,6 +88,9 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
     @Override
     @Transactional
     public ReviewResponseDTO updateReview(Long reviewId, ReviewUpdateRequestDTO requestDTO, Long customerId) {
+        log.info("updateReview 호출 - reviewId: {}, customerId: {}", reviewId, customerId);
+        log.info("updateReview - 전달받은 imageUrls: {}", requestDTO.getImageUrls());
+
         SellerReview review = reviewRepository.findById(reviewId)
                 .orElseThrow(() -> new EntityNotFoundException("리뷰를 찾을 수 없습니다. ID=" + reviewId));
 
@@ -99,10 +104,9 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
         // 기존 이미지 삭제
         imageRepository.deleteByReviewId(reviewId);
 
-        // 새 이미지 저장 (ReviewImageService가 처리하도록 한 경우라면 따로 수행)
+        // 새 이미지 저장
         saveImages(review, requestDTO.getImageUrls());
 
-        // 리뷰 업데이트
         SellerReview updatedReview = reviewRepository.save(review);
 
         List<String> imageUrls = imageRepository.findByReviewId(reviewId).stream()
@@ -117,11 +121,12 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
                 .productName(null)
                 .rating(updatedReview.getRating())
                 .content(updatedReview.getContent())
-                .imageUrls(imageUrls) // 여기로 세팅
+                .imageUrls(imageUrls)
                 .createdAt(updatedReview.getCreatedAt())
                 .isHidden(updatedReview.isHidden())
                 .build();
     }
+
 
 
     @Override
