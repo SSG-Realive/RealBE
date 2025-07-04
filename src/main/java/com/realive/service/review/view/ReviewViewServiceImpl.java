@@ -204,4 +204,58 @@ public class ReviewViewServiceImpl implements ReviewViewService {
                 .total( (int) reviewsPage.getTotalElements()) // 전체 데이터 개수 (int로 캐스팅)
                 .build();
     }
+
+    @Override
+    public ReviewListResponseDTO getReviewStatistics(Long sellerId) {
+        log.info("판매자 ID {}의 리뷰 통계를 조회합니다.", sellerId);
+
+        if (sellerId == null || sellerId <= 0) {
+            throw new IllegalArgumentException("유효하지 않은 판매자 ID입니다.");
+        }
+
+        // 페이징 없이 전체 리뷰 조회
+        List<ReviewResponseDTO> allReviews = reviewViewRepository.findAllSellerReviewsBySellerId(sellerId);
+
+        // 이미지와 상품명 정보도 포함시키기 (기존 로직 재사용)
+        if (!allReviews.isEmpty()) {
+            List<Long> reviewIds = allReviews.stream()
+                    .map(ReviewResponseDTO::getReviewId)
+                    .collect(Collectors.toList());
+
+            // 이미지 조회
+            Map<Long, List<String>> reviewImageUrlsMap = reviewViewRepository.findImageUrlsByReviewIds(reviewIds)
+                    .stream()
+                    .collect(Collectors.groupingBy(
+                            tuple -> (Long) tuple[0],
+                            Collectors.mapping(tuple -> (String) tuple[1], Collectors.toList())
+                    ));
+
+            // 상품명 조회
+            Map<Long, List<String>> productNamesMap = new HashMap<>();
+            allReviews.forEach(reviewDto -> {
+                List<Object[]> productNames = reviewViewRepository.findProductNamesByOrderIdsAndSellerId(
+                        List.of(reviewDto.getOrderId()), reviewDto.getSellerId()
+                );
+                List<String> names = productNames.stream()
+                        .map(tuple -> (String) tuple[1])
+                        .collect(Collectors.toList());
+                productNamesMap.put(reviewDto.getReviewId(), names);
+            });
+
+            // 데이터 세팅
+            allReviews.forEach(reviewDto -> {
+                reviewDto.setImageUrls(reviewImageUrlsMap.getOrDefault(reviewDto.getReviewId(), List.of()));
+                reviewDto.setProductName(
+                        summarizeProductNames(productNamesMap.getOrDefault(reviewDto.getReviewId(), List.of()))
+                );
+            });
+        }
+
+        return ReviewListResponseDTO.builder()
+                .reviews(allReviews)
+                .totalCount((long) allReviews.size())
+                .page(0)
+                .size(allReviews.size())
+                .build();
+    }
 }

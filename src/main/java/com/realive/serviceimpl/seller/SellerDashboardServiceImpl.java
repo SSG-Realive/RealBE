@@ -1,6 +1,8 @@
 package com.realive.serviceimpl.seller;
 
 import com.realive.domain.common.enums.OrderStatus;
+import com.realive.dto.logs.stats.CurrentMonthStatsDTO;
+import com.realive.dto.logs.stats.TodayStatsDTO;
 import com.realive.dto.seller.SellerDashboardResponseDTO;
 import com.realive.dto.seller.SellerSalesStatsDTO;
 import com.realive.repository.order.OrderRepository;
@@ -126,5 +128,61 @@ public class SellerDashboardServiceImpl implements SellerDashboardService {
                             .build();
                 })
                 .collect(Collectors.toList());
+    }
+
+    // SellerDashboardServiceImpl.java에 추가
+    @Override
+    public TodayStatsDTO getTodayStats(Long sellerId) {
+        LocalDate today = LocalDate.now();
+
+        // 오늘 하루 데이터만 조회
+        List<Object[]> todayData = salesLogRepository.getDailySalesBySellerId(sellerId, today, today);
+
+        if (!todayData.isEmpty()) {
+            Object[] row = todayData.get(0);
+            Number orderCountNum = (Number) row[1];
+            Number revenueNum = (Number) row[2];
+
+            return TodayStatsDTO.builder()
+                    .todayOrderCount(orderCountNum != null ? orderCountNum.longValue() : 0L)
+                    .todayRevenue(revenueNum != null ? revenueNum.doubleValue() : 0.0)
+                    .date(today)
+                    .build();
+        }
+
+        return TodayStatsDTO.builder()
+                .todayOrderCount(0L)
+                .todayRevenue(0.0)
+                .date(today)
+                .build();
+    }
+
+    @Override
+    public CurrentMonthStatsDTO getCurrentMonthStats(Long sellerId) {
+        LocalDate now = LocalDate.now();
+        LocalDate monthStart = now.withDayOfMonth(1);
+        LocalDate monthEnd = now.withDayOfMonth(now.lengthOfMonth());
+        String currentYearMonth = now.toString().substring(0, 7); // YYYY-MM
+
+        // 이번 달 데이터만 조회
+        List<Object[]> monthData = salesLogRepository.getMonthlySalesBySellerId(sellerId, monthStart, monthEnd);
+
+        if (!monthData.isEmpty()) {
+            Object[] row = monthData.get(0);
+            Number orderCountNum = (Number) row[1];
+            Number revenueNum = (Number) row[2];
+
+            return CurrentMonthStatsDTO.builder()
+                    .currentMonthOrderCount(orderCountNum != null ? orderCountNum.longValue() : 0L)
+                    .currentMonthRevenue(revenueNum != null ? revenueNum.doubleValue() : 0.0)
+                    .yearMonth(currentYearMonth)
+                    .build();
+        }
+
+        return CurrentMonthStatsDTO.builder()
+                .currentMonthOrderCount(0L)
+                .currentMonthRevenue(0.0)
+                .yearMonth(currentYearMonth)
+                .build();
     }
 }
