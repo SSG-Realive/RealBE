@@ -122,4 +122,32 @@ public class SellerQnaServiceImpl implements SellerQnaService {
         qna.setAnswered(true);
         qna.setAnsweredAt(LocalDateTime.now());
     }
+
+
+    // ✅ 검색 기능이 포함된 새로운 메서드 구현
+    @Override
+    @Transactional
+    public Page<SellerQnaResponseDTO> getQnaListBySellerIdWithKeyword(Long sellerId, Pageable pageable, String keyword) {
+        Page<SellerQna> qnaPage;
+
+        if (keyword != null && !keyword.trim().isEmpty()) {
+            // 검색어가 있는 경우 - Repository에 검색 메서드 추가 필요
+            qnaPage = sellerQnaRepository.findBySellerIdAndIsActiveTrueAndTitleContainingOrContentContaining(
+                    sellerId, keyword, keyword, pageable);
+        } else {
+            // 검색어가 없는 경우 - 기존 로직
+            qnaPage = sellerQnaRepository.findBySellerIdAndIsActiveTrue(sellerId, pageable);
+        }
+
+        return qnaPage.map(q -> SellerQnaResponseDTO.builder()
+                .id(q.getId())
+                .title(q.getTitle())
+                .content(q.getContent())
+                .answer(q.getAnswer())
+                .isAnswered(q.isAnswered())
+                .createdAt(q.getCreatedAt())
+                .updatedAt(q.getUpdatedAt())
+                .answeredAt(q.getAnsweredAt())
+                .build());
+    }
 }

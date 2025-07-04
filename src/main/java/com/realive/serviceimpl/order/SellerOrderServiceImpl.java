@@ -5,6 +5,7 @@ import com.realive.domain.common.enums.DeliveryStatus;
 import com.realive.domain.order.Order;
 import com.realive.domain.order.OrderDelivery;
 import com.realive.domain.order.OrderItem;
+import com.realive.dto.order.OrderStatisticsDTO;
 import com.realive.dto.seller.SellerOrderDetailResponseDTO;
 import com.realive.repository.order.OrderDeliveryRepository;
 import com.realive.repository.order.OrderItemRepository;
@@ -107,5 +108,9 @@ public class SellerOrderServiceImpl implements SellerOrderService {
     }
 
 
+    @Override
+    public OrderStatisticsDTO getOrderStatistics(Long sellerId) {
+        return sellerOrderDeliveryRepository.getOrderStatisticsBySeller(sellerId);
+    }
 
 }
