@@ -50,4 +50,13 @@ public class WebClientConfig {
                 .baseUrl("https://api.tosspayments.com")
                 .build();
     }
+
+    @Bean(name = "openAiWebClient")
+    public WebClient openAiWebClient() {
+        // OpenAI용 WebClient
+        return WebClient.builder()
+                .baseUrl("https://api.openai.com/v1")
+                .defaultHeader("Content-Type", "application/json")
+                .build();
+    }
 }
