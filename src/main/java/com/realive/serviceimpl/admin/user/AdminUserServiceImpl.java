@@ -105,53 +105,11 @@ public class AdminUserServiceImpl implements AdminUserService {
         // 3. 전체 요소 개수 (페이징 전)
         long totalElements = filteredAndCombinedDTOs.size();
 
-        // 4. Pageable의 Sort 정보에 따라 정렬
-        Sort sort = pageable.getSort();
-        if (sort.isSorted()) {
-            Comparator<UserManagementListItemDTO> comparator = null;
-            for (Sort.Order order : sort) {
-                Comparator<UserManagementListItemDTO> currentComparator = null;
-                String property = order.getProperty();
-
-                switch (property) {
-                    case "id":
-                        currentComparator = Comparator.comparing(UserManagementListItemDTO::getId, Comparator.nullsLast(Long::compareTo));
-                        break;
-                    case "name":
-                        currentComparator = Comparator.comparing(UserManagementListItemDTO::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-                        break;
-                    case "email":
-                        currentComparator = Comparator.comparing(UserManagementListItemDTO::getEmail, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-                        break;
-                    case "createdAt":
-                        currentComparator = Comparator.comparing(UserManagementListItemDTO::getCreated, Comparator.nullsLast(LocalDateTime::compareTo));
-                        break;
-                    case "userType":
-                        currentComparator = Comparator.comparing(UserManagementListItemDTO::getUserType, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-                        break;
-                    case "isActive":
-                        currentComparator = Comparator.comparing(UserManagementListItemDTO::getIsActive, Comparator.nullsLast(Boolean::compareTo));
-                        break;
-                    default:
-                        log.warn("Unsupported sort property: {} in AdminUserServiceImpl.getAllUsers", property);
-                        continue;
-                }
-
-                if (order.isDescending()) {
-                    currentComparator = currentComparator.reversed();
-                }
-
-                if (comparator == null) {
-                    comparator = currentComparator;
-                } else {
-                    comparator = comparator.thenComparing(currentComparator);
-                }
-            }
-
-            if (comparator != null) {
-                filteredAndCombinedDTOs.sort(comparator);
-            }
-        }
+        // 4. 커스텀 정렬: ID 기준 오름차순 + 정지된 회원을 맨 밑으로
+        filteredAndCombinedDTOs.sort(Comparator
+            .comparing(UserManagementListItemDTO::getIsActive, Comparator.nullsLast(Boolean::compareTo)).reversed() // 활성 회원 먼저
+            .thenComparing(UserManagementListItemDTO::getId, Comparator.nullsLast(Long::compareTo)) // 그 다음 ID 오름차순
+        );
 
         // 5. 정렬된 리스트에 대해 페이징 적용
         int start = (int) pageable.getOffset();

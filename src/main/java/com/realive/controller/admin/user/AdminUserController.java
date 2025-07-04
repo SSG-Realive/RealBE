@@ -41,7 +41,7 @@ public class AdminUserController {
     @GetMapping("/users")
     @PreAuthorize("hasAuthority('ROLE_ADMIN')")
     public ResponseEntity<ApiResponse<Page<UserManagementListItemDTO>>> getAllUsers(
-            @PageableDefault(size = 10, sort = "createdAt,desc") Pageable pageable,
+            @PageableDefault(size = 10, sort = "id,asc") Pageable pageable,
             @RequestParam(required = false) String userType,
             @RequestParam(required = false) String searchTerm,
             @RequestParam(required = false) Boolean isActive) {

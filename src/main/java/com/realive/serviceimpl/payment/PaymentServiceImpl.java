@@ -54,7 +54,7 @@ public class PaymentServiceImpl implements PaymentService {
     public Payment approveTossPayment(TossPaymentApproveRequestDTO request) {
         TossPaymentApproveResponseDTO tossResponse;
         
-        // Mock 결제 처리 (개발)
+        // Mock 결제 처리
         if (mockEnabled) {
             logger.info("Mock 결제 처리 모드 - 실제 토스페이먼츠 API 호출 우회: {}", request);
             tossResponse = createMockTossResponse(request);
@@ -71,8 +71,8 @@ public class PaymentServiceImpl implements PaymentService {
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(BodyInserters.fromValue(request))
                         .retrieve()
-                        .onStatus(status -> status.is4xxClientError(), this::handle4xxError) // 수정된 부분
-                        .onStatus(status -> status.is5xxServerError(), this::handle5xxError) // 수정된 부분
+                        .onStatus(status -> status.is4xxClientError(), this::handle4xxError)
+                        .onStatus(status -> status.is5xxServerError(), this::handle5xxError)
                         .bodyToMono(TossPaymentApproveResponseDTO.class)
                         .block(); // 동기 처리
             } catch (ResponseStatusException e) {

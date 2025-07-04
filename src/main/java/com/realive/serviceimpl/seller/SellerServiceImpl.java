@@ -70,6 +70,12 @@ public class SellerServiceImpl implements SellerService {
         Seller seller = sellerRepository.findById(sellerId)
                 .orElseThrow(() -> new UsernameNotFoundException("인증은 성공했으나, DB에서 판매자 정보를 찾을 수 없습니다. ID: " + sellerId));
 
+        // 정지된 판매자 체크
+        if (!seller.isActive()) {
+            log.warn("정지된 판매자 로그인 시도: ID {}", sellerId);
+            throw new BadCredentialsException("정지된 계정입니다.");
+        }
+
         // 5. JWT 생성
         String accessToken = jwtUtil.generateAccessToken(principal);
         String refreshToken = jwtUtil.generateRefreshToken(principal);
