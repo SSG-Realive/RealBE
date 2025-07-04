@@ -11,9 +11,9 @@ public class FunctionSchemaFactory {
     // 특정 주문 상세 조회
     public static ChatRequestDTO.FunctionDefinition getOrderDetailFunction() {
         Map<String, Object> parameters = buildParameters(Map.of(
-                "orderId", prop("integer", "주문 번호 ID"),
-                "customerId", prop("integer", "사용자 ID")
-        ), List.of("orderId", "customerId"));
+                "orderId", prop("integer", "주문 번호 ID")
+                // "customerId" 제거됨
+        ), List.of("orderId"));
 
         return new ChatRequestDTO.FunctionDefinition(
                 "getOrderDetail",
@@ -25,9 +25,9 @@ public class FunctionSchemaFactory {
     // 주문 내역 조회
     public static ChatRequestDTO.FunctionDefinition getOrderListFunction() {
         Map<String, Object> parameters = buildParameters(Map.of(
-                "customerId", prop("integer", "사용자 ID"),
                 "limit", prop("integer", "조회할 최대 주문 개수 (기본값: 10)")
-        ), List.of("customerId"));
+                // "customerId" 제거됨
+        ), List.of()); // 필수 없음
 
         return new ChatRequestDTO.FunctionDefinition(
                 "getOrderList",
@@ -39,8 +39,8 @@ public class FunctionSchemaFactory {
     // 작성한 리뷰 목록 조회
     public static ChatRequestDTO.FunctionDefinition getReviewListFunction() {
         Map<String, Object> parameters = buildParameters(Map.of(
-                "customerId", prop("integer", "사용자 ID")
-        ), List.of("customerId"));
+                // "customerId" 제거됨 → 파라미터 없음
+        ), List.of());
 
         return new ChatRequestDTO.FunctionDefinition(
                 "getReviewList",
@@ -52,8 +52,8 @@ public class FunctionSchemaFactory {
     // 찜 목록 조회
     public static ChatRequestDTO.FunctionDefinition getWishlistFunction() {
         Map<String, Object> parameters = buildParameters(Map.of(
-                "customerId", prop("integer", "사용자 ID")
-        ), List.of("customerId"));
+                // "customerId" 제거됨 → 파라미터 없음
+        ), List.of());
 
         return new ChatRequestDTO.FunctionDefinition(
                 "getWishlistForCustomer",

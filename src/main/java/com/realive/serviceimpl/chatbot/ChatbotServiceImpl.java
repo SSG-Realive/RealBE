@@ -4,18 +4,22 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.realive.dto.chatbot.ChatApiResponseDTO;
 import com.realive.dto.chatbot.ChatRequestDTO;
+import com.realive.security.customer.CustomerPrincipal;
 import com.realive.service.chatbot.ChatbotService;
+import com.realive.service.customer.WishlistService;
 import com.realive.service.order.OrderService;
-import com.realive.service.order.OrderServiceImpl;
 import com.realive.service.product.ProductService;
-import com.realive.serviceimpl.product.ProductServiceImpl;
+import com.realive.service.review.view.ReviewViewService;
 import com.realive.util.FunctionSchemaFactory;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import reactor.core.publisher.Mono;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.Authentication;
 
 import java.util.List;
 
@@ -29,21 +33,38 @@ public class ChatbotServiceImpl implements ChatbotService {
 
     private final ProductService productService;
     private final OrderService orderService;
+    private final ReviewViewService reviewViewService;
+    private final WishlistService wishlistService;
 
     @Value("${openai.api.key}")
     private String openAiApiKey;
 
-    @Value("${openai.model:gpt-3.5-turbo}")
+    @Value("${openai.model}")
     private String model;
+
+    private Long getCurrentCustomerId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("로그인한 사용자만 사용할 수 있는 기능입니다.");
+        }
+
+        // CustomUserDetails 또는 JwtUserDetails 등 구현에 따라 타입 캐스팅
+        CustomerPrincipal userDetails = (CustomerPrincipal) auth.getPrincipal();
+        return userDetails.getId(); // 또는 getCustomerId()
+    }
 
     public ChatbotServiceImpl(@Qualifier("openAiWebClient") WebClient webClient,
                               ObjectMapper objectMapper,
                               ProductService productService,
-                              OrderService orderService) {
+                              OrderService orderService,
+                              ReviewViewService reviewViewService,
+                              WishlistService wishlistService) {
         this.webClient = webClient;
         this.objectMapper = objectMapper;
         this.productService = productService;
         this.orderService = orderService;
+        this.reviewViewService = reviewViewService;
+        this.wishlistService = wishlistService;
         log.info("[ChatbotServiceImpl] WebClient 빈 확인: {}", webClient);
     }
 
@@ -57,12 +78,16 @@ public class ChatbotServiceImpl implements ChatbotService {
         );
 
         try {
-            // OpenAI API 호출
+            // 요청 JSON 문자열로 변환 후 로그 출력
+            String requestJson = objectMapper.writeValueAsString(request);
+            log.info("OpenAI 요청 JSON: {}", requestJson);
+
+            // OpenAI API 호출 - 문자열(JSON)로 body 전달
             String responseJson = webClient.post()
                     .uri("https://api.openai.com/v1/chat/completions")
                     .header("Authorization", "Bearer " + openAiApiKey)
                     .header("Content-Type", "application/json")
-                    .bodyValue(request)
+                    .bodyValue(requestJson)  // 반드시 문자열로 보낼 것
                     .retrieve()
                     .bodyToMono(String.class)
                     .block();
@@ -85,14 +110,19 @@ public class ChatbotServiceImpl implements ChatbotService {
                 followupRequest.setModel(model);
                 followupRequest.setMessages(List.of(
                         new ChatRequestDTO.Message("user", message),
-                        new ChatRequestDTO.Message("function", functionResult)
+                        new ChatRequestDTO.Message("function", functionResult, functionName)
                 ));
+
+                followupRequest.setFunctions(FunctionSchemaFactory.getAllFunctions());
+
+                String followupRequestJson = objectMapper.writeValueAsString(followupRequest);
+                log.info("OpenAI 후속 요청 JSON: {}", followupRequestJson);
 
                 String followupResponseJson = webClient.post()
                         .uri("https://api.openai.com/v1/chat/completions")
                         .header("Authorization", "Bearer " + openAiApiKey)
                         .header("Content-Type", "application/json")
-                        .bodyValue(followupRequest)
+                        .bodyValue(followupRequestJson)
                         .retrieve()
                         .bodyToMono(String.class)
                         .block();
@@ -113,35 +143,71 @@ public class ChatbotServiceImpl implements ChatbotService {
 
     private String handleFunctionCall(String functionName, String argumentsJson) {
         try {
+            JsonNode argsNode = objectMapper.readTree(argumentsJson);
+
             switch (functionName) {
-                case "getOrderDetail":
-                    JsonNode argsNode = objectMapper.readTree(argumentsJson);
+                case "getOrderDetail": {
                     Long orderId = argsNode.get("orderId").asLong();
-                    Long customerId = argsNode.get("customerId").asLong();
-
-                    // 주문 상세 조회 (예시) - 실제 서비스 메서드 호출
+                    Long customerId = getCurrentCustomerId();
                     var orderDetail = orderService.getOrder(orderId, customerId);
-
-                    // JSON 문자열로 변환하여 반환 (GPT가 이해하도록 텍스트로 변환 가능)
                     return objectMapper.writeValueAsString(orderDetail);
+                }
 
-                case "getProductInfo":
-                    JsonNode prodArgs = objectMapper.readTree(argumentsJson);
-                    Long productId = prodArgs.get("productId").asLong();
-                    Long sellerId = prodArgs.has("sellerId") ? prodArgs.get("sellerId").asLong() : null;
+                case "getOrderList": {
+                    Long customerId = getCurrentCustomerId();
+                    int limit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 10;
+                    Pageable pageable = PageRequest.of(0, limit);
+                    var orderList = orderService.getOrderList(pageable, customerId);
+                    return objectMapper.writeValueAsString(orderList);
+                }
 
+                case "getReviewList": {
+                    Long customerId = getCurrentCustomerId();
+                    int limit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 10;
+                    Pageable pageable = PageRequest.of(0, limit);
+                    var reviews = reviewViewService.getReviewList(customerId, pageable); // ← 메서드가 있다면
+                    return objectMapper.writeValueAsString(reviews);
+                }
+
+                case "getWishlistForCustomer": {
+                    Long customerId = getCurrentCustomerId();
+                    var wishlist = wishlistService.getWishlistForCustomer(customerId); // ← 메서드가 있다면
+                    return objectMapper.writeValueAsString(wishlist);
+                }
+
+                case "getProductInfo": {
+                    Long productId = argsNode.get("productId").asLong();
+                    Long sellerId = argsNode.has("sellerId") && !argsNode.get("sellerId").isNull()
+                            ? argsNode.get("sellerId").asLong()
+                            : null;
                     var productInfo = productService.getProductDetail(productId, sellerId);
-
                     return objectMapper.writeValueAsString(productInfo);
+                }
 
-                // 필요에 따라 다른 함수도 추가
+                case "getPublicSellerInfoByProductId": {
+                    Long productId = argsNode.get("productId").asLong();
+                    var sellerInfo = productService.getPublicSellerInfoByProductId(productId); // ← 메서드가 있다면
+                    return objectMapper.writeValueAsString(sellerInfo);
+                }
+
+                case "getFeaturedSellersWithProducts": {
+                    int candidateSize = argsNode.get("candidateSize").asInt();
+                    int sellersPick = argsNode.get("sellersPick").asInt();
+                    int productsPerSeller = argsNode.get("productsPerSeller").asInt();
+                    int minReviews = argsNode.get("minReviews").asInt();
+
+                    var featured = productService.getFeaturedSellersWithProducts(candidateSize, sellersPick, productsPerSeller, minReviews);
+                    return objectMapper.writeValueAsString(featured);
+                }
 
                 default:
                     return "{\"error\": \"알 수 없는 함수 호출: " + functionName + "\"}";
             }
+
         } catch (Exception e) {
             e.printStackTrace();
-            return "{\"error\": \"함수 호출 처리 중 예외 발생\"}";
+            return "{\"error\": \"함수 호출 처리 중 예외 발생: " + e.getMessage() + "\"}";
         }
     }
 }
+

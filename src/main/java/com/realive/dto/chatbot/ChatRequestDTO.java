@@ -19,11 +19,24 @@ public class ChatRequestDTO {
     private Object function_call; // "auto" 또는 { name: "함수명" }
 
     @Data
-    @AllArgsConstructor
     @NoArgsConstructor
     public static class Message {
         private String role;
         private String content;
+        private String name;
+
+        // 2개짜리 생성자
+        public Message(String role, String content) {
+            this.role = role;
+            this.content = content;
+        }
+
+        // 3개짜리 생성자
+        public Message(String role, String content, String name) {
+            this.role = role;
+            this.content = content;
+            this.name = name;
+        }
     }
 
     @Data
