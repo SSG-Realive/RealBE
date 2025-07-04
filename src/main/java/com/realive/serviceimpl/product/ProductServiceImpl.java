@@ -279,6 +279,13 @@ public class ProductServiceImpl implements ProductService {
                 if (!product.getSeller().getId().equals(sellerId)) {
                         throw new SecurityException("해당 상품에 대한 조회 권한이 없습니다.");
                 }
+
+                    // ✅ 이미지 여러 장 가져오기
+    List<String> imageUrls = productImageRepository.findAllByProductId(productId)
+            .stream()
+            .map(ProductImage::getUrl)
+            .collect(Collectors.toList());
+
                 return ProductResponseDTO.builder()
                         .id(product.getId())
                         .name(product.getName())
@@ -297,6 +304,7 @@ public class ProductServiceImpl implements ProductService {
                         .parentCategoryId(category.getParent() != null ? category.getParent().getId() : null) // ✅ 추가
                         .sellerName(product.getSeller().getName())
                         .sellerId(product.getSeller().getId())
+                        .imageUrls(imageUrls)
                         .build();
         }
 

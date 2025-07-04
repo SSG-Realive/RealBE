@@ -56,10 +56,19 @@ public class ProductViewServiceImpl implements ProductViewService {
     }
 
     @Override
-    public ProductResponseDTO getProductDetail(Long id) {
-        return productDetail.findProductDetailById(id)
-                .orElseThrow(() -> new EntityNotFoundException("해당 상품이 존재하지 않습니다. id=" + id));
-    }
+@Transactional(readOnly = true)
+public ProductResponseDTO getProductDetail(Long id) {
+    ProductResponseDTO dto = productDetail.findProductDetailById(id)
+            .orElseThrow(() -> new EntityNotFoundException("해당 상품이 존재하지 않습니다. id=" + id));
+
+    // 이미지 여러 장 조회
+    List<String> imageUrls = productImageRepository.findUrlsByProductId(id);
+
+    // 이미지 리스트 주입
+    dto.setImageUrls(imageUrls);
+
+    return dto;
+}
 
     // ✅ 관련 상품 추천
     public List<ProductListDTO> getRelatedProducts(Long productId) {
