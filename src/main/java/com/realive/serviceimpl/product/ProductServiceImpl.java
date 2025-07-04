@@ -11,22 +11,18 @@ import com.realive.repository.product.*;
 import com.realive.repository.review.SellerReviewRepository;
 import com.realive.repository.seller.SellerRepository;
 import com.realive.service.admin.logs.StatService;
-import com.realive.service.common.FileUploadService;
+import com.realive.service.common.S3Uploader;
 import com.realive.service.product.ProductService;
-import com.realive.service.seller.SellerService;
 
 import lombok.RequiredArgsConstructor;
 
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.data.domain.Pageable;
-import org.springframework.data.domain.Sort;
-import org.springframework.data.jpa.domain.Specification;
-import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
+import java.io.IOException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -49,10 +45,9 @@ public class ProductServiceImpl implements ProductService {
         private final CategoryRepository categoryRepository;
         private final SellerRepository sellerRepository;
         private final DeliveryPolicyRepository deliveryPolicyRepository;
-        private final FileUploadService fileUploadService;
-        private final SellerService sellerService;
         private final StatService statService;
         private final SellerReviewRepository sellerReviewRepository; // SellerReviewRepository 주입
+        private final S3Uploader s3Uploader;
 
         @Override
         public Long createProduct(ProductRequestDTO dto, Long sellerId) {
@@ -81,42 +76,54 @@ public class ProductServiceImpl implements ProductService {
 
                 productRepository.save(product);
 
-                // 대표 이미지 저장
-                String imageUrl = fileUploadService.upload(dto.getImageThumbnail(), "product", sellerId);
-                productImageRepository.save(ProductImage.builder()
-                        .url(imageUrl)
-                        .isThumbnail(true)
-                        .mediaType(MediaType.IMAGE)
-                        .product(product)
-                        .build());
-
-                // 대표 영상 저장 (선택)
-                if (dto.getVideoThumbnail() != null && !dto.getVideoThumbnail().isEmpty()) {
-                        String videoUrl = fileUploadService.upload(dto.getVideoThumbnail(), "product", sellerId);
+                // 대표 이미지 저장 (S3)
+                try {
+                        String imageUrl = s3Uploader.upload(dto.getImageThumbnail(), "product/" + sellerId);
                         productImageRepository.save(ProductImage.builder()
-                                .url(videoUrl)
+                                .url(imageUrl)
                                 .isThumbnail(true)
-                                .mediaType(MediaType.VIDEO)
+                                .mediaType(MediaType.IMAGE)
                                 .product(product)
                                 .build());
+                } catch (IOException e) {
+                        throw new RuntimeException("대표 이미지 업로드 실패", e);
                 }
 
-                // 서브 이미지 저장
+                // 대표 영상 저장 (선택, S3)
+                if (dto.getVideoThumbnail() != null && !dto.getVideoThumbnail().isEmpty()) {
+                        try {
+                                String videoUrl = s3Uploader.upload(dto.getVideoThumbnail(), "product/" + sellerId);
+                                productImageRepository.save(ProductImage.builder()
+                                        .url(videoUrl)
+                                        .isThumbnail(true)
+                                        .mediaType(MediaType.VIDEO)
+                                        .product(product)
+                                        .build());
+                        } catch (IOException e) {
+                                throw new RuntimeException("대표 영상 업로드 실패", e);
+                        }
+                }
+
+                //  서브 이미지 저장 (S3)
                 if (dto.getSubImages() != null && !dto.getSubImages().isEmpty()) {
                         for (MultipartFile file : dto.getSubImages()) {
                                 if (file != null && !file.isEmpty()) {
-                                        String url = fileUploadService.upload(file, "product", sellerId);
-                                        productImageRepository.save(ProductImage.builder()
-                                                .url(url)
-                                                .isThumbnail(false)
-                                                .mediaType(MediaType.IMAGE)
-                                                .product(product)
-                                                .build());
+                                        try {
+                                                String url = s3Uploader.upload(file, "product/" + sellerId);
+                                                productImageRepository.save(ProductImage.builder()
+                                                        .url(url)
+                                                        .isThumbnail(false)
+                                                        .mediaType(MediaType.IMAGE)
+                                                        .product(product)
+                                                        .build());
+                                        } catch (IOException e) {
+                                                throw new RuntimeException("서브 이미지 업로드 실패", e);
+                                        }
                                 }
                         }
                 }
 
-                // 배송 정책 저장
+                //  배송 정책 저장
                 if (dto.getDeliveryPolicy() != null) {
                         DeliveryPolicy policy = DeliveryPolicy.builder()
                                 .type(dto.getDeliveryPolicy().getType())
@@ -129,6 +136,7 @@ public class ProductServiceImpl implements ProductService {
 
                 return product.getId();
         }
+
 
         @Override
         public void updateProduct(Long productId, ProductRequestDTO dto, Long sellerId) {
@@ -145,13 +153,17 @@ public class ProductServiceImpl implements ProductService {
                                 .filter(img -> img.isThumbnail() && img.getMediaType() == MediaType.IMAGE)
                                 .forEach(productImageRepository::delete);
 
-                        String imageUrl = fileUploadService.upload(dto.getImageThumbnail(), "product", sellerId);
-                        productImageRepository.save(ProductImage.builder()
-                                .url(imageUrl)
-                                .isThumbnail(true)
-                                .mediaType(MediaType.IMAGE)
-                                .product(product)
-                                .build());
+                        try {
+                                String imageUrl = s3Uploader.upload(dto.getImageThumbnail(), "product/" + sellerId);
+                                productImageRepository.save(ProductImage.builder()
+                                        .url(imageUrl)
+                                        .isThumbnail(true)
+                                        .mediaType(MediaType.IMAGE)
+                                        .product(product)
+                                        .build());
+                        } catch (IOException e) {
+                                throw new RuntimeException("대표 이미지 업로드 실패", e);
+                        }
                 }
 
                 // 대표 영상 저장
@@ -160,26 +172,34 @@ public class ProductServiceImpl implements ProductService {
                                 .filter(img -> img.isThumbnail() && img.getMediaType() == MediaType.VIDEO)
                                 .forEach(productImageRepository::delete);
 
-                        String videoUrl = fileUploadService.upload(dto.getVideoThumbnail(), "product", sellerId);
-                        productImageRepository.save(ProductImage.builder()
-                                .url(videoUrl)
-                                .isThumbnail(true)
-                                .mediaType(MediaType.VIDEO)
-                                .product(product)
-                                .build());
+                        try {
+                                String videoUrl = s3Uploader.upload(dto.getVideoThumbnail(), "product/" + sellerId);
+                                productImageRepository.save(ProductImage.builder()
+                                        .url(videoUrl)
+                                        .isThumbnail(true)
+                                        .mediaType(MediaType.VIDEO)
+                                        .product(product)
+                                        .build());
+                        } catch (IOException e) {
+                                throw new RuntimeException("대표 영상 업로드 실패", e);
+                        }
                 }
 
                 // 서브 이미지 저장
                 if (dto.getSubImages() != null && !dto.getSubImages().isEmpty()) {
                         for (MultipartFile file : dto.getSubImages()) {
                                 if (file != null && !file.isEmpty()) {
-                                        String url = fileUploadService.upload(file, "product", sellerId);
-                                        productImageRepository.save(ProductImage.builder()
-                                                .url(url)
-                                                .isThumbnail(false)
-                                                .mediaType(MediaType.IMAGE)
-                                                .product(product)
-                                                .build());
+                                        try {
+                                                String url = s3Uploader.upload(file, "product/" + sellerId);
+                                                productImageRepository.save(ProductImage.builder()
+                                                        .url(url)
+                                                        .isThumbnail(false)
+                                                        .mediaType(MediaType.IMAGE)
+                                                        .product(product)
+                                                        .build());
+                                        } catch (IOException e) {
+                                                throw new RuntimeException("서브 이미지 업로드 실패", e);
+                                        }
                                 }
                         }
                 }
@@ -194,17 +214,14 @@ public class ProductServiceImpl implements ProductService {
                 product.setHeight(dto.getHeight());
                 product.setStatus(dto.getStatus());
 
-                // 🚩 isActive 처리 로직 수정
                 if (dto.getActive() != null && dto.getActive()) {
-                        // 활성화 요청 시 → stock 검사
                         if (product.getStock() >= 1) {
                                 product.setActive(true);
                         } else {
-                                product.setActive(false); // 또는 예외 발생 가능
+                                product.setActive(false);
                                 log.warn("재고가 없는 상품은 활성화할 수 없습니다. productId={}", product.getId());
                         }
                 } else if (dto.getActive() != null && !dto.getActive()) {
-                        // 비활성화 요청은 그대로 반영
                         product.setActive(false);
                 }
 
@@ -228,6 +245,7 @@ public class ProductServiceImpl implements ProductService {
 
                 productRepository.save(product);
         }
+
 
         @Override
         public void deleteProduct(Long productId, Long sellerId) {
