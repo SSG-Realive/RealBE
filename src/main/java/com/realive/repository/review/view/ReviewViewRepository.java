@@ -87,6 +87,7 @@ public interface    ReviewViewRepository extends JpaRepository<SellerReview, Lon
     """)
         List<Long> findReviewedSellerIds(@Param("orderId") Long orderId, @Param("customerId") Long customerId);
 
+
     // 페이징 없이 전체 리뷰 조회하는 메서드 추가
     List<ReviewResponseDTO> findAllSellerReviewsBySellerId(Long sellerId);
 

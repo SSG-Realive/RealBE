@@ -16,7 +16,21 @@ import java.util.List;
 @RequiredArgsConstructor
 public class ReviewImageController {
 
-    private final ReviewImageService reviewImageService;
+//    private final S3Uploader s3Uploader;
+//
+//    @PostMapping("/upload")
+//    public ResponseEntity<String> uploadReviewImage(@RequestPart("file") MultipartFile file) {
+//        try {
+//            String url = s3Uploader.uploadFile(file, "reviews");
+//            return ResponseEntity.ok(url);
+//        } catch (Exception e) {
+//            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+//                    .body("업로드 실패: " + e.getMessage());
+//        }
+//    }
+
+
+//    private final ReviewImageService reviewImageService;
 
     /**
      * 리뷰 이미지 업로드
@@ -42,10 +56,10 @@ public class ReviewImageController {
      * @param reviewId 리뷰 ID
      * @return 삭제 완료 메시지
      */
-    @DeleteMapping("/delete")
-    public ResponseEntity<String> deleteImages(@RequestParam Long reviewId) {
-        reviewImageService.deleteImagesByReviewId(reviewId);
-        return ResponseEntity.ok("리뷰 이미지가 삭제되었습니다.");
-    }
+//    @DeleteMapping("/delete")
+//    public ResponseEntity<String> deleteImages(@RequestParam Long reviewId) {
+//        reviewImageService.deleteImagesByReviewId(reviewId);
+//        return ResponseEntity.ok("리뷰 이미지가 삭제되었습니다.");
+//    }
 }
 
