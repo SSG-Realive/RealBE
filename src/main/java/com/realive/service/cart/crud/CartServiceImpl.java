@@ -3,7 +3,6 @@ package com.realive.service.cart.crud;
 import com.realive.domain.common.enums.DeliveryStatus;
 import com.realive.domain.common.enums.DeliveryType;
 import com.realive.domain.common.enums.OrderStatus;
-import com.realive.domain.common.enums.PaymentType;
 import com.realive.domain.customer.CartItem;
 import com.realive.domain.customer.Customer;
 import com.realive.domain.order.Order;
@@ -188,7 +187,7 @@ public class CartServiceImpl implements CartService {
         String receiverName = payRequestDTO.getReceiverName();
         String phone = payRequestDTO.getPhone();
         String deliveryAddress = payRequestDTO.getDeliveryAddress();
-        PaymentType paymentType = payRequestDTO.getPaymentMethod();
+        String paymentType = payRequestDTO.getPaymentMethod();
 
         if (receiverName == null || receiverName.isEmpty() ||
                 phone == null || phone.isEmpty() ||
@@ -254,7 +253,7 @@ public class CartServiceImpl implements CartService {
                 .deliveryAddress(deliveryAddress)
                 .orderedAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .paymentMethod(paymentType.getDescription()) // PaymentType Enum의 설명을 저장
+                .paymentMethod(paymentType)
                 .build();
         order = orderRepository.save(order);
 

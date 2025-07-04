@@ -21,7 +21,7 @@ import com.realive.dto.auction.AuctionResponseDTO;
 import com.realive.dto.auction.AuctionCancelResponseDTO;
 import com.realive.dto.auction.AuctionUpdateRequestDTO;
 import com.realive.dto.auction.AuctionWinResponseDTO;
-import com.realive.dto.auction.AuctionPaymentRequestDTO;
+import com.realive.dto.payment.AuctionPaymentRequestDTO;
 import com.realive.dto.payment.TossPaymentApproveRequestDTO;
 import com.realive.repository.admin.AdminRepository;
 import com.realive.repository.auction.AdminProductRepository;
@@ -544,10 +544,6 @@ public class AuctionServiceImpl implements AuctionService {
                 .customerId(customerId)
                 .paymentKey(requestDto.getPaymentKey())
                 .amount(auction.getWinningBidPrice())
-                .receiverName(requestDto.getReceiverName())
-                .phone(requestDto.getPhone())
-                .deliveryAddress(requestDto.getDeliveryAddress())
-                .paymentMethod(requestDto.getPaymentMethod().name())
                 .status(PaymentStatus.READY)
                 .build();
         
@@ -556,7 +552,6 @@ public class AuctionServiceImpl implements AuctionService {
         // 6. 토스페이먼츠 결제 승인
         TossPaymentApproveRequestDTO tossApproveRequest = TossPaymentApproveRequestDTO.builder()
                 .paymentKey(requestDto.getPaymentKey())
-                .orderId(requestDto.getTossOrderId())
                 .amount((long) auction.getWinningBidPrice())
                 .build();
         
@@ -569,8 +564,6 @@ public class AuctionServiceImpl implements AuctionService {
                     .customer(customer)
                     .status(OrderStatus.PAYMENT_COMPLETED)
                     .totalPrice(auction.getWinningBidPrice())
-                    .deliveryAddress(requestDto.getDeliveryAddress())
-                    .paymentMethod(requestDto.getPaymentMethod().name())
                     .orderedAt(LocalDateTime.now())
                     .updatedAt(LocalDateTime.now())
                     .build();

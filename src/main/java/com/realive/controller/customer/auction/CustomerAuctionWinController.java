@@ -1,9 +1,8 @@
 package com.realive.controller.customer.auction;
 
 import com.realive.dto.auction.AuctionWinResponseDTO;
-import com.realive.dto.auction.AuctionPaymentRequestDTO;
+import com.realive.dto.payment.AuctionPaymentRequestDTO;
 import com.realive.dto.common.ApiResponse;
-import com.realive.dto.customer.member.MemberLoginDTO;
 import com.realive.security.customer.CustomerPrincipal;
 import com.realive.service.admin.auction.AuctionService;
 import jakarta.validation.Valid;
