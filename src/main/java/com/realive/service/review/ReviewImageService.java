@@ -40,8 +40,8 @@
 //                    String imageUrl = imageStorageService.uploadFile(file, generateFileName(file));
 //                    return SellerReviewImage.builder()
 //                            .review(review)
-//                            .url(imageUrl)          // url 컬럼에 값 세팅
-//                            .imageUrl(imageUrl)     // image_url 컬럼에 값 세팅
+//                            .imageUrl(imageUrl)          // url 컬럼에 값 세팅
+//                            // image_url 컬럼에 값 세팅
 //                            .thumbnail(false)
 //                            .build();
 //                })
