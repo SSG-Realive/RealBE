@@ -1,6 +1,7 @@
 package com.realive.controller.seller;
 
 import com.realive.dto.sellerqna.*;
+import com.realive.repository.seller.SellerQnaRepository;
 import com.realive.security.seller.SellerPrincipal;
 import com.realive.service.seller.SellerQnaService;
 import lombok.RequiredArgsConstructor;
@@ -18,6 +19,7 @@ import org.springframework.web.bind.annotation.*;
 public class SellerAdminQnaController {
 
     private final SellerQnaService sellerQnaService;
+    private final SellerQnaRepository sellerQnaRepository;
 
     // ✅ QnA 작성
     @PostMapping("/new")
@@ -31,10 +33,11 @@ public class SellerAdminQnaController {
     @GetMapping
     public ResponseEntity<Page<SellerQnaResponseDTO>> getQnaList(
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable,
-            @RequestParam(required = false) String keyword,  // 🔥 검색 키워드 추가
+            @RequestParam(required = false) String keyword,
             @AuthenticationPrincipal SellerPrincipal principal) {
 
-        Page<SellerQnaResponseDTO> qnaList = sellerQnaService.getQnaListBySellerId(principal.getId(), pageable);
+        // keyword를 Service에 전달하도록 수정
+        Page<SellerQnaResponseDTO> qnaList = sellerQnaService.getQnaListBySellerIdWithKeyword(principal.getId(), pageable, keyword);
         return ResponseEntity.ok(qnaList);
     }
 
@@ -63,5 +66,28 @@ public class SellerAdminQnaController {
 
         sellerQnaService.deleteQna(principal.getId(), qnaId);
         return ResponseEntity.ok().build();
+    }
+
+    // 📁 수정: SellerAdminQnaController.java
+
+
+    // ✅ 새로운 통계 API 추가
+    @GetMapping("/statistics")
+    public ResponseEntity<SellerQnaStatisticsDTO> getQnaStatistics(@AuthenticationPrincipal SellerPrincipal principal) {
+
+        // Repository 메서드 활용 (이미 구현되어 있음)
+        long totalCount = sellerQnaRepository.countBySellerIdAndIsActiveTrue(principal.getId());
+        long unansweredCount = sellerQnaRepository.countBySellerIdAndIsAnsweredFalseAndIsActiveTrue(principal.getId());
+        long answeredCount = totalCount - unansweredCount;
+        double answerRate = totalCount > 0 ? (double) answeredCount / totalCount * 100 : 0.0;
+
+        SellerQnaStatisticsDTO statistics = SellerQnaStatisticsDTO.builder()
+                .totalCount(totalCount)
+                .unansweredCount(unansweredCount)
+                .answeredCount(answeredCount)
+                .answerRate(answerRate)
+                .build();
+
+        return ResponseEntity.ok(statistics);
     }
 }
