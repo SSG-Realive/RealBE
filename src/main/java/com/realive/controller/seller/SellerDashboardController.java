@@ -1,6 +1,8 @@
 package com.realive.controller.seller;
 
 import com.realive.domain.seller.Seller;
+import com.realive.dto.logs.stats.CurrentMonthStatsDTO;
+import com.realive.dto.logs.stats.TodayStatsDTO;
 import com.realive.dto.seller.SellerDashboardResponseDTO;
 import com.realive.dto.seller.SellerSalesStatsDTO;
 import com.realive.security.seller.SellerPrincipal;
@@ -69,5 +71,17 @@ public class SellerDashboardController {
 
         List<SellerSalesStatsDTO.MonthlySalesDTO> monthlyTrend = dashboardService.getMonthlySalesTrend(principal.getId(), startDate, endDate);
         return ResponseEntity.ok(monthlyTrend);
+    }
+
+    @GetMapping("/today-stats")
+    public ResponseEntity<TodayStatsDTO> getTodayStats(@AuthenticationPrincipal SellerPrincipal principal) {
+        TodayStatsDTO todayStats = dashboardService.getTodayStats(principal.getId());
+        return ResponseEntity.ok(todayStats);
+    }
+
+    @GetMapping("/current-month-stats")
+    public ResponseEntity<CurrentMonthStatsDTO> getCurrentMonthStats(@AuthenticationPrincipal SellerPrincipal principal) {
+        CurrentMonthStatsDTO monthStats = dashboardService.getCurrentMonthStats(principal.getId());
+        return ResponseEntity.ok(monthStats);
     }
 }

@@ -27,4 +27,6 @@ public interface SellerQnaService {
     // QnA 답변(고객이 작성한 QnA)
     void answerQna(Long sellerId, Long qnaId, String answer);
 
+    Page<SellerQnaResponseDTO> getQnaListBySellerIdWithKeyword(Long sellerId, Pageable pageable, String keyword);
+
 }
