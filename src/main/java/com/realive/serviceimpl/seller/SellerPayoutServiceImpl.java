@@ -16,6 +16,8 @@ import com.realive.repository.order.OrderItemRepository;
 import com.realive.service.seller.SellerPayoutService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -129,8 +131,8 @@ public class SellerPayoutServiceImpl implements SellerPayoutService {
     @Override
     public List<PayoutLogDTO> getPayoutLogsByPeriod(Long sellerId, LocalDate from, LocalDate to) {
         Integer intSellerId = sellerId.intValue();
-        return payoutLogRepository.findBySellerId(intSellerId).stream()
-                .filter(log -> !log.getPeriodStart().isAfter(to) && !log.getPeriodEnd().isBefore(from))
+        return payoutLogRepository.findBySellerIdAndPeriodRange(intSellerId, from, to)
+                .stream()
                 .map(PayoutLogDTO::fromEntity)
                 .toList();
     }
@@ -138,9 +140,8 @@ public class SellerPayoutServiceImpl implements SellerPayoutService {
     @Override
     public SellerPayoutSummaryDTO getPayoutSummary(Long sellerId, LocalDate from, LocalDate to) {
         Integer intSellerId = sellerId.intValue();
-        List<PayoutLog> logs = payoutLogRepository.findBySellerId(intSellerId).stream()
-                .filter(log -> !log.getPeriodStart().isAfter(to) && !log.getPeriodEnd().isBefore(from))
-                .toList();
+        // ✅ 데이터베이스에서 직접 필터링된 데이터 가져오기
+        List<PayoutLog> logs = payoutLogRepository.findBySellerIdAndPeriodRange(intSellerId, from, to);
 
         int totalPayoutAmount = logs.stream().mapToInt(l -> l.getPayoutAmount() != null ? l.getPayoutAmount() : 0).sum();
         int totalCommission = logs.stream().mapToInt(l -> l.getTotalCommission() != null ? l.getTotalCommission() : 0).sum();
@@ -223,6 +224,13 @@ public class SellerPayoutServiceImpl implements SellerPayoutService {
                 .stream()
                 .map(CommissionLogDTO::fromEntity)
                 .toList();
+    }
+
+    @Override
+    public Page<PayoutLogDTO> getPayoutLogsBySellerId(Long sellerId, Pageable pageable) {
+        Integer intSellerId = sellerId.intValue();
+        return payoutLogRepository.findBySellerId(intSellerId, pageable)
+                .map(PayoutLogDTO::fromEntity);
     }
 }
 
