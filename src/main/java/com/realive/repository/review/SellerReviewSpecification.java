@@ -2,6 +2,7 @@ package com.realive.repository.review;
 
 import com.realive.domain.customer.Customer;
 import com.realive.domain.order.Order;
+import com.realive.domain.order.OrderItem;
 import com.realive.domain.product.Product;
 import com.realive.domain.review.SellerReview;
 import jakarta.persistence.criteria.*; // Criteria API import
@@ -18,8 +19,8 @@ public class SellerReviewSpecification {
             }
             // SellerReview -> Order -> Product -> name 경로로 Join
             Join<SellerReview, Order> orderJoin = root.join("order", JoinType.INNER);
-            Join<Order, Product> productJoin = orderJoin.join("product", JoinType.INNER);
-            // productName을 포함하는(like) 조건 생성
+            Join<Order, OrderItem> orderItemJoin = orderJoin.join("orderItems", JoinType.INNER); // orderItems: Order의 컬렉션 필드명
+            Join<OrderItem, Product> productJoin = orderItemJoin.join("product", JoinType.INNER);
             return criteriaBuilder.like(criteriaBuilder.lower(productJoin.get("name")), "%" + productName.toLowerCase() + "%");
         };
     }
