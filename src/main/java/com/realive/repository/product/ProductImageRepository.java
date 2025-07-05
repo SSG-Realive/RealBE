@@ -33,4 +33,11 @@ public interface ProductImageRepository extends JpaRepository<ProductImage, Long
 
      @Query("SELECT pi.url FROM ProductImage pi WHERE pi.product.id = :productId")
     List<String> findUrlsByProductId(@Param("productId") Long productId);
+
+     // 썸네일이 아닌 IMAGE 타입 이미지
+    @Query("SELECT pi.url FROM ProductImage pi " +
+            "WHERE pi.product.id = :productId " +
+            "AND pi.isThumbnail = false " +
+            "AND pi.mediaType = 'IMAGE'")
+    List<String> findSubImageUrlsByProductId(@Param("productId") Long productId);
 }
