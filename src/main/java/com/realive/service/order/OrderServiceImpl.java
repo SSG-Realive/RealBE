@@ -19,13 +19,13 @@ import com.realive.repository.product.ProductImageRepository;
 import com.realive.repository.product.ProductRepository;
 import com.realive.repository.review.view.ReviewViewRepository;
 import com.realive.service.payment.PaymentService;
-import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.log4j.Log4j2;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageImpl;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
@@ -34,7 +34,7 @@ import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
-@Transactional // Spring의 @Transactional 사용 권장 (org.springframework.transaction.annotation.Transactional)
+@Transactional
 @Log4j2
 @RequiredArgsConstructor
 public class OrderServiceImpl implements OrderService {

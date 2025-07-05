@@ -1,5 +1,6 @@
 package com.realive.config;
 
+import com.realive.exception.CustomAccessDeniedHandler;
 import com.realive.security.AdminJwtAuthenticationFilter;
 import com.realive.security.SellerJwtAuthenticationFilter;
 import com.realive.security.customer.CustomAuthorizationRequestResolver;
@@ -55,6 +56,9 @@ public class SecurityConfig {
     @Autowired
     @Qualifier("sellerDetailsService")
     private UserDetailsService sellerDetailsService;
+
+    @Autowired
+    private CustomAccessDeniedHandler customAccessDeniedHandler;
 
     // Provider를 명시적으로 등록
     // customerAuthProvider, adminAuthProvider를 직접 수동 생성해 ProviderManager에 주입
@@ -141,7 +145,7 @@ public class SecurityConfig {
         log.info("Customer SecurityConfig 적용");
 
         http
-                .securityMatcher("/api/customer/**", "/api/public/**","/api/auth/**") // 나머지 API
+                .securityMatcher("/api/customer/**", "/api/public/**","/api/auth/**", "/api/chat") // 나머지 API
                 .authenticationManager(authenticationManager())
                 .csrf(csrf -> csrf.disable())
                 .cors(cors -> cors.configurationSource(corsConfigurationSource()))
@@ -151,7 +155,11 @@ public class SecurityConfig {
                         .requestMatchers("/api/oauth2/**").permitAll()
                         .requestMatchers("/api/customer/update-info").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_USER")
                         .requestMatchers("/api/customer/**").hasAnyAuthority("ROLE_CUSTOMER", "ROLE_USER")
+                        .requestMatchers("/api/chat").authenticated() // 비로그인 사용자는 사용 불가능
                         .anyRequest().denyAll()
+                )
+                .exceptionHandling(exception -> exception
+                        .accessDeniedHandler(customAccessDeniedHandler)
                 )
                 .addFilterBefore(customerJwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
