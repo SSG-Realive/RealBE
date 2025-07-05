@@ -60,7 +60,12 @@ public class ChatRequestDTO {
     // 함수 리스트까지 포함하는 버전
     public static ChatRequestDTO withFunctions(String model, String userMessage, List<FunctionDefinition> functions) {
         return new ChatRequestDTO(model,
-                List.of(new Message("user", userMessage)),
+                List.of(
+                        new Message("system", "당신은 Realive 플랫폼 쇼핑 고객 지원 챗봇입니다." +
+                                " 주문, 리뷰, 상품, 찜 등 플랫폼 관련 질문에만 답변하세요. " +
+                                "그 외 질문에는 '해당 서비스와 관련된 질문만 답변 가능합니다.'" +
+                                "라고 응답하세요."),
+                        new Message("user", userMessage)),
                 functions,
                 "auto"
         );
