@@ -23,8 +23,6 @@ import com.realive.repository.product.ProductRepository;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.extern.log4j.Log4j2;
 
-// [Customer] 상품 조회 Service 구현체
-
 @Service
 @Transactional
 @Log4j2
@@ -42,7 +40,7 @@ public class ProductViewServiceImpl implements ProductViewService {
             ProductRepository productRepository,
             ProductImageRepository productImageRepository,
             WishlistRepository wishlistRepository
-            ) {
+    ) {
         this.productSearch = productSearch;
         this.productDetail = productDetail;
         this.productRepository = productRepository;
@@ -56,30 +54,34 @@ public class ProductViewServiceImpl implements ProductViewService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public ProductResponseDTO getProductDetail(Long id) {
-        return productDetail.findProductDetailById(id)
+        ProductResponseDTO dto = productDetail.findProductDetailById(id)
                 .orElseThrow(() -> new EntityNotFoundException("해당 상품이 존재하지 않습니다. id=" + id));
+
+        // ✅ 서브 이미지 (썸네일 제외 + 이미지만)
+        List<String> subImageUrls = productImageRepository.findSubImageUrlsByProductId(id);
+
+        dto.setImageUrls(subImageUrls);
+
+        return dto;
     }
 
     // ✅ 관련 상품 추천
     public List<ProductListDTO> getRelatedProducts(Long productId) {
-        // 1. 기준 상품 확인
         Product target = productRepository.findById(productId)
                 .orElseThrow(() -> new EntityNotFoundException("상품이 존재하지 않습니다. id=" + productId));
 
-        // 2. 같은 카테고리의 다른 상품 6개 조회
         List<Product> relatedProducts = productRepository
                 .findTop6ByCategoryIdAndIdNotAndActiveTrue(
                         target.getCategory().getId(),
                         target.getId()
                 );
 
-        // 3. 상품 ID 리스트 추출
         List<Long> productIds = relatedProducts.stream()
                 .map(Product::getId)
                 .toList();
 
-        // 4. 대표 이미지 URL 조회
         List<Object[]> rows = productImageRepository.findThumbnailUrlsByProductIds(productIds, MediaType.IMAGE);
         Map<Long, String> imageMap = rows.stream()
                 .collect(Collectors.toMap(
@@ -87,13 +89,12 @@ public class ProductViewServiceImpl implements ProductViewService {
                         row -> (String) row[1]
                 ));
 
-        // 5. DTO 변환
         return relatedProducts.stream()
                 .map(product -> ProductListDTO.from(product, imageMap.get(product.getId())))
                 .toList();
     }
 
-    // ✅ 찜이 많은 인기 상품 조회 (상위 6개)
+    // ✅ 찜이 많은 인기 상품 조회
     public List<ProductListDTO> getPopularProducts() {
         List<Product> products = wishlistRepository.findTop6PopularProducts();
 

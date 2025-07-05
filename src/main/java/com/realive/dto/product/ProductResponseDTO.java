@@ -1,5 +1,7 @@
 package com.realive.dto.product;
 
+import java.util.List;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -31,6 +33,7 @@ public class ProductResponseDTO {
     private Long parentCategoryId;
     private String sellerName;        // 판매자 이름 (선택)
     private Long sellerId;
+    private List<String> imageUrls;
 
     private DeliveryPolicyDTO deliveryPolicy;  // 배송정책
 }
