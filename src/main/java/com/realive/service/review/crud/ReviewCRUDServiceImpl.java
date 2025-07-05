@@ -24,9 +24,11 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
 
+//[Customer] 고객 리뷰 CRUD 서비스
+
+@Log4j2
 @Service
 @RequiredArgsConstructor
-@Log4j2
 public class ReviewCRUDServiceImpl implements ReviewCRUDService {
 
     private final ReviewCRUDRepository reviewRepository;
@@ -35,9 +37,12 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
     private final OrderRepository orderRepository;
     private final SellerRepository sellerRepository;
 
+    //리뷰 생성
+    /* order내의 판매자별 리뷰입니다.*/
     @Override
     @Transactional
     public ReviewResponseDTO createReview(ReviewCreateRequestDTO requestDTO, Long customerId) {
+
         // 1. 중복 리뷰 확인 (order + customer + seller 조합)
         reviewRepository.findByOrderIdAndCustomerIdAndSellerId(
                         requestDTO.getOrderId(), customerId, requestDTO.getSellerId())
@@ -85,9 +90,11 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
                 .build();
     }
 
+    //리뷰 수정
     @Override
     @Transactional
     public ReviewResponseDTO updateReview(Long reviewId, ReviewUpdateRequestDTO requestDTO, Long customerId) {
+
         log.info("updateReview 호출 - reviewId: {}, customerId: {}", reviewId, customerId);
         log.info("updateReview - 전달받은 imageUrls: {}", requestDTO.getImageUrls());
 
@@ -128,7 +135,7 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
     }
 
 
-
+    //리뷰 삭제
     @Override
     @Transactional
     public void deleteReview(Long reviewId, Long customerId) {
@@ -143,20 +150,24 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
         reviewRepository.delete(review);
     }
 
+    /* 이미지를 저장하는 메서드 입니다.*/
     private List<String> saveImages(SellerReview review, List<String> imageUrls) {
+
+        //이미지가 없을 경우:
         if (imageUrls == null) return List.of();
 
         List<SellerReviewImage> images = imageUrls.stream()
                 .filter(url -> url != null && !url.isBlank())
                 .map(url -> SellerReviewImage.builder()
-                        .review(review)
+                        .review(review) //review에 연결
                         .imageUrl(url)
-                        .thumbnail(imageUrls.indexOf(url) == 0)
+                        .thumbnail(imageUrls.indexOf(url) == 0) //첫 번째 이미지를 thunbnail로 지정
                         .build())
                 .collect(Collectors.toList());
 
         imageRepository.saveAll(images);
 
+        //저장된 이미지들의 URL만 반환
         return images.stream()
                 .map(SellerReviewImage::getImageUrl)
                 .collect(Collectors.toList());
@@ -166,4 +177,5 @@ public class ReviewCRUDServiceImpl implements ReviewCRUDService {
     public boolean checkReviewExistence(Long orderId, Long customerId, Long sellerId) {
         return reviewRepository.findByOrderIdAndCustomerIdAndSellerId(orderId, customerId, sellerId).isPresent();
     }
+
 }
