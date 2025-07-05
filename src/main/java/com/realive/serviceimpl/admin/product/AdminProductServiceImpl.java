@@ -249,7 +249,7 @@ public class AdminProductServiceImpl implements AdminProductService {
                 .map((AdminProductDTO adminProductDTO) -> {
                     // AdminProductDTO의 정보를 ProductListDTO로 매핑
                     return ProductListDTO.builder()
-                            .id(adminProductDTO.getProductId().longValue())
+                            .id(adminProductDTO.getId().longValue())  // AdminProduct의 ID 사용
                             .name(adminProductDTO.getProductName())
                             .description(adminProductDTO.getProductDescription())
                             .price(adminProductDTO.getPurchasePrice())

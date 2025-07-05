@@ -1,19 +1,22 @@
 package com.realive.dto.payment;
 
 import jakarta.validation.constraints.NotNull;
+import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 
 @Getter
 @Builder
+@NoArgsConstructor
+@AllArgsConstructor
 public class AuctionPaymentRequestDTO {
     @NotNull
-    private final Integer auctionId;
+    private Integer auctionId;
     
     @NotNull
-    private final String paymentKey;
+    private String paymentKey;
 
     @NotNull
     private Long amount;
-
 } 

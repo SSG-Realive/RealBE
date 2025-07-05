@@ -26,6 +26,10 @@ public class AuctionWinnerResponseDTO {
     // 추가: 낙찰자 정보
     private LocalDateTime bidTime;     // 마지막(낙찰) 입찰 시각
     private LocalDateTime paymentDue;   // 결제 마감 시각 (예: endTime + 24h)
+    
+    // 추가: 결제 상태 정보
+    private boolean isPaid;            // 결제 완료 여부
+    private String paymentStatus;      // 결제 상태 텍스트
 
     public static AuctionWinnerResponseDTO fromEntity(
             Auction auction,

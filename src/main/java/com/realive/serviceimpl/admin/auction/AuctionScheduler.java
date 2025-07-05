@@ -5,6 +5,7 @@ import com.realive.domain.auction.Bid;
 import com.realive.domain.common.enums.AuctionStatus;
 import com.realive.repository.auction.AuctionRepository;
 import com.realive.repository.auction.BidRepository;
+import com.realive.repository.auction.AuctionPaymentRepository;
 // import com.realive.service.notification.NotificationService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -22,6 +23,7 @@ public class AuctionScheduler {
 
     private final AuctionRepository auctionRepository;
     private final BidRepository bidRepository;
+    private final AuctionPaymentRepository auctionPaymentRepository;
     // private final NotificationService notificationService;
 
     @Scheduled(fixedRate = 60000) // 1분마다 실행
@@ -70,7 +72,46 @@ public class AuctionScheduler {
             }
         }
 
-
         log.debug("✅ [Scheduler] 경매 스케줄러 실행 완료 at {}", LocalDateTime.now());
+    }
+
+    @Scheduled(fixedRate = 300000) // 5분마다 실행
+    @Transactional
+    public void handleExpiredPayments() {
+        log.debug("💳 [Payment Deadline Scheduler] 실행_{}", LocalDateTime.now());
+
+        LocalDateTime now = LocalDateTime.now();
+
+        // 결제 마감이 지난 완료된 경매 조회 (결제 마감: 경매 종료 후 7일)
+        List<Auction> expiredPaymentAuctions = auctionRepository.findByStatusAndEndTimeBefore(
+                AuctionStatus.COMPLETED, now.minusDays(7));
+
+        if (expiredPaymentAuctions.isEmpty()) {
+            log.debug("🔕 결제 마감 처리할 경매 없음");
+            return;
+        }
+
+        for (Auction auction : expiredPaymentAuctions) {
+            try {
+                // 결제 완료 여부 확인
+                boolean isPaid = auctionPaymentRepository.existsByCustomerIdAndAuctionIdAndStatusCompleted(
+                        auction.getWinningCustomerId(), auction.getId());
+
+                if (!isPaid) {
+                    // 결제 미완료 시 유찰 처리
+                    auction.setStatus(AuctionStatus.FAILED);
+                    auction.setWinningCustomerId(null);
+                    auction.setWinningBidPrice(null);
+                    auctionRepository.save(auction);
+
+                    log.info("⚠️ 결제 마감으로 인한 유찰 처리 완료 - 경매ID: {}, 낙찰자ID: {}", 
+                            auction.getId(), auction.getWinningCustomerId());
+                }
+            } catch (Exception e) {
+                log.error("❌ 결제 마감 처리 중 오류 발생 - 경매ID: {}", auction.getId(), e);
+            }
+        }
+
+        log.debug("✅ [Payment Deadline Scheduler] 결제 마감 스케줄러 실행 완료 at {}", LocalDateTime.now());
     }
 }

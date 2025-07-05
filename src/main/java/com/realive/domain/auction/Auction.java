@@ -55,4 +55,8 @@ public class Auction extends BaseTimeEntity {
 
     @Column(name = "winning_customer_id")
     private Long winningCustomerId;
+
+    @Column(name = "bid_count")
+    @Builder.Default
+    private Integer bidCount = 0;
 }

@@ -106,8 +106,13 @@ public class CustomerAuctionWinController {
             }
             
             Long orderId = auctionService.processAuctionPayment(requestDto, customerId);
+            log.info("경매 결제 처리 완료 - OrderId: {}, AuctionId: {}", orderId, auctionId);
+            
+            ApiResponse<Long> response = ApiResponse.success("경매 결제가 성공적으로 처리되었습니다.", orderId);
+            log.info("응답 데이터: {}", response);
+            
             return ResponseEntity.status(HttpStatus.CREATED)
-                    .body(ApiResponse.success("경매 결제가 성공적으로 처리되었습니다.", orderId));
+                    .body(response);
             
         } catch (AccessDeniedException e) {
             log.error("경매 결제 처리 권한 없음 - AuctionId: {}", auctionId, e);
