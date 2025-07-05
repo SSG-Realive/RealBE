@@ -53,10 +53,20 @@ public class WebClientConfig {
 
     @Bean(name = "openAiWebClient")
     public WebClient openAiWebClient() {
+
+        HttpClient httpClient = HttpClient.create()
+                .option(ChannelOption.CONNECT_TIMEOUT_MILLIS, 10000) // 연결 타임아웃 10초
+                .responseTimeout(Duration.ofSeconds(30))             // 응답 대기 타임아웃 30초
+                .doOnConnected(conn -> conn
+                        .addHandlerLast(new ReadTimeoutHandler(30, TimeUnit.SECONDS))  // 읽기 타임아웃 30초
+                        .addHandlerLast(new WriteTimeoutHandler(30, TimeUnit.SECONDS)) // 쓰기 타임아웃 30초
+                );
+
         // OpenAI용 WebClient
         return WebClient.builder()
                 .baseUrl("https://api.openai.com/v1")
                 .defaultHeader("Content-Type", "application/json")
+                .clientConnector(new ReactorClientHttpConnector(httpClient))
                 .build();
     }
 }

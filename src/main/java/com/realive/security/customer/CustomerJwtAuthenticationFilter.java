@@ -105,7 +105,7 @@ public class CustomerJwtAuthenticationFilter extends OncePerRequestFilter {
     @Override
     protected boolean shouldNotFilter(HttpServletRequest request) throws ServletException {
         String uri = request.getRequestURI();
-        boolean shouldNotFilter = !(uri.startsWith("/api/customer/") || uri.startsWith("/api/reviews/"));
+        boolean shouldNotFilter = !(uri.startsWith("/api/customer/") || uri.startsWith("/api/reviews/") || uri.startsWith("/api/chat"));
         log.info("[CustomerJwtFilter] shouldNotFilter 검사. URI: {}, 결과: {}", uri, shouldNotFilter ? "건너뜀" : "실행");
         return shouldNotFilter;
     }

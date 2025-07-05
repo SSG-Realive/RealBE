@@ -7,6 +7,8 @@ import com.realive.dto.seller.SellerPayoutSummaryDTO;
 import com.realive.security.seller.SellerPrincipal;
 import com.realive.service.seller.SellerPayoutService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
@@ -23,11 +25,22 @@ public class SellerPayoutController {
 
     private final SellerPayoutService sellerPayoutService;
 
-    // ✅ 전체 정산 내역 조회
+    // ✅ 전체 정산 내역 조회 (페이징 지원)
     @GetMapping
-    public List<PayoutLogDTO> getMyPayoutLogs( @AuthenticationPrincipal SellerPrincipal principal) {
-        
-        return sellerPayoutService.getPayoutLogsBySellerId(principal.getId());
+    public Object getMyPayoutLogs(
+            @AuthenticationPrincipal SellerPrincipal principal,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(defaultValue = "10") int size
+    ) {
+        if (page == null) {
+            // 페이징 없이 전체 조회
+            return sellerPayoutService.getPayoutLogsBySellerId(principal.getId());
+        }
+        // 페이징 처리된 조회
+        return sellerPayoutService.getPayoutLogsBySellerId(
+                principal.getId(),
+                PageRequest.of(page, size)
+        );
     }
 
     // ✅ 특정 날짜 기준 정산 내역 필터링
