@@ -47,6 +47,8 @@ public class SellerReviewSpecification {
             Join<SellerReview, com.realive.domain.seller.Seller> sellerJoin = root.join("seller", JoinType.INNER);
             return criteriaBuilder.like(criteriaBuilder.lower(sellerJoin.get("name")), "%" + sellerName.toLowerCase() + "%");
         };
+
+
     }
 
 }

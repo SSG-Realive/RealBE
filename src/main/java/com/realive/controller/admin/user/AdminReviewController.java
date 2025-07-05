@@ -191,6 +191,12 @@ public class AdminReviewController {
         }
     }
 
+    // AdminReviewController.java
+    @ExceptionHandler(IllegalArgumentException.class)
+    public ResponseEntity<ApiResponse<String>> handleIllegalArgument(IllegalArgumentException e) {
+        return ResponseEntity.badRequest().body(ApiResponse.error(400, e.getMessage()));
+    }
+
     // --- Swagger 응답 스키마 정의를 위한 내부 정적 클래스들 (선택적) ---
     private static class AdminReviewReportListPageApiResponse extends ApiResponse<Page<AdminReviewReportListItemDTO>> {}
     private static class AdminSellerReviewDetailApiResponse extends ApiResponse<AdminSellerReviewDetailDTO> {}
