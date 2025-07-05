@@ -5,6 +5,7 @@ import java.util.stream.Collectors;
 import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
@@ -27,6 +28,19 @@ public class GlobalExceptionHandler {
             .body(ErrorResponse.builder()
                 .status(HttpStatus.BAD_REQUEST.value())
                 .code("INVALID_INPUT")
+                .message(e.getMessage())
+                .build());
+    }
+
+    // 인증 실패 처리 (비밀번호 오류, 정지된 계정 등)
+    // HTTP 401 (Unauthorized)
+    @ExceptionHandler(BadCredentialsException.class)
+    public ResponseEntity<ErrorResponse> handleBadCredentials(BadCredentialsException e) {
+        return ResponseEntity
+            .status(HttpStatus.UNAUTHORIZED)
+            .body(ErrorResponse.builder()
+                .status(HttpStatus.UNAUTHORIZED.value())
+                .code("AUTHENTICATION_FAILED")
                 .message(e.getMessage())
                 .build());
     }

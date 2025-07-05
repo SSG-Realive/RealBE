@@ -1,6 +1,7 @@
 package com.realive.service.admin.auction;
 
 import com.realive.dto.auction.*;
+import com.realive.dto.payment.AuctionPaymentRequestDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;

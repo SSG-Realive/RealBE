@@ -54,7 +54,7 @@ public class PaymentServiceImpl implements PaymentService {
     public Payment approveTossPayment(TossPaymentApproveRequestDTO request) {
         TossPaymentApproveResponseDTO tossResponse;
         
-        // Mock 결제 처리 (개발)
+        // Mock 결제 처리
         if (mockEnabled) {
             logger.info("Mock 결제 처리 모드 - 실제 토스페이먼츠 API 호출 우회: {}", request);
             tossResponse = createMockTossResponse(request);
@@ -71,8 +71,8 @@ public class PaymentServiceImpl implements PaymentService {
                         .contentType(MediaType.APPLICATION_JSON)
                         .body(BodyInserters.fromValue(request))
                         .retrieve()
-                        .onStatus(status -> status.is4xxClientError(), this::handle4xxError) // 수정된 부분
-                        .onStatus(status -> status.is5xxServerError(), this::handle5xxError) // 수정된 부분
+                        .onStatus(status -> status.is4xxClientError(), this::handle4xxError)
+                        .onStatus(status -> status.is5xxServerError(), this::handle5xxError)
                         .bodyToMono(TossPaymentApproveResponseDTO.class)
                         .block(); // 동기 처리
             } catch (ResponseStatusException e) {
@@ -190,9 +190,7 @@ public class PaymentServiceImpl implements PaymentService {
      * Mock 토스페이먼츠 응답 생성 (개발 환경용)
      */
     private TossPaymentApproveResponseDTO createMockTossResponse(TossPaymentApproveRequestDTO request) {
-        // Mock 모드에서는 "토스결제"로 통일 (개발환경 식별용)
-        // 실제 환경에서는 토스페이먼츠가 사용자가 선택한 정확한 결제수단을 반환
-        String mockMethod = "토스결제"; // Mock 개발환경임을 명확히 표시
+        String mockMethod = "일반 결제"; // Mock 개발환경임을 명확히 표시
         
         logger.info("Mock 결제수단 설정: {} (개발환경 - 실제 환경에서는 사용자 선택에 따라 달라짐)", mockMethod);
         

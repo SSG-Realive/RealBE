@@ -78,4 +78,20 @@ public interface BidRepository extends JpaRepository<Bid, Integer> {
      */
     @Query("SELECT COUNT(b) FROM Bid b WHERE b.bidTime BETWEEN :startDateTime AND :endDateTime")
     Long countBidsByDateTime(@Param("startDateTime") LocalDateTime startDateTime, @Param("endDateTime") LocalDateTime endDateTime);
+
+    /**
+     * 전체 입찰 내역을 최신 입찰 시간 순으로 페이징하여 조회합니다.
+     */
+    Page<Bid> findAllByOrderByBidTimeDesc(Pageable pageable);
+    
+    /**
+     * 특정 경매의 입찰 수를 조회합니다.
+     */
+    Long countByAuctionId(Integer auctionId);
+    
+    /**
+     * 특정 경매의 입찰 수를 조회합니다 (명시적 쿼리).
+     */
+    @Query("SELECT COUNT(b) FROM Bid b WHERE b.auctionId = :auctionId")
+    Long countBidsByAuctionId(@Param("auctionId") Integer auctionId);
 }

@@ -62,7 +62,7 @@ public class LoginController {
 
     @PostMapping("/login")
     public ResponseEntity<CustomerLoginResponseDTO> login(@RequestBody @Valid CustomerLoginRequestDTO request) {
-        log.info("--- [테스트] 고객 로그인 수동 인증 시작 ---");
+        log.info("--- 고객 로그인 수동 인증 시작 ---");
 
         try {
             // 1. UserDetailsService를 직접 호출하여 DB에서 사용자 정보를 가져옵니다.
@@ -72,14 +72,14 @@ public class LoginController {
             String rawPasswordFromRequest = request.password();
         String encodedPasswordFromDB = principal.getPassword();
         
-        log.info("-------------------------------------------");
+        log.info("------------------------------");
         log.info("--- 최종 비밀번호 비교 디버깅 ---");
         log.info("프론트에서 받은 비밀번호 원본: [{}]", rawPasswordFromRequest);
         log.info("DB에서 가져온 암호화된 비밀번호: [{}]", encodedPasswordFromDB);
         
         boolean isMatch = passwordEncoder.matches(rawPasswordFromRequest, encodedPasswordFromDB);
         log.info("passwordEncoder.matches() 결과: {}", isMatch);
-        log.info("-------------------------------------------");
+        log.info("------------------------------");
             // 2. PasswordEncoder를 직접 호출하여 비밀번호를 비교합니다.
             log.info("2. 비밀번호 비교 시도...");
             if (!passwordEncoder.matches(request.password(), principal.getPassword())) {
@@ -91,6 +91,12 @@ public class LoginController {
             Long customerId = principal.getId();
             Customer customer = customerRepository.findById(customerId)
                     .orElseThrow(() -> new UsernameNotFoundException("인증은 성공했으나 DB에서 사용자를 찾을 수 없습니다. ID: " + customerId));
+
+            // 정지된 사용자 체크
+            if (!customer.getIsActive()) {
+                log.warn("정지된 사용자 로그인 시도: ID {}", customerId);
+                throw new BadCredentialsException("정지된 계정입니다.");
+            }
 
             // 3. 토큰을 생성합니다.
             log.info("3. JWT 토큰 생성 시도...");
@@ -111,11 +117,11 @@ public class LoginController {
                     .id(principal.getId())
                     .build();
 
-            log.info("--- [테스트] 고객 로그인 성공 ---");
+            log.info("--- 고객 로그인 성공 ---");
             return ResponseEntity.ok(responseDto);
 
         } catch (Exception e) {
-            log.error("--- [테스트] 인증 과정 중 에러 발생 ---", e);
+            log.error("--- 인증 과정 중 에러 발생 ---", e);
             throw new BadCredentialsException("인증 실패: " + e.getMessage());
         }
     }

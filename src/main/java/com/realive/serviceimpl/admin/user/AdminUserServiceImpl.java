@@ -43,14 +43,13 @@ import java.util.stream.Collectors;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class AdminUserServiceImpl implements AdminUserService { // AdminUserService 인터페이스 구현
+public class AdminUserServiceImpl implements AdminUserService {
 
     private final CustomerRepository customerRepository;
     private final SellerRepository sellerRepository;
     private final OrderRepository orderRepository;
     private final SellerReviewRepository sellerReviewRepository;
     private final ReviewReportRepository reviewReportRepository;
-    // private final ProductRepository productRepository; // 판매자 상품 처리 로직 추가 시 필요 (현재 사용 안 함)
 
     /**
      * 전체 사용자 목록을 조회합니다. 고객과 판매자를 모두 포함하며, 필터링, 페이징, 정렬 기능을 지원합니다.
@@ -106,53 +105,11 @@ public class AdminUserServiceImpl implements AdminUserService { // AdminUserServ
         // 3. 전체 요소 개수 (페이징 전)
         long totalElements = filteredAndCombinedDTOs.size();
 
-        // 4. Pageable의 Sort 정보에 따라 정렬
-        Sort sort = pageable.getSort();
-        if (sort.isSorted()) {
-            Comparator<UserManagementListItemDTO> comparator = null;
-            for (Sort.Order order : sort) {
-                Comparator<UserManagementListItemDTO> currentComparator = null;
-                String property = order.getProperty();
-
-                switch (property) {
-                    case "id":
-                        currentComparator = Comparator.comparing(UserManagementListItemDTO::getId, Comparator.nullsLast(Long::compareTo));
-                        break;
-                    case "name":
-                        currentComparator = Comparator.comparing(UserManagementListItemDTO::getName, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-                        break;
-                    case "email":
-                        currentComparator = Comparator.comparing(UserManagementListItemDTO::getEmail, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-                        break;
-                    case "createdAt":
-                        currentComparator = Comparator.comparing(UserManagementListItemDTO::getCreatedAt, Comparator.nullsLast(LocalDateTime::compareTo));
-                        break;
-                    case "userType":
-                        currentComparator = Comparator.comparing(UserManagementListItemDTO::getUserType, Comparator.nullsLast(String.CASE_INSENSITIVE_ORDER));
-                        break;
-                    case "isActive":
-                        currentComparator = Comparator.comparing(UserManagementListItemDTO::getIsActive, Comparator.nullsLast(Boolean::compareTo));
-                        break;
-                    default:
-                        log.warn("Unsupported sort property: {} in AdminUserServiceImpl.getAllUsers", property);
-                        continue;
-                }
-
-                if (order.isDescending()) {
-                    currentComparator = currentComparator.reversed();
-                }
-
-                if (comparator == null) {
-                    comparator = currentComparator;
-                } else {
-                    comparator = comparator.thenComparing(currentComparator);
-                }
-            }
-
-            if (comparator != null) {
-                filteredAndCombinedDTOs.sort(comparator);
-            }
-        }
+        // 4. 커스텀 정렬: ID 기준 오름차순 + 정지된 회원을 맨 밑으로
+        filteredAndCombinedDTOs.sort(Comparator
+            .comparing(UserManagementListItemDTO::getIsActive, Comparator.nullsLast(Boolean::compareTo)).reversed() // 활성 회원 먼저
+            .thenComparing(UserManagementListItemDTO::getId, Comparator.nullsLast(Long::compareTo)) // 그 다음 ID 오름차순
+        );
 
         // 5. 정렬된 리스트에 대해 페이징 적용
         int start = (int) pageable.getOffset();
@@ -164,7 +121,6 @@ public class AdminUserServiceImpl implements AdminUserService { // AdminUserServ
         }
 
         log.info("Returning {} users for page {} (size {}) with total elements {}", pageContent.size(), pageable.getPageNumber(), pageable.getPageSize(), totalElements);
-        // === Error 2 수정: PageImpl 생성자 수정 ===
         return new PageImpl<>(pageContent, pageable, totalElements);
     }
 
@@ -178,17 +134,14 @@ public class AdminUserServiceImpl implements AdminUserService { // AdminUserServ
      * @throws EntityNotFoundException 해당 ID의 사용자를 찾을 수 없는 경우
      * @throws IllegalArgumentException 잘못된 사용자 유형이 제공된 경우
      */
-    @Override // AdminUserService 인터페이스의 메소드를 오버라이드
+    @Override
     @Transactional
     public boolean updateUserStatus(Long userId, String userType, boolean newIsActive)
             throws EntityNotFoundException, IllegalArgumentException {
-        // === Error 1 관련: 이 메소드 시그니처가 AdminUserService 인터페이스와 정확히 일치하는지 확인해주세요. ===
-        // throws 절의 예외들은 RuntimeException이므로 인터페이스에 명시되지 않아도 됩니다.
         if ("CUSTOMER".equalsIgnoreCase(userType)) {
             Customer customer = customerRepository.findById(userId)
                     .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + userId));
             customer.setIsActive(newIsActive);
-            // customer.setUpdated(LocalDateTime.now()); // Customer 엔티티에 setUpdated(LocalDateTime) 메소드가 있는지 확인 필요
             customerRepository.save(customer);
             log.info("Customer (ID: {}) status updated to: {}", userId, newIsActive);
             return true;
@@ -196,8 +149,6 @@ public class AdminUserServiceImpl implements AdminUserService { // AdminUserServ
             Seller seller = sellerRepository.findById(userId)
                     .orElseThrow(() -> new EntityNotFoundException("Seller not found with id: " + userId));
             seller.setActive(newIsActive);
-            // === Error 3 관련: Seller 엔티티에 setUpdatedAt(LocalDateTime) 메소드가 있는지 확인해주세요. 없다면 이 라인은 주석 처리하거나 Seller 엔티티를 수정해야 합니다. ===
-            // seller.setUpdatedAt(LocalDateTime.now());
             sellerRepository.save(seller);
             log.info("Seller (ID: {}) status updated to: {}", userId, newIsActive);
             return true;
@@ -217,7 +168,7 @@ public class AdminUserServiceImpl implements AdminUserService { // AdminUserServ
      * @throws IllegalArgumentException 잘못된 사용자 유형이 제공된 경우
      * @throws DataIntegrityViolationException 데이터 무결성 제약 조건 위반 시 (현재는 직접 발생시키지 않음)
      */
-    @Override // AdminUserService 인터페이스의 메소드를 오버라이드
+    @Override
     @Transactional
     public void deleteUser(Long userId, String userType)
             throws EntityNotFoundException, IllegalArgumentException, DataIntegrityViolationException {
@@ -226,9 +177,7 @@ public class AdminUserServiceImpl implements AdminUserService { // AdminUserServ
         if ("CUSTOMER".equalsIgnoreCase(userType)) {
             Customer customer = customerRepository.findById(userId)
                     .orElseThrow(() -> new EntityNotFoundException("Customer not found with id: " + userId + " for deactivation."));
-
             customer.setIsActive(false);
-            // customer.setUpdated(LocalDateTime.now()); // Customer 엔티티에 setUpdated(LocalDateTime) 메소드가 있는지 확인 필요
             customerRepository.save(customer);
             log.info("Customer (ID: {}) has been set to inactive.", customer.getId());
 
@@ -275,8 +224,7 @@ public class AdminUserServiceImpl implements AdminUserService { // AdminUserServ
                     .orElseThrow(() -> new EntityNotFoundException("Seller not found with id: " + userId + " for deactivation."));
 
             seller.setActive(false);
-            // === Error 3 관련: Seller 엔티티에 setUpdatedAt(LocalDateTime) 메소드가 있는지 확인해주세요. 없다면 이 라인은 주석 처리하거나 Seller 엔티티를 수정해야 합니다. ===
-            // seller.setUpdatedAt(LocalDateTime.now());
+
             sellerRepository.save(seller);
             log.info("Seller (ID: {}) has been set to inactive.", seller.getId());
 
@@ -288,17 +236,6 @@ public class AdminUserServiceImpl implements AdminUserService { // AdminUserServ
                 }
                 sellerReviewRepository.saveAll(sellerReceivedReviews);
             }
-
-            /* 판매자 상품 판매 중지 로직 (ProductRepository 필요)
-            List<Product> sellerProducts = productRepository.findBySellerId(seller.getId());
-            if (sellerProducts != null && !sellerProducts.isEmpty()) {
-                log.info("Deactivating {} products for seller ID: {}", sellerProducts.size(), seller.getId());
-                for (Product product : sellerProducts) {
-                    product.setActive(false);
-                }
-                productRepository.saveAll(sellerProducts);
-            }
-            */
 
         } else {
             log.warn("Invalid userType provided for deactivation: {}", userType);
@@ -330,7 +267,7 @@ public class AdminUserServiceImpl implements AdminUserService { // AdminUserServ
      * @return 판매자 상세 정보 (SellerDetailDTO)
      * @throws EntityNotFoundException 해당 ID의 판매자를 찾을 수 없는 경우
      */
-    @Override // AdminUserService 인터페이스의 메소드를 오버라이드
+    @Override
     @Transactional(readOnly = true)
     public SellerDetailDTO getSellerDetails(Long sellerId)
             throws EntityNotFoundException {
@@ -348,8 +285,10 @@ public class AdminUserServiceImpl implements AdminUserService { // AdminUserServ
                 .email(customer.getEmail())
                 .phone(customer.getPhone())
                 .isActive(customer.getIsActive())
-                .createdAt(customer.getCreated()) // Customer 엔티티의 생성일 필드 getter (예: getCreated() 또는 getCreatedAt())
+                .created(customer.getCreated())
+                .penaltyScore(customer.getPenaltyScore())
                 .isApproved(null)
+                .businessNumber(null)
                 .build();
     }
 
@@ -361,8 +300,10 @@ public class AdminUserServiceImpl implements AdminUserService { // AdminUserServ
                 .email(seller.getEmail())
                 .phone(seller.getPhone())
                 .isActive(seller.isActive())
-                .createdAt(seller.getCreatedAt()) // Seller 엔티티의 생성일 필드 getter
+                .created(seller.getCreatedAt())
+                .penaltyScore(null)
                 .isApproved(seller.isApproved())
+                .businessNumber(seller.getBusinessNumber())
                 .build();
     }
 
@@ -379,8 +320,8 @@ public class AdminUserServiceImpl implements AdminUserService { // AdminUserServ
                 .birth(customer.getBirth())
                 .gender(customer.getGender())
                 .signupMethod(customer.getSignupMethod())
-                .createdAt(customer.getCreated())  // Customer 엔티티의 생성일 필드 getter
-                .updatedAt(customer.getUpdated())  // Customer 엔티티의 수정일 필드 getter
+                .createdAt(customer.getCreated())
+                .updatedAt(customer.getUpdated())
                 .build();
     }
 
@@ -394,8 +335,8 @@ public class AdminUserServiceImpl implements AdminUserService { // AdminUserServ
                 .isApproved(seller.isApproved())
                 .approvedAt(seller.getApprovedAt())
                 .isActive(seller.isActive())
-                .createdAt(seller.getCreatedAt()) // Seller 엔티티의 생성일 필드 getter
-                .updatedAt(seller.getUpdatedAt()) // Seller 엔티티의 수정일 필드 getter
+                .createdAt(seller.getCreatedAt())
+                .updatedAt(seller.getUpdatedAt())
                 .build();
     }
 }

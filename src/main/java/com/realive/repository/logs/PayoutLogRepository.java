@@ -92,4 +92,12 @@ public interface PayoutLogRepository extends JpaRepository<PayoutLog, Integer> {
      * 특정 판매자의 특정 기간 PayoutLog 조회
      */
      Optional<PayoutLog> findBySellerIdAndPeriodStartAndPeriodEnd(Integer sellerId, LocalDate periodStart, LocalDate periodEnd);
+
+    /**
+     * 특정 판매자의 기간별 정산 내역 조회
+     */
+    @Query("SELECT pl FROM PayoutLog pl WHERE pl.sellerId = :sellerId AND pl.periodStart <= :to AND pl.periodEnd >= :from")
+    List<PayoutLog> findBySellerIdAndPeriodRange(@Param("sellerId") Integer sellerId, @Param("from") LocalDate from, @Param("to") LocalDate to);
+
+    Page<PayoutLog> findBySellerId(Integer sellerId, Pageable pageable);
 }

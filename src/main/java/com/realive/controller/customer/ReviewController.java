@@ -27,7 +27,7 @@ public class ReviewController {
     private final ReviewViewService reviewViewService;
 
 
-    // ✅ 리뷰 작성시 중복 체크
+    // 리뷰 작성시 중복 체크
     @GetMapping("/check-exists")
     public ResponseEntity<?> checkReviewExists(
             @RequestParam Long orderId,
@@ -53,7 +53,7 @@ public class ReviewController {
         }
     }
 
-    // ✅ 리뷰 생성
+    // 리뷰 생성
     @PostMapping
     public ResponseEntity<ReviewResponseDTO> createReview(
             @AuthenticationPrincipal CustomerPrincipal customerPrincipal,

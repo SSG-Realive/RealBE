@@ -1,5 +1,6 @@
 package com.realive.dto.auction;
 
+import com.fasterxml.jackson.annotation.JsonFormat;
 import com.realive.domain.auction.AdminProduct;
 import com.realive.domain.common.enums.AuctionStatus;
 import jakarta.validation.constraints.Future;
@@ -26,10 +27,12 @@ public class AuctionCreateRequestDTO {
 
     @NotNull(message = "시작 시간은 필수입니다.")
     @Future(message = "시작 시간은 현재 시간 이후여야 합니다.")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime startTime; // 경매 시작 시간
 
     @NotNull(message = "종료 시간은 필수입니다.")
     @Future(message = "종료 시간은 현재 시간 이후여야 합니다.")
+    @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     private LocalDateTime endTime; // 경매 종료 시간
 
     // DTO를 Auction 엔티티로 변환하는 메소드

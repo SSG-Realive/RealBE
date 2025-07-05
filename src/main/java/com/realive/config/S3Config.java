@@ -9,6 +9,8 @@ import org.springframework.boot.context.properties.EnableConfigurationProperties
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
+//[AWS] AWS S3와 통신을 위한 설정
+
 @Configuration
 @EnableConfigurationProperties
 public class S3Config {
@@ -22,6 +24,7 @@ public class S3Config {
     @Value("${cloud.aws.region.static}")
     private String region;
 
+    //AmazonS3를 스프링 빈으로 생성
     @Bean
     public AmazonS3 amazonS3() {
         BasicAWSCredentials awsCredentials = new BasicAWSCredentials(accessKey, secretKey);

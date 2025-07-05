@@ -9,6 +9,7 @@ import com.realive.dto.auction.AdminProductDTO;
 import com.realive.dto.auction.AuctionWinnerResponseDTO;
 import com.realive.repository.auction.AuctionRepository;
 import com.realive.repository.auction.BidRepository;
+import com.realive.repository.auction.AuctionPaymentRepository;
 import com.realive.repository.product.ProductImageRepository;
 import com.realive.repository.product.ProductRepository;
 import com.realive.service.auction.AuctionService2;
@@ -24,6 +25,7 @@ public class AuctionServiceImpl2 implements AuctionService2 {
 
     private final AuctionRepository auctionRepository;
     private final BidRepository bidRepository;
+    private final AuctionPaymentRepository auctionPaymentRepository;
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
 
@@ -58,7 +60,15 @@ public class AuctionServiceImpl2 implements AuctionService2 {
             imageThumbnailUrl
         );
 
-        // 4) 최종 응답 DTO 생성 및 반환
-        return AuctionWinnerResponseDTO.fromEntity(auction, productDTO, winningBid);
+        // 4) 결제 상태 확인
+        boolean isPaid = auctionPaymentRepository.existsByCustomerIdAndAuctionIdAndStatusCompleted(customerId, auctionId);
+        String paymentStatus = isPaid ? "결제완료" : "결제대기";
+
+        // 5) 최종 응답 DTO 생성 및 반환
+        AuctionWinnerResponseDTO response = AuctionWinnerResponseDTO.fromEntity(auction, productDTO, winningBid);
+        response.setPaid(isPaid);
+        response.setPaymentStatus(paymentStatus);
+        
+        return response;
     }
 }

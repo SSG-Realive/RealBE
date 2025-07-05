@@ -1,7 +1,5 @@
 package com.realive.serviceimpl.seller;
 
-import java.util.List;
-
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -9,21 +7,16 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
-import org.springframework.web.multipart.MultipartFile;
 
-import com.realive.domain.common.enums.SellerFileType;
 import com.realive.domain.seller.Seller;
-import com.realive.domain.seller.SellerDocument;
 import com.realive.dto.seller.SellerLoginRequestDTO;
 import com.realive.dto.seller.SellerLoginResponseDTO;
 import com.realive.dto.seller.SellerResponseDTO;
 import com.realive.dto.seller.SellerSignupDTO;
 import com.realive.dto.seller.SellerUpdateDTO;
-import com.realive.repository.seller.SellerDocumentRepository;
 import com.realive.repository.seller.SellerRepository;
 import com.realive.security.JwtUtil;
 import com.realive.security.seller.SellerPrincipal;
-import com.realive.service.common.FileUploadService;
 import com.realive.service.seller.SellerService;
 
 import jakarta.transaction.Transactional;
@@ -37,8 +30,6 @@ public class SellerServiceImpl implements SellerService {
 
     private final SellerRepository sellerRepository;
     private final PasswordEncoder passwordEncoder;
-    private final SellerDocumentRepository sellerDocumentRepository;
-    private final FileUploadService fileUploadService;
     private final AuthenticationManager authenticationManager;
     private final JwtUtil jwtUtil;
 
@@ -69,6 +60,12 @@ public class SellerServiceImpl implements SellerService {
         Long sellerId = principal.getId();
         Seller seller = sellerRepository.findById(sellerId)
                 .orElseThrow(() -> new UsernameNotFoundException("인증은 성공했으나, DB에서 판매자 정보를 찾을 수 없습니다. ID: " + sellerId));
+
+        // 정지된 판매자 체크
+        if (!seller.isActive()) {
+            log.warn("정지된 판매자 로그인 시도: ID {}", sellerId);
+            throw new BadCredentialsException("정지된 계정입니다.");
+        }
 
         // 5. JWT 생성
         String accessToken = jwtUtil.generateAccessToken(principal);
