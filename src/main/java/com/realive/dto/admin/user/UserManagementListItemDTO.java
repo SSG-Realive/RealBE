@@ -14,6 +14,8 @@ public class UserManagementListItemDTO {
     private String email;
     private String phone;           // 선택적
     private Boolean isActive;
-    private LocalDateTime createdAt;  // Customer.getCreatedAt() 또는 Seller.getCreatedAt() 사용 가능
+    private LocalDateTime created;  // Customer.getCreated() 또는 Seller.getCreatedAt() 사용 가능
+    private Integer penaltyScore;   // Customer의 총 패널티 점수
     private Boolean isApproved;     // Seller인 경우에만 해당
+    private String businessNumber;  // Seller인 경우에만 해당
 }

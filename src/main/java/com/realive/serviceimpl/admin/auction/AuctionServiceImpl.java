@@ -21,12 +21,13 @@ import com.realive.dto.auction.AuctionResponseDTO;
 import com.realive.dto.auction.AuctionCancelResponseDTO;
 import com.realive.dto.auction.AuctionUpdateRequestDTO;
 import com.realive.dto.auction.AuctionWinResponseDTO;
-import com.realive.dto.auction.AuctionPaymentRequestDTO;
+import com.realive.dto.payment.AuctionPaymentRequestDTO;
 import com.realive.dto.payment.TossPaymentApproveRequestDTO;
 import com.realive.repository.admin.AdminRepository;
 import com.realive.repository.auction.AdminProductRepository;
 import com.realive.repository.auction.AuctionRepository;
 import com.realive.repository.auction.AuctionPaymentRepository;
+import com.realive.repository.auction.BidRepository;
 import com.realive.repository.product.ProductImageRepository;
 import com.realive.repository.product.ProductRepository;
 import com.realive.repository.customer.CustomerRepository;
@@ -52,6 +53,7 @@ import org.springframework.util.StringUtils;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -67,6 +69,7 @@ public class AuctionServiceImpl implements AuctionService {
     private final AuctionRepository auctionRepository;
     private final ProductRepository productRepository;
     private final AdminProductRepository adminProductRepository;
+    private final BidRepository bidRepository;
     private final AdminRepository adminRepository;
     private final ProductImageRepository productImageRepository;
     private final CustomerRepository customerRepository;
@@ -155,8 +158,8 @@ public class AuctionServiceImpl implements AuctionService {
                 switch (statusFilter.toUpperCase()) {
                     case "PROCEEDING": // 진행중: 시작했고, 종료되지 않았고, 마감 시간 전
                         predicates.add(criteriaBuilder.lessThanOrEqualTo(root.get("startTime"), now));
-                        predicates.add(criteriaBuilder.equal(root.get("status"), AuctionStatus.PROCEEDING));
                         predicates.add(criteriaBuilder.greaterThan(root.get("endTime"), now));
+                        predicates.add(criteriaBuilder.equal(root.get("status"), AuctionStatus.PROCEEDING));
                         break;
                     case "SCHEDULED": // 예정: 시작 시간이 미래이고, PROCEEDING 상태
                         predicates.add(criteriaBuilder.greaterThan(root.get("startTime"), now));
@@ -184,18 +187,34 @@ public class AuctionServiceImpl implements AuctionService {
         Page<Auction> auctionPage = auctionRepository.findAll(spec, pageable);
         List<AuctionResponseDTO> auctionResponseDTOs = convertToAuctionResponseDTOs(auctionPage.getContent());
         
-        // 상태별 우선순위로 정렬 (진행중 > 예정 > 종료 > 취소 > 실패)
-        auctionResponseDTOs.sort((a, b) -> {
-            int priorityA = getStatusPriority(a.getStatus(), a.getStartTime());
-            int priorityB = getStatusPriority(b.getStatus(), b.getStartTime());
-            
-            if (priorityA != priorityB) {
-                return Integer.compare(priorityA, priorityB);
-            }
-            
-            // 같은 상태 내에서는 시작시간 순으로 정렬
-            return a.getStartTime().compareTo(b.getStartTime());
-        });
+        // 정렬 로직 처리
+        String sortProperty = pageable.getSort().stream()
+                .map(sort -> sort.getProperty())
+                .findFirst()
+                .orElse("");
+        
+        if ("bidCount".equals(sortProperty)) {
+            // 입찰 수로 정렬
+            Map<Integer, Long> bidCountMap = getBidCountMap(auctionPage.getContent());
+            auctionResponseDTOs.sort((a, b) -> {
+                Long bidCountA = bidCountMap.getOrDefault(a.getId(), 0L);
+                Long bidCountB = bidCountMap.getOrDefault(b.getId(), 0L);
+                return bidCountB.compareTo(bidCountA); // 내림차순 (인기순)
+            });
+        } else {
+            // 기본 정렬: 상태별 우선순위로 정렬 (진행중 > 예정 > 종료 > 취소 > 실패)
+            auctionResponseDTOs.sort((a, b) -> {
+                int priorityA = getStatusPriority(a.getStatus(), a.getStartTime());
+                int priorityB = getStatusPriority(b.getStatus(), b.getStartTime());
+                
+                if (priorityA != priorityB) {
+                    return Integer.compare(priorityA, priorityB);
+                }
+                
+                // 같은 상태 내에서는 시작시간 순으로 정렬
+                return a.getStartTime().compareTo(b.getStartTime());
+            });
+        }
         
         return new PageImpl<>(auctionResponseDTOs, pageable, auctionPage.getTotalElements());
     }
@@ -377,6 +396,9 @@ public class AuctionServiceImpl implements AuctionService {
         }
 
         // 4. 경매 정보 업데이트
+        if (requestDto.getStartTime() != null) {
+            auction.setStartTime(requestDto.getStartTime());
+        }
         if (requestDto.getEndTime() != null) {
             auction.setEndTime(requestDto.getEndTime());
         }
@@ -535,42 +557,41 @@ public class AuctionServiceImpl implements AuctionService {
         Product product = productRepository.findById(adminProduct.getProductId().longValue())
                 .orElseThrow(() -> new NoSuchElementException("상품 정보를 찾을 수 없습니다."));
         
-        // 5. AuctionPayment 생성
+        // 5. AuctionPayment 생성 (고객 정보에서 배송지 정보 가져오기)
         AuctionPayment auctionPayment = AuctionPayment.builder()
                 .auctionId(auction.getId())
                 .customerId(customerId)
                 .paymentKey(requestDto.getPaymentKey())
                 .amount(auction.getWinningBidPrice())
-                .receiverName(requestDto.getReceiverName())
-                .phone(requestDto.getPhone())
-                .deliveryAddress(requestDto.getDeliveryAddress())
-                .paymentMethod(requestDto.getPaymentMethod().name())
+                .receiverName(customer.getName())
+                .phone(customer.getPhone())
+                .deliveryAddress(customer.getAddress())
+                .paymentMethod("경매 결제")
                 .status(PaymentStatus.READY)
                 .build();
         
         auctionPaymentRepository.save(auctionPayment);
         
-        // 6. 토스페이먼츠 결제 승인
-        TossPaymentApproveRequestDTO tossApproveRequest = TossPaymentApproveRequestDTO.builder()
-                .paymentKey(requestDto.getPaymentKey())
-                .orderId(requestDto.getTossOrderId())
-                .amount((long) auction.getWinningBidPrice())
-                .build();
-        
+        // 6. 토스페이먼츠 결제 승인 (경매 전용 처리)
         try {
-            paymentService.approveTossPayment(tossApproveRequest);
-            log.info("토스페이먼츠 결제 승인 성공 - AuctionId: {}", auction.getId());
+            // Mock 모드에서는 간단히 성공으로 처리
+            if (true) { // Mock 모드
+                log.info("Mock 모드: 경매 결제 승인 성공 - AuctionId: {}, PaymentKey: {}", auction.getId(), requestDto.getPaymentKey());
+            } else {
+                // 실제 토스페이먼츠 API 호출 로직 (필요시 구현)
+                log.info("실제 토스페이먼츠 API 호출 - AuctionId: {}", auction.getId());
+            }
             
-            // 7. 주문 생성
-            Order order = Order.builder()
-                    .customer(customer)
-                    .status(OrderStatus.PAYMENT_COMPLETED)
-                    .totalPrice(auction.getWinningBidPrice())
-                    .deliveryAddress(requestDto.getDeliveryAddress())
-                    .paymentMethod(requestDto.getPaymentMethod().name())
-                    .orderedAt(LocalDateTime.now())
-                    .updatedAt(LocalDateTime.now())
-                    .build();
+                    // 7. 주문 생성
+        Order order = Order.builder()
+                .customer(customer)
+                .status(OrderStatus.PAYMENT_COMPLETED)
+                .totalPrice(auction.getWinningBidPrice())
+                .deliveryAddress(customer.getAddress())
+                .orderedAt(LocalDateTime.now())
+                .updatedAt(LocalDateTime.now())
+                .paymentMethod("CARD") // 기본값으로 설정
+                .build();
             
             Order savedOrder = orderRepository.save(order);
             
@@ -623,5 +644,39 @@ public class AuctionServiceImpl implements AuctionService {
             default:
                 return 6; // 기타
         }
+    }
+    
+    /**
+     * 경매 목록의 입찰 수를 계산하여 Map으로 반환
+     */
+    private Map<Integer, Long> getBidCountMap(List<Auction> auctions) {
+        if (auctions.isEmpty()) {
+            return Collections.emptyMap();
+        }
+        
+        List<Integer> auctionIds = auctions.stream()
+                .map(Auction::getId)
+                .collect(Collectors.toList());
+        
+        Map<Integer, Long> bidCountMap = new HashMap<>();
+        try {
+            for (Integer auctionId : auctionIds) {
+                try {
+                    Long bidCount = bidRepository.countBidsByAuctionId(auctionId);
+                    bidCountMap.put(auctionId, bidCount != null ? bidCount : 0L);
+                } catch (Exception e) {
+                    log.warn("경매 ID {}의 입찰 수 조회 중 오류 발생: {}", auctionId, e.getMessage());
+                    bidCountMap.put(auctionId, 0L);
+                }
+            }
+        } catch (Exception e) {
+            log.error("입찰 수 계산 중 오류 발생: {}", e.getMessage());
+            // 오류 발생 시 모든 경매의 입찰 수를 0으로 설정
+            for (Integer auctionId : auctionIds) {
+                bidCountMap.put(auctionId, 0L);
+            }
+        }
+        
+        return bidCountMap;
     }
 }

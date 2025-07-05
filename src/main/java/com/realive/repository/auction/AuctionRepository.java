@@ -97,4 +97,10 @@ public interface AuctionRepository extends JpaRepository<Auction, Integer>, JpaS
      */
     @Query("SELECT COUNT(a) FROM Auction a WHERE a.createdAt BETWEEN :startDateTime AND :endDateTime")
     Long countAuctionsByDateTime(@Param("startDateTime") LocalDateTime startDateTime, @Param("endDateTime") LocalDateTime endDateTime);
+
+    /**
+     * 경매별 입찰 수를 계산하는 쿼리
+     */
+    @Query("SELECT a.id, COUNT(b.id) as bidCount FROM Auction a LEFT JOIN Bid b ON a.id = b.auctionId GROUP BY a.id")
+    List<Object[]> getAuctionBidCounts();
 }

@@ -345,7 +345,7 @@ public class OrderServiceImpl implements OrderService {
         String receiverName = payRequestDTO.getReceiverName();
         String phone = payRequestDTO.getPhone();
         String deliveryAddress = payRequestDTO.getDeliveryAddress();
-        PaymentType paymentType = payRequestDTO.getPaymentMethod();
+        String paymentType = payRequestDTO.getPaymentMethod();
 
         if (receiverName == null || receiverName.isEmpty() ||
                 phone == null || phone.isEmpty() ||
@@ -398,7 +398,7 @@ public class OrderServiceImpl implements OrderService {
                 .deliveryAddress(deliveryAddress)
                 .orderedAt(LocalDateTime.now())
                 .updatedAt(LocalDateTime.now())
-                .paymentMethod(paymentType.getDescription())
+                .paymentMethod(paymentType)
                 .build();
         order = orderRepository.save(order);
 

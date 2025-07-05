@@ -70,11 +70,12 @@ public class BidServiceImpl implements BidService {
 
         Bid savedBid = bidRepository.save(bid);
 
-        // 경매 현재가 업데이트
+        // 경매 현재가 및 입찰 수 업데이트
         log.info("🔥 현재가 업데이트 전: {} -> 후: {}", auction.getCurrentPrice(), requestDTO.getBidPrice());
         auction.setCurrentPrice(requestDTO.getBidPrice());
+        auction.setBidCount(auction.getBidCount() + 1);
         Auction updatedAuction = auctionRepository.save(auction);
-        log.info("🔥 경매 저장 완료. 업데이트된 현재가: {}", updatedAuction.getCurrentPrice());
+        log.info("🔥 경매 저장 완료. 업데이트된 현재가: {}, 입찰 수: {}", updatedAuction.getCurrentPrice(), updatedAuction.getBidCount());
 
         // 이전 입찰자에게 알림
 //        if (auction.getCurrentPrice() != null && auction.getCurrentPrice() < requestDTO.getBidPrice()) {
@@ -123,6 +124,16 @@ public class BidServiceImpl implements BidService {
         return bidRepository.findByCustomerIdOrderByBidTimeDesc(customerId, pageable)
                 .map(bid -> {
                     Customer customer = customerRepository.findById(customerId.longValue())
+                            .orElseThrow(() -> new IllegalArgumentException("고객을 찾을 수 없습니다."));
+                    return BidResponseDTO.fromEntity(bid, customer.getName());
+                });
+    }
+
+    @Override
+    public Page<BidResponseDTO> getAllBids(Pageable pageable) {
+        return bidRepository.findAllByOrderByBidTimeDesc(pageable)
+                .map(bid -> {
+                    Customer customer = customerRepository.findById(bid.getCustomerId().longValue())
                             .orElseThrow(() -> new IllegalArgumentException("고객을 찾을 수 없습니다."));
                     return BidResponseDTO.fromEntity(bid, customer.getName());
                 });
