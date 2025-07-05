@@ -99,4 +99,5 @@ public interface PayoutLogRepository extends JpaRepository<PayoutLog, Integer> {
     @Query("SELECT pl FROM PayoutLog pl WHERE pl.sellerId = :sellerId AND pl.periodStart <= :to AND pl.periodEnd >= :from")
     List<PayoutLog> findBySellerIdAndPeriodRange(@Param("sellerId") Integer sellerId, @Param("from") LocalDate from, @Param("to") LocalDate to);
 
+    Page<PayoutLog> findBySellerId(Integer sellerId, Pageable pageable);
 }

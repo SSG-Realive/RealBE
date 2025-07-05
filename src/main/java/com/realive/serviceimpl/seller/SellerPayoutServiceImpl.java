@@ -16,6 +16,8 @@ import com.realive.repository.order.OrderItemRepository;
 import com.realive.service.seller.SellerPayoutService;
 import jakarta.persistence.EntityNotFoundException;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 
@@ -222,6 +224,13 @@ public class SellerPayoutServiceImpl implements SellerPayoutService {
                 .stream()
                 .map(CommissionLogDTO::fromEntity)
                 .toList();
+    }
+
+    @Override
+    public Page<PayoutLogDTO> getPayoutLogsBySellerId(Long sellerId, Pageable pageable) {
+        Integer intSellerId = sellerId.intValue();
+        return payoutLogRepository.findBySellerId(intSellerId, pageable)
+                .map(PayoutLogDTO::fromEntity);
     }
 }
 
