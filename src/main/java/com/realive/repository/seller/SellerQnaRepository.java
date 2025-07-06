@@ -40,4 +40,18 @@ public interface SellerQnaRepository extends JpaRepository<SellerQna, Long> {
     Page<SellerQna> findBySellerIdAndKeyword(@Param("sellerId") Long sellerId,
                                              @Param("keyword") String keyword,
                                              Pageable pageable);
+
+    // ✅ 관리자용 메서드 추가
+    // 전체 답변완료 Q&A 수
+    long countByIsAnsweredTrue();
+
+    // 전체 미답변 Q&A 수
+    long countByIsAnsweredFalse();
+
+    // 또는 더 명확하게
+    @Query("SELECT COUNT(sq) FROM SellerQna sq WHERE sq.isAnswered = true")
+    long countAnsweredQna();
+
+    @Query("SELECT COUNT(sq) FROM SellerQna sq WHERE sq.isAnswered = false")
+    long countUnansweredQna();
 }

@@ -1,26 +1,25 @@
 package com.realive.service.admin.user;
 
-import com.realive.dto.customer.customerqna.CustomerQnaDetailDTO;
-import com.realive.dto.customer.customerqna.CustomerQnaListDTO;
+import com.realive.dto.sellerqna.SellerQnaDetailResponseDTO;
+import com.realive.dto.sellerqna.SellerQnaResponseDTO;
+import com.realive.dto.sellerqna.SellerQnaStatisticsDTO;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 
-import java.util.List;
 
 public interface AdminQnaService {
+    // 판매자 Q&A 목록 조회 (페이징)
+    Page<SellerQnaResponseDTO> getAllSellerQnaList(Pageable pageable);
 
-    // 전체 고객 Q&A 목록 조회
-    Page<CustomerQnaListDTO> getAllCustomerQnaList(Pageable pageable);
+    // 특정 판매자 Q&A 상세 조회
+    SellerQnaDetailResponseDTO getSellerQnaDetail(Long qnaId);
 
-    // 특정 고객 Q&A 상세 조회
-    CustomerQnaDetailDTO getCustomerQnaDetail(Long qnaId);
+    // 관리자가 판매자 Q&A에 답변 등록/수정
+    void answerSellerQna(Long qnaId, String answer);
 
-    // [옵션] 답변되지 않은 고객 Q&A 목록 조회
-    Page<CustomerQnaListDTO> getUnansweredCustomerQnaList(Pageable pageable);
+    // 판매자 Q&A 삭제
+    void deleteSellerQna(Long qnaId);
 
-    // [옵션] 특정 상품에 대한 고객 Q&A 목록 조회
-    List<CustomerQnaListDTO> getCustomerQnaListByProduct(Long productId);
-
-    // 고객 Q&A 삭제
-    void deleteCustomerQna(Long qnaId);
+    // 통계 조회
+    SellerQnaStatisticsDTO getSellerQnaStatistics();
 }
