@@ -40,7 +40,7 @@ public class AdminSettlementController {
     }
 
     // 정산 상세 조회 (관리자용)
-    @GetMapping("/{payoutId}")
+    @GetMapping("/{payoutId:[0-9]+}")
     public ResponseEntity<AdminPayoutDetailResponseDTO> getPayoutDetail(
             @PathVariable Integer payoutId) {
 
