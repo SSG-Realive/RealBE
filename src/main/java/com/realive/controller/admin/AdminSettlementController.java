@@ -11,7 +11,7 @@ import java.time.LocalDate;
 import java.util.List;
 
 @RestController
-@RequestMapping("/admin/settlements")
+@RequestMapping("/api/admin/settlements")  // ← /api 추가
 @RequiredArgsConstructor
 public class AdminSettlementController {
 
