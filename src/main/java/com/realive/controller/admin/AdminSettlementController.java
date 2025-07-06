@@ -75,6 +75,21 @@ public class AdminSettlementController {
         return ResponseEntity.ok(response);
     }
 
+    // 월별 정산 요약 조회 (관리자용)
+    @GetMapping("/trend/monthly")
+    public ResponseEntity<List<MonthlyPayoutSummaryResponseDTO>> getMonthlyPayoutSummary(
+            @RequestParam String startDate,
+            @RequestParam String endDate) {
+
+        LocalDate start = LocalDate.parse(startDate);
+        LocalDate end = LocalDate.parse(endDate);
+
+        List<MonthlyPayoutSummaryResponseDTO> response =
+                adminSettlementService.getMonthlyPayoutSummary(start, end);
+
+        return ResponseEntity.ok(response);
+    }
+
     // 월별 정산 상세 조회 (관리자용)
     @GetMapping("/monthly-detail/{yearMonth}")
     public ResponseEntity<MonthlyPayoutDetailResponseDTO> getMonthlyPayoutDetail(

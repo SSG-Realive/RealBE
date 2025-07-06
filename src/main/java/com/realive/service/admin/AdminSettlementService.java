@@ -15,7 +15,7 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import jakarta.persistence.EntityNotFoundException; // 수정: jakarta.persistence 사용
+import jakarta.persistence.EntityNotFoundException;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -35,7 +35,6 @@ public class AdminSettlementService {
             PageRequest pageRequest,
             AdminPayoutSearchConditionDTO condition) {
 
-        // 기존 Repository의 관리자용 검색 메서드 활용
         Page<PayoutLog> payoutPage = payoutLogRepository.findAllByAdminSearchCondition(
                 pageRequest,
                 condition.getSellerName(),
@@ -62,11 +61,9 @@ public class AdminSettlementService {
         PayoutLog payout = payoutLogRepository.findById(payoutId)
                 .orElseThrow(() -> new EntityNotFoundException("정산 정보를 찾을 수 없습니다."));
 
-        // PayoutLog의 sellerId가 Integer이므로 Long으로 변환
         Seller seller = sellerRepository.findById(payout.getSellerId().longValue())
                 .orElseThrow(() -> new EntityNotFoundException("판매자 정보를 찾을 수 없습니다."));
 
-        // 해당 기간의 판매 내역 조회 (기존 메서드 활용)
         List<SalesLog> salesLogs = salesLogRepository.findBySoldAtBetween(
                         payout.getPeriodStart(),
                         payout.getPeriodEnd()
@@ -74,7 +71,6 @@ public class AdminSettlementService {
                 .filter(salesLog -> salesLog.getSellerId().equals(payout.getSellerId()))
                 .collect(Collectors.toList());
 
-        // 해당 기간의 수수료 내역 조회 (기존 메서드 활용)
         List<CommissionLog> commissionLogs = commissionLogRepository
                 .findBySalesLogIdIn(salesLogs.stream()
                         .map(SalesLog::getId)
@@ -82,7 +78,7 @@ public class AdminSettlementService {
 
         return AdminPayoutDetailResponseDTO.builder()
                 .payoutId(payout.getId())
-                .sellerId(seller.getId().intValue()) // Long을 Integer로 변환
+                .sellerId(seller.getId().intValue())
                 .sellerName(seller.getName())
                 .sellerEmail(seller.getEmail())
                 .periodStart(payout.getPeriodStart())
@@ -100,17 +96,18 @@ public class AdminSettlementService {
                 .build();
     }
 
-    // 정산 통계 조회 (관리자용) - 기존 메서드들 활용
+    // 정산 통계 조회 (관리자용)
     public AdminSettlementStatisticsResponseDTO getSettlementStatistics() {
         LocalDate today = LocalDate.now();
         LocalDate thirtyDaysAgo = today.minusDays(30);
 
-        // 기존 Repository 메서드들 활용
         long totalPayouts = payoutLogRepository.count();
         long recentPayouts = payoutLogRepository.countPayoutsByDateBetween(thirtyDaysAgo, today);
 
-        Long totalPayoutAmount = payoutLogRepository.sumPayoutAmountByDateBetween(thirtyDaysAgo, today);
-        Long recentPayoutAmount = payoutLogRepository.sumPayoutAmountByDateBetween(thirtyDaysAgo, today);
+        Long totalPayoutAmount = payoutLogRepository.sumPayoutAmountByDateBetween(
+                LocalDate.of(2020, 1, 1), today);
+        Long recentPayoutAmount = payoutLogRepository.sumPayoutAmountByDateBetween(
+                thirtyDaysAgo, today);
 
         return AdminSettlementStatisticsResponseDTO.builder()
                 .totalPayouts(totalPayouts)
@@ -120,11 +117,10 @@ public class AdminSettlementService {
                 .build();
     }
 
-    // 일별 매출 추이 그래프 (기존 메서드 활용)
+    // 일별 매출 추이 그래프
     public List<DailyPayoutSummaryResponseDTO> getDailyPayoutSummary(
             LocalDate startDate, LocalDate endDate) {
 
-        // 기존 Repository의 매출 추이 메서드 활용
         List<Object[]> dailySummaries = payoutLogRepository.getDailyPayoutSummary(startDate, endDate);
 
         return dailySummaries.stream()
@@ -135,18 +131,23 @@ public class AdminSettlementService {
                 .collect(Collectors.toList());
     }
 
-    // 월별 정산 요약 조회 (관리자용) - 메서드 제거 (Repository에 없음)
+    // 월별 정산 요약 조회
     public List<MonthlyPayoutSummaryResponseDTO> getMonthlyPayoutSummary(
             LocalDate startDate, LocalDate endDate) {
 
-        // PayoutLogRepository에 월별 집계 메서드가 없으므로 임시로 빈 리스트 반환
-        // 실제로는 Repository에 메서드를 추가해야 함
-        return List.of();
+        List<Object[]> monthlySummaries = payoutLogRepository.getMonthlyPayoutSummary(startDate, endDate);
+
+        return monthlySummaries.stream()
+                .map(row -> MonthlyPayoutSummaryResponseDTO.builder()
+                        .yearMonth((String) row[0])
+                        .totalPayouts(((Number) row[1]).intValue())
+                        .totalAmount(((Number) row[2]).intValue())
+                        .build())
+                .collect(Collectors.toList());
     }
 
-    // 월별 정산 상세 조회 (관리자용)
+    // 월별 정산 상세 조회
     public MonthlyPayoutDetailResponseDTO getMonthlyPayoutDetail(String yearMonth) {
-        // yearMonth를 파싱해서 해당 월의 시작일과 종료일 계산
         String[] parts = yearMonth.split("-");
         int year = Integer.parseInt(parts[0]);
         int month = Integer.parseInt(parts[1]);
@@ -154,8 +155,7 @@ public class AdminSettlementService {
         LocalDate startDate = LocalDate.of(year, month, 1);
         LocalDate endDate = startDate.plusMonths(1).minusDays(1);
 
-        // 해당 월의 정산 목록 조회
-        PageRequest pageRequest = PageRequest.of(0, 1000); // 충분히 큰 크기
+        PageRequest pageRequest = PageRequest.of(0, 1000);
         AdminPayoutSearchConditionDTO condition = AdminPayoutSearchConditionDTO.builder()
                 .periodStart(startDate)
                 .periodEnd(endDate)
@@ -163,9 +163,8 @@ public class AdminSettlementService {
 
         AdminSettlementPageResponseDTO<AdminPayoutResponseDTO> payoutPage = getPayoutList(pageRequest, condition);
 
-        // 해당 월의 총 판매액과 수수료 계산
         Integer totalSales = salesLogRepository.sumTotalPriceBySoldAtBetween(startDate, endDate);
-        Integer totalCommission = commissionLogRepository.sumCommissionAmountBySellerAndDateRange(null, startDate, endDate);
+        Integer totalCommission = commissionLogRepository.sumCommissionAmountByDateRange(startDate, endDate);
 
         return MonthlyPayoutDetailResponseDTO.builder()
                 .yearMonth(yearMonth)
@@ -181,7 +180,6 @@ public class AdminSettlementService {
 
     // Response 변환 메서드들
     private AdminPayoutResponseDTO convertToAdminPayoutResponse(PayoutLog payout) {
-        // PayoutLog의 sellerId가 Integer이므로 Long으로 변환
         Seller seller = sellerRepository.findById(payout.getSellerId().longValue())
                 .orElse(null);
 
