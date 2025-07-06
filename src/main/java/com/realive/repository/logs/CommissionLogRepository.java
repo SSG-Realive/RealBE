@@ -5,6 +5,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -35,5 +36,12 @@ public interface CommissionLogRepository extends JpaRepository<CommissionLog, In
      */
     List<CommissionLog> findBySalesLogIdIn(List<Integer> salesLogIds);
 
-
+    /**
+     * 특정 기간의 총 수수료 금액 조회 (판매자별 필터링 없음)
+     */
+    @Query("SELECT COALESCE(SUM(cl.commissionAmount), 0) FROM CommissionLog cl " +
+            "JOIN SalesLog sl ON cl.salesLogId = sl.id " +
+            "WHERE sl.soldAt BETWEEN :startDate AND :endDate")
+    Integer sumCommissionAmountByDateRange(@Param("startDate") LocalDate startDate,
+                                           @Param("endDate") LocalDate endDate);
 }
