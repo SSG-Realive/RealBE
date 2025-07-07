@@ -6,7 +6,13 @@ import java.util.stream.Collectors;
 
 import com.realive.repository.customer.productview.ProductViewRepository;
 import com.realive.repository.product.CategoryRepository;
+import com.realive.domain.product.Category;
+import com.realive.domain.product.DeliveryPolicy;
+import com.realive.domain.product.ProductImage;
+import com.realive.repository.product.DeliveryPolicyRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +22,7 @@ import com.realive.dto.page.PageRequestDTO;
 import com.realive.dto.page.PageResponseDTO;
 import com.realive.dto.product.ProductListDTO;
 import com.realive.dto.product.ProductResponseDTO;
+import com.realive.dto.product.DeliveryPolicyDTO;
 import com.realive.repository.customer.productview.ProductDetail;
 import com.realive.repository.customer.productview.ProductSearch;
 import com.realive.repository.customer.WishlistRepository;
@@ -37,15 +44,17 @@ public class ProductViewServiceImpl implements ProductViewService {
     private final WishlistRepository wishlistRepository;
     private final ProductViewRepository productViewRepository;
     private final CategoryRepository categoryRepository;
+    private final DeliveryPolicyRepository deliveryPolicyRepository; // 배송정책 조회용
 
     public ProductViewServiceImpl(
             @Qualifier("productSearchImpl") ProductSearch productSearch,
             @Qualifier("productDetailImpl") ProductDetail productDetail,
             ProductRepository productRepository,
             ProductImageRepository productImageRepository,
-            WishlistRepository wishlistRepository,
             ProductViewRepository productViewRepository,
-            CategoryRepository categoryRepository
+            WishlistRepository wishlistRepository,
+            CategoryRepository categoryRepository,
+            DeliveryPolicyRepository deliveryPolicyRepository
     ) {
         this.productSearch = productSearch;
         this.productDetail = productDetail;
@@ -54,6 +63,7 @@ public class ProductViewServiceImpl implements ProductViewService {
         this.wishlistRepository = wishlistRepository;
         this.productViewRepository = productViewRepository;
         this.categoryRepository = categoryRepository;
+        this.deliveryPolicyRepository = deliveryPolicyRepository;
     }
 
     @Override
@@ -153,5 +163,76 @@ public class ProductViewServiceImpl implements ProductViewService {
                             .build();
                 })
                 .toList();
+    }
+
+    @Override
+    public List<ProductResponseDTO> getRecommendedProductsByCategory(Long categoryId, int limit) {
+        Pageable pageable = PageRequest.of(0, limit);
+        List<Product> products = productRepository.findByCategoryIdIn(List.of(categoryId), pageable);
+
+        log.info("[추천 상품 조회] categoryId={}, 조회 결과 수={}", categoryId, products.size());
+
+        return products.stream()
+                .map(product -> {
+                    List<ProductImage> images = productImageRepository.findByProductId(product.getId());
+
+                    String thumbnailUrl = images.stream()
+                            .filter(ProductImage::isThumbnail)
+                            .filter(image -> image.getMediaType() == MediaType.IMAGE)
+                            .map(ProductImage::getUrl)
+                            .findFirst()
+                            .orElse(null);
+
+                    String videoThumbnailUrl = images.stream()
+                            .filter(ProductImage::isThumbnail)
+                            .filter(image -> image.getMediaType() == MediaType.VIDEO)
+                            .map(ProductImage::getUrl)
+                            .findFirst()
+                            .orElse(null);
+
+                    List<String> imageUrls = images.stream()
+                            .filter(image -> image.getMediaType() == MediaType.IMAGE)
+                            .map(ProductImage::getUrl)
+                            .collect(Collectors.toList());
+
+                    DeliveryPolicy deliveryPolicy = deliveryPolicyRepository
+                            .findByProductId(product.getId())
+                            .orElse(null);
+
+                    return ProductResponseDTO.builder()
+                            .id(product.getId())
+                            .name(product.getName())
+                            .description(product.getDescription())
+                            .price(product.getPrice())
+                            .stock(product.getStock())
+                            .width(product.getWidth())
+                            .depth(product.getDepth())
+                            .height(product.getHeight())
+                            .status(product.getStatus().name())
+                            .isActive(product.isActive())
+                            .imageThumbnailUrl(thumbnailUrl)
+                            .videoThumbnailUrl(videoThumbnailUrl)
+                            .imageUrls(imageUrls)
+                            .categoryId(product.getCategory() != null ? product.getCategory().getId() : null)
+                            .parentCategoryId(product.getCategory() != null && product.getCategory().getParent() != null
+                                    ? product.getCategory().getParent().getId()
+                                    : null)
+                            .categoryName(Category.getCategoryFullPath(product.getCategory()))
+                            .sellerId(product.getSeller().getId())
+                            .sellerName(product.getSeller().getName())
+                            .deliveryPolicy(mapToDeliveryPolicyDTO(deliveryPolicy))
+                            .build();
+                })
+                .collect(Collectors.toList());
+    }
+
+    private DeliveryPolicyDTO mapToDeliveryPolicyDTO(DeliveryPolicy deliveryPolicy) {
+        if (deliveryPolicy == null) return null;
+
+        return DeliveryPolicyDTO.builder()
+                .type(deliveryPolicy.getType())
+                .cost(deliveryPolicy.getCost())
+                .regionLimit(deliveryPolicy.getRegionLimit())
+                .build();
     }
 }

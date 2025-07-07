@@ -1,5 +1,7 @@
 package com.realive.serviceimpl.product;
 
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.realive.domain.common.enums.MediaType;
 import com.realive.domain.product.*;
 import com.realive.domain.seller.Seller;
@@ -13,9 +15,12 @@ import com.realive.repository.seller.SellerRepository;
 import com.realive.service.admin.logs.StatService;
 import com.realive.service.common.S3Uploader;
 import com.realive.service.product.ProductService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.web.reactive.function.client.WebClient;
 
 import lombok.RequiredArgsConstructor;
 
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -48,6 +53,15 @@ public class ProductServiceImpl implements ProductService {
         private final StatService statService;
         private final SellerReviewRepository sellerReviewRepository; // SellerReviewRepository 주입
         private final S3Uploader s3Uploader;
+        @Qualifier("openAiWebClient")
+        private final WebClient openAiWebClient;  // 이름이 openAiWebClient인 빈 주입
+        private final ObjectMapper objectMapper;
+
+        @Value("${openai.api.key}")
+        private String openAiApiKey;
+
+        @Value("${openai.model}")
+        private String model; // ex) gpt-4, gpt-3.5-turbo 등
 
         @Override
         public Long createProduct(ProductRequestDTO dto, Long sellerId) {
@@ -552,5 +566,52 @@ public class ProductServiceImpl implements ProductService {
                                 .businessNumber(seller.getBusinessNumber())
                                 .build();
                 });
+        }
+
+        @Override
+        public GenerateProductDescriptionResponseDTO generateDescription(GenerateProductDescriptionRequestDTO request) {
+                try {
+                        // OpenAI 메시지 구성
+                        Map<String, Object> body = Map.of(
+                                "model", model,
+                                "messages", List.of(
+                                        Map.of("role", "system", "content", "당신은 상품 기획자입니다. 주어진 정보를 바탕으로 매력적인 상품 설명을 작성하세요."),
+                                        Map.of("role", "user", "content", buildPrompt(request))
+                                )
+                        );
+
+                        String responseJson = openAiWebClient.post()
+                                .uri("/chat/completions")
+                                .header("Authorization", "Bearer " + openAiApiKey)
+                                .bodyValue(body)
+                                .retrieve()
+                                .bodyToMono(String.class)
+                                .block();
+
+                        // 응답 파싱
+                        JsonNode root = objectMapper.readTree(responseJson);
+                        String aiText = root.path("choices").get(0).path("message").path("content").asText();
+
+                        return new GenerateProductDescriptionResponseDTO(aiText);
+
+                } catch (Exception e) {
+                        throw new RuntimeException("AI 상품 설명 생성 실패: " + e.getMessage(), e);
+                }
+        }
+
+        private String buildPrompt(GenerateProductDescriptionRequestDTO request) {
+                return String.format("""
+        아래 정보를 참고하여 소비자에게 어필할 수 있는 상품 설명을 작성해주세요.
+
+        - 상품명: %s
+        - 카테고리: %s
+        - 표현 톤: %s
+        - 기능 및 특징: %s
+        """,
+                        request.getProductName(),
+                        request.getCategoryName(),
+                        request.getTone(),
+                        String.join(", ", request.getFeatures())
+                );
         }
 }
