@@ -90,7 +90,7 @@ public class FunctionSchemaFactory {
     }
 
     // 추천 셀러와 상품 조회
-    public static ChatRequestDTO.FunctionDefinition getFeaturedSellersFunction() {
+    public static ChatRequestDTO.FunctionDefinition getFeaturedSellersWithProductsFunction() {
         Map<String, Object> parameters = buildParameters(Map.of(
                 "candidateSize", prop("integer", "후보 셀러 수"),
                 "sellersPick", prop("integer", "추천할 셀러 수"),
@@ -99,8 +99,63 @@ public class FunctionSchemaFactory {
         ), List.of("candidateSize", "sellersPick", "productsPerSeller", "minReviews"));
 
         return new ChatRequestDTO.FunctionDefinition(
-                "getFeaturedSellers",
+                "getFeaturedSellersWithProducts",
                 "리뷰 수를 기준으로 추천 셀러와 추천 상품을 랜덤으로 조회합니다.",
+                parameters
+        );
+    }
+
+
+
+    // 상품 검색 (카테고리별, limit 개수)
+    public static ChatRequestDTO.FunctionDefinition searchProductsFunction() {
+        Map<String, Object> parameters = buildParameters(Map.of(
+                "limit", prop("integer", "조회할 최대 상품 개수 (기본값: 10)"),
+                "categoryId", prop("integer", "카테고리 ID (선택 사항)")
+        ), List.of()); // 필수 없음
+
+        return new ChatRequestDTO.FunctionDefinition(
+                "searchProducts",
+                "카테고리 기준으로 최대 limit 개수만큼 상품을 조회합니다.",
+                parameters
+        );
+    }
+
+    // 관련 상품 조회 (특정 상품 기준)
+    public static ChatRequestDTO.FunctionDefinition getRelatedProductsFunction() {
+        Map<String, Object> parameters = buildParameters(Map.of(
+                "productId", prop("integer", "기준이 되는 상품 ID")
+        ), List.of("productId")); // 필수
+
+        return new ChatRequestDTO.FunctionDefinition(
+                "getRelatedProducts",
+                "특정 상품을 기준으로 관련 상품 목록을 조회합니다.",
+                parameters
+        );
+    }
+
+    // 인기 상품 조회 (파라미터 없음)
+    public static ChatRequestDTO.FunctionDefinition getPopularProductsFunction() {
+        Map<String, Object> parameters = buildParameters(Map.of(
+                // 파라미터 없음
+        ), List.of());
+
+        return new ChatRequestDTO.FunctionDefinition(
+                "getPopularProducts",
+                "찜이 많은 인기 상품 목록을 조회합니다.",
+                parameters
+        );
+    }
+
+    public static ChatRequestDTO.FunctionDefinition getRecommendedProductsByCategoryFunction() {
+        Map<String, Object> parameters = buildParameters(Map.of(
+                "categoryId", prop("integer", "카테고리 ID"),
+                "limit", prop("integer", "추천 받을 상품 개수 (기본값: 6)")
+        ), List.of("categoryId"));  // limit은 선택, categoryId는 필수
+
+        return new ChatRequestDTO.FunctionDefinition(
+                "getRecommendedProductsByCategory",
+                "특정 카테고리를 기반으로 추천 상품 목록을 조회합니다.",
                 parameters
         );
     }
@@ -114,10 +169,10 @@ public class FunctionSchemaFactory {
                 getWishlistFunction(),
                 getProductInfoFunction(),
                 getSellerInfoByProductFunction(),
-                getFeaturedSellersFunction()
+                getFeaturedSellersWithProductsFunction(),
+                getRecommendedProductsByCategoryFunction()
         );
     }
-
     // ====== 공통 로직 추출 ======
     private static Map<String, String> prop(String type, String desc) {
         Map<String, String> map = new HashMap<>();
