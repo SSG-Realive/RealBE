@@ -94,4 +94,19 @@ public class SellerDataPublicViewController {
         PageResponseDTO<ProductListDTO> products = productService.getProductsBySeller(sellerId, productSearchCondition);
         return ResponseEntity.ok(products);
     }
+
+    // Seller ID로 판매자 공개 정보 조회
+    @GetMapping("/{sellerId}")
+    public ResponseEntity<SellerPublicResponseDTO> getPublicSellerInfoBySellerId(@PathVariable Long sellerId) {
+        log.info("판매자 ID {} 에 대한 공개 판매자 정보 조회를 요청받았습니다.", sellerId);
+
+        Optional<SellerPublicResponseDTO> sellerPublicInfo = productService.getPublicSellerInfoBySellerId(sellerId);
+
+        return sellerPublicInfo.map(ResponseEntity::ok)
+                .orElseGet(() -> {
+                    log.warn("판매자 ID {} 에 해당하는 판매자 정보를 찾을 수 없습니다.", sellerId);
+                    return ResponseEntity.notFound().build();
+                });
+    }
+
 }

@@ -90,4 +90,7 @@ public interface ProductService {
      * @return 고객에게 노출 가능한 판매자 정보 DTO (Optional<SellerPublicDto>로 반환)
      */
     Optional<SellerPublicResponseDTO> getPublicSellerInfoByProductId(Long productId);
+
+    Optional<SellerPublicResponseDTO> getPublicSellerInfoBySellerId(Long sellerId);
+
 }
