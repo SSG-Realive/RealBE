@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.List;
 
 // 경매 상품 정보 응답
 @Data
@@ -24,11 +25,12 @@ public class AdminProductDTO {
     private LocalDateTime purchasedAt;
     private boolean auctioned;
     private String imageThumbnailUrl;
+    private List<String> imageUrls;
     private String productStatus; // 상품 상태 (상/중/하)
     private Long productCategoryId; // 상품 카테고리 ID
     private String productCategoryName; // 상품 카테고리명
 
-    public static AdminProductDTO fromEntity(AdminProduct adminProduct, Product product, String imageThumbnailUrl) {
+    public static AdminProductDTO fromEntity(AdminProduct adminProduct, Product product, String imageThumbnailUrl,  List<String> imageUrls) {
         if (adminProduct == null) return null;
         AdminProductDTOBuilder builder = AdminProductDTO.builder()
                 .id(adminProduct.getId())
@@ -37,7 +39,8 @@ public class AdminProductDTO {
                 .purchasedFromSellerId(adminProduct.getPurchasedFromSellerId())
                 .purchasedAt(adminProduct.getPurchasedAt())
                 .auctioned(adminProduct.isAuctioned())
-                .imageThumbnailUrl(imageThumbnailUrl);
+                .imageThumbnailUrl(imageThumbnailUrl)
+                .imageUrls(imageUrls);
 
         if (product != null) {
             builder.productName(product.getName())

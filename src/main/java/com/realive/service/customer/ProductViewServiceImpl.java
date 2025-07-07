@@ -4,10 +4,11 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.realive.repository.customer.productview.ProductViewRepository;
+import com.realive.repository.product.CategoryRepository;
 import com.realive.domain.product.Category;
 import com.realive.domain.product.DeliveryPolicy;
 import com.realive.domain.product.ProductImage;
-import com.realive.repository.product.CategoryRepository;
 import com.realive.repository.product.DeliveryPolicyRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.data.domain.PageRequest;
@@ -41,6 +42,7 @@ public class ProductViewServiceImpl implements ProductViewService {
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
     private final WishlistRepository wishlistRepository;
+    private final ProductViewRepository productViewRepository;
     private final CategoryRepository categoryRepository;
     private final DeliveryPolicyRepository deliveryPolicyRepository; // 배송정책 조회용
 
@@ -49,6 +51,7 @@ public class ProductViewServiceImpl implements ProductViewService {
             @Qualifier("productDetailImpl") ProductDetail productDetail,
             ProductRepository productRepository,
             ProductImageRepository productImageRepository,
+            ProductViewRepository productViewRepository,
             WishlistRepository wishlistRepository,
             CategoryRepository categoryRepository,
             DeliveryPolicyRepository deliveryPolicyRepository
@@ -58,6 +61,7 @@ public class ProductViewServiceImpl implements ProductViewService {
         this.productRepository = productRepository;
         this.productImageRepository = productImageRepository;
         this.wishlistRepository = wishlistRepository;
+        this.productViewRepository = productViewRepository;
         this.categoryRepository = categoryRepository;
         this.deliveryPolicyRepository = deliveryPolicyRepository;
     }
@@ -125,6 +129,39 @@ public class ProductViewServiceImpl implements ProductViewService {
 
         return products.stream()
                 .map(p -> ProductListDTO.from(p, imageMap.get(p.getId())))
+                .toList();
+    }
+
+    @Override
+    public List<ProductListDTO> getPopularProductsByCategory(Long categoryId) {
+        List<Long> categoryIds = categoryRepository.findSubCategoryIdsIncludingSelf(categoryId); // ✅ 하위 포함
+        List<Object[]> rawList = productViewRepository.findPopularProductRawByCategoryIds(categoryIds);
+
+        List<Long> ids = rawList.stream()
+                .map(row -> ((Number) row[0]).longValue())
+                .toList();
+
+        Map<Long, String> imageMap = productImageRepository
+                .findThumbnailUrlsByProductIds(ids, MediaType.IMAGE)
+                .stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (String) row[1]
+                ));
+
+        return rawList.stream()
+                .map(row -> {
+                    Long id = ((Number) row[0]).longValue();
+                    String name = (String) row[1];
+                    int price = ((Number) row[2]).intValue();
+
+                    return ProductListDTO.builder()
+                            .id(id)
+                            .name(name)
+                            .price(price)
+                            .imageThumbnailUrl(imageMap.get(id))
+                            .build();
+                })
                 .toList();
     }
 

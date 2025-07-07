@@ -124,11 +124,18 @@ public class AuctionServiceImpl implements AuctionService {
         log.info("AdminProduct (ID: {}, ProductId: {})의 isAuctioned 상태를 true로 업데이트 (관리자: {}).",
                 adminProduct.getId(), adminProduct.getProductId(), adminUserId);
 
+        List<String> imageUrls = productImageRepository.findSubImageUrlsByProductId(originalProduct.getId());
         // 6. 응답 DTO 생성
-        AdminProductDTO adminProductDtoForResponse = AdminProductDTO.fromEntity(adminProduct, originalProduct,
-            productImageRepository.findFirstByProductIdAndIsThumbnailTrueAndMediaType(originalProduct.getId(), MediaType.IMAGE)
-                .map(ProductImage::getUrl)
-                .orElse(null));
+        AdminProductDTO adminProductDtoForResponse = AdminProductDTO.fromEntity(
+                adminProduct,
+                originalProduct,
+                productImageRepository.findFirstByProductIdAndIsThumbnailTrueAndMediaType(originalProduct.getId(), MediaType.IMAGE)
+                        .map(ProductImage::getUrl)
+                        .orElse(null),
+                imageUrls
+        );
+
+
         return AuctionResponseDTO.fromEntity(savedAuction, adminProductDtoForResponse);
     }
 
@@ -180,19 +187,19 @@ public class AuctionServiceImpl implements AuctionService {
                 }
             }
             // statusFilter가 없으면 모든 경매 조회 (필터링 없음)
-            
+
             return criteriaBuilder.and(predicates.toArray(new Predicate[0]));
         };
 
         Page<Auction> auctionPage = auctionRepository.findAll(spec, pageable);
         List<AuctionResponseDTO> auctionResponseDTOs = convertToAuctionResponseDTOs(auctionPage.getContent());
-        
+
         // 정렬 로직 처리
         String sortProperty = pageable.getSort().stream()
                 .map(sort -> sort.getProperty())
                 .findFirst()
                 .orElse("");
-        
+
         if ("bidCount".equals(sortProperty)) {
             // 입찰 수로 정렬
             Map<Integer, Long> bidCountMap = getBidCountMap(auctionPage.getContent());
@@ -206,16 +213,16 @@ public class AuctionServiceImpl implements AuctionService {
             auctionResponseDTOs.sort((a, b) -> {
                 int priorityA = getStatusPriority(a.getStatus(), a.getStartTime());
                 int priorityB = getStatusPriority(b.getStatus(), b.getStartTime());
-                
+
                 if (priorityA != priorityB) {
                     return Integer.compare(priorityA, priorityB);
                 }
-                
+
                 // 같은 상태 내에서는 시작시간 순으로 정렬
                 return a.getStartTime().compareTo(b.getStartTime());
             });
         }
-        
+
         return new PageImpl<>(auctionResponseDTOs, pageable, auctionPage.getTotalElements());
     }
 
@@ -227,17 +234,24 @@ public class AuctionServiceImpl implements AuctionService {
 
         AdminProduct adminProduct = auction.getAdminProduct();
         Product product = productRepository.findById(adminProduct.getProductId().longValue()).orElse(null);
-        AdminProductDTO adminProductDto = AdminProductDTO.fromEntity(adminProduct, product,
-            productImageRepository.findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
+
+        String thumbnailUrl = productImageRepository
+                .findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
                 .map(ProductImage::getUrl)
-                .orElse(null));
+                .orElse(null);
+
+        List<String> imageUrls = productImageRepository.findUrlsByProductId(product.getId());
+
+        AdminProductDTO adminProductDto = AdminProductDTO.fromEntity(adminProduct, product, thumbnailUrl, imageUrls);
+
+
         return AuctionResponseDTO.fromEntity(auction, adminProductDto);
     }
 
     @Override
     public Page<AuctionResponseDTO> getAuctionsBySeller(Long sellerId, Pageable pageable) {
         log.info("관리자 - 특정 판매자(ID:{})가 등록한 경매 목록 조회 요청. Pageable: {}", sellerId, pageable);
-        
+
         List<AdminProduct> sellerAdminProducts = adminProductRepository.findByPurchasedFromSellerId(sellerId.intValue());
         if (sellerAdminProducts.isEmpty()) {
             log.info("판매자(ID:{})에 해당하는 AdminProduct가 없습니다.", sellerId);
@@ -256,17 +270,22 @@ public class AuctionServiceImpl implements AuctionService {
     @Override
     public Optional<AuctionResponseDTO> getCurrentAuctionForProduct(Integer productId) {
         log.info("관리자 - 특정 상품(ID:{})에 대해 현재 진행 중인 경매 조회 요청", productId);
-        
+
         AdminProduct adminProduct = adminProductRepository.findByProductId(productId)
                 .orElseThrow(() -> new NoSuchElementException("해당 상품의 관리자 상품 정보를 찾을 수 없습니다. Product ID: " + productId));
 
         Optional<Auction> auctionOptional = auctionRepository.findByAdminProduct_IdAndStatusNot(adminProduct.getId(), AuctionStatus.COMPLETED);
         return auctionOptional.map(auction -> {
             Product product = productRepository.findById(adminProduct.getProductId().longValue()).orElse(null);
-            AdminProductDTO adminProductDto = AdminProductDTO.fromEntity(adminProduct, product,
-                productImageRepository.findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
+            String thumbnailUrl = productImageRepository
+                    .findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
                     .map(ProductImage::getUrl)
-                    .orElse(null));
+                    .orElse(null);
+
+            List<String> imageUrls = productImageRepository.findUrlsByProductId(product.getId());
+
+            AdminProductDTO adminProductDto = AdminProductDTO.fromEntity(adminProduct, product, thumbnailUrl, imageUrls);
+
             return AuctionResponseDTO.fromEntity(auction, adminProductDto);
         });
     }
@@ -330,8 +349,9 @@ public class AuctionServiceImpl implements AuctionService {
                     AdminProduct adminProduct = adminProductMap.get(auction.getAdminProduct().getId());
                     Product product = productMap.get(adminProduct.getProductId().longValue());
                     String thumbnailUrl = productThumbnailMap.get(product.getId());
-                    
-                    AdminProductDTO adminProductDto = AdminProductDTO.fromEntity(adminProduct, product, thumbnailUrl);
+                    List<String> imageUrls = productImageRepository.findUrlsByProductId(product.getId());
+
+                    AdminProductDTO adminProductDto = AdminProductDTO.fromEntity(adminProduct, product, thumbnailUrl, imageUrls);
                     return AuctionResponseDTO.fromEntity(auction, adminProductDto);
                 })
                 .collect(Collectors.toList());
@@ -410,10 +430,15 @@ public class AuctionServiceImpl implements AuctionService {
         // 5. 응답 DTO 생성
         AdminProduct adminProduct = savedAuction.getAdminProduct();
         Product product = productRepository.findById(adminProduct.getProductId().longValue()).orElse(null);
-        AdminProductDTO adminProductDto = AdminProductDTO.fromEntity(adminProduct, product,
-            productImageRepository.findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
+        String thumbnailUrl = productImageRepository
+                .findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
                 .map(ProductImage::getUrl)
-                .orElse(null));
+                .orElse(null);
+
+        List<String> imageUrls = productImageRepository.findUrlsByProductId(product.getId());
+
+        AdminProductDTO adminProductDto = AdminProductDTO.fromEntity(adminProduct, product, thumbnailUrl, imageUrls);
+
 
         log.info("관리자(ID:{})에 의해 경매 수정 완료 - AuctionId: {}, AdminProductId: {}",
                 adminUserId, savedAuction.getId(), adminProduct.getId());
@@ -429,10 +454,15 @@ public class AuctionServiceImpl implements AuctionService {
                 .map(auction -> {
                     AdminProduct adminProduct = auction.getAdminProduct();
                     Product product = productRepository.findById(adminProduct.getProductId().longValue()).orElse(null);
-                    AdminProductDTO adminProductDto = AdminProductDTO.fromEntity(adminProduct, product,
-                        productImageRepository.findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
+                    String thumbnailUrl = productImageRepository
+                            .findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
                             .map(ProductImage::getUrl)
-                            .orElse(null));
+                            .orElse(null);
+
+                    List<String> imageUrls = productImageRepository.findUrlsByProductId(product.getId());
+
+                    AdminProductDTO adminProductDto = AdminProductDTO.fromEntity(adminProduct, product, thumbnailUrl, imageUrls);
+
                     return AuctionResponseDTO.fromEntity(auction, adminProductDto);
                 })
                 .collect(Collectors.toList());
@@ -441,41 +471,41 @@ public class AuctionServiceImpl implements AuctionService {
     @Override
     public AuctionWinResponseDTO getAuctionWinInfo(Integer auctionId, Long customerId) {
         log.info("낙찰 정보 조회 - AuctionId: {}, CustomerId: {}", auctionId, customerId);
-        
+
         Auction auction = auctionRepository.findById(auctionId)
                 .orElseThrow(() -> new NoSuchElementException("경매 정보를 찾을 수 없습니다. ID: " + auctionId));
-        
+
         // 낙찰자 확인
         if (!customerId.equals(auction.getWinningCustomerId())) {
             throw new NoSuchElementException("해당 경매의 낙찰자가 아닙니다.");
         }
-        
+
         // 경매가 완료되었는지 확인
         if (auction.getStatus() != AuctionStatus.COMPLETED) {
             throw new IllegalStateException("경매가 아직 완료되지 않았습니다.");
         }
-        
+
         AdminProduct adminProduct = auction.getAdminProduct();
         Product product = productRepository.findById(adminProduct.getProductId().longValue())
                 .orElseThrow(() -> new NoSuchElementException("상품 정보를 찾을 수 없습니다."));
-        
+
         String productImageUrl = productImageRepository.findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
                 .map(ProductImage::getUrl)
                 .orElse(null);
-        
+
         // 결제 마감일 계산 (경매 종료 후 7일)
         LocalDateTime paymentDeadline = auction.getEndTime().plusDays(7);
-        
+
         // 결제 상태 확인 (AuctionPayment에서 확인)
         boolean isPaid = auctionPaymentRepository.existsByCustomerIdAndAuctionIdAndStatusCompleted(customerId, auctionId);
         String paymentStatus = isPaid ? "결제완료" : "결제대기";
-        
+
         // 낙찰 알림 로직 (결제가 완료되지 않은 경우에만 새로 낙찰된 것으로 간주)
         boolean isNewWin = !isPaid;
-        String winMessage = isNewWin ? 
-            "🎉 축하합니다! 경매에서 낙찰되셨습니다. 결제를 완료해주세요." : 
+        String winMessage = isNewWin ?
+            "🎉 축하합니다! 경매에서 낙찰되셨습니다. 결제를 완료해주세요." :
             "이미 결제가 완료된 상품입니다.";
-        
+
         return AuctionWinResponseDTO.builder()
                 .auctionId(auction.getId())
                 .productName(product.getName())
@@ -493,23 +523,23 @@ public class AuctionServiceImpl implements AuctionService {
     @Override
     public Page<AuctionWinResponseDTO> getWonAuctions(Long customerId, Pageable pageable) {
         log.info("낙찰한 경매 목록 조회 - CustomerId: {}", customerId);
-        
+
         Page<Auction> wonAuctions = auctionRepository.findByWinningCustomerIdAndStatus(customerId, AuctionStatus.COMPLETED, pageable);
-        
+
         List<AuctionWinResponseDTO> winResponseDTOs = wonAuctions.getContent().stream()
                 .map(auction -> {
                     AdminProduct adminProduct = auction.getAdminProduct();
                     Product product = productRepository.findById(adminProduct.getProductId().longValue())
                             .orElseThrow(() -> new NoSuchElementException("상품 정보를 찾을 수 없습니다."));
-                    
+
                     String productImageUrl = productImageRepository.findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
                             .map(ProductImage::getUrl)
                             .orElse(null);
-                    
+
                     LocalDateTime paymentDeadline = auction.getEndTime().plusDays(7);
                     boolean isPaid = auctionPaymentRepository.existsByCustomerIdAndAuctionIdAndStatusCompleted(customerId, auction.getId());
                     String paymentStatus = isPaid ? "결제완료" : "결제대기";
-                    
+
                     return AuctionWinResponseDTO.builder()
                             .auctionId(auction.getId())
                             .productName(product.getName())
@@ -522,7 +552,7 @@ public class AuctionServiceImpl implements AuctionService {
                             .build();
                 })
                 .collect(Collectors.toList());
-        
+
         return new PageImpl<>(winResponseDTOs, pageable, wonAuctions.getTotalElements());
     }
 
@@ -530,33 +560,33 @@ public class AuctionServiceImpl implements AuctionService {
     @Transactional
     public Long processAuctionPayment(AuctionPaymentRequestDTO requestDto, Long customerId) {
         log.info("경매 결제 처리 시작 - AuctionId: {}, CustomerId: {}", requestDto.getAuctionId(), customerId);
-        
+
         // 1. 경매 및 낙찰자 확인
         Auction auction = auctionRepository.findById(requestDto.getAuctionId())
                 .orElseThrow(() -> new NoSuchElementException("경매 정보를 찾을 수 없습니다. ID: " + requestDto.getAuctionId()));
-        
+
         if (!customerId.equals(auction.getWinningCustomerId())) {
             throw new NoSuchElementException("해당 경매의 낙찰자가 아닙니다.");
         }
-        
+
         if (auction.getStatus() != AuctionStatus.COMPLETED) {
             throw new IllegalStateException("경매가 아직 완료되지 않았습니다.");
         }
-        
+
         // 2. 이미 결제가 완료되었는지 확인
         if (auctionPaymentRepository.existsByCustomerIdAndAuctionIdAndStatusCompleted(customerId, requestDto.getAuctionId())) {
             throw new IllegalStateException("이미 결제가 완료된 경매입니다.");
         }
-        
+
         // 3. 고객 정보 조회
         Customer customer = customerRepository.findById(customerId)
                 .orElseThrow(() -> new NoSuchElementException("고객 정보를 찾을 수 없습니다. ID: " + customerId));
-        
+
         // 4. 상품 정보 조회
         AdminProduct adminProduct = auction.getAdminProduct();
         Product product = productRepository.findById(adminProduct.getProductId().longValue())
                 .orElseThrow(() -> new NoSuchElementException("상품 정보를 찾을 수 없습니다."));
-        
+
         // 5. AuctionPayment 생성 (고객 정보에서 배송지 정보 가져오기)
         AuctionPayment auctionPayment = AuctionPayment.builder()
                 .auctionId(auction.getId())
@@ -569,9 +599,9 @@ public class AuctionServiceImpl implements AuctionService {
                 .paymentMethod("경매 결제")
                 .status(PaymentStatus.READY)
                 .build();
-        
+
         auctionPaymentRepository.save(auctionPayment);
-        
+
         // 6. 토스페이먼츠 결제 승인 (경매 전용 처리)
         try {
             // Mock 모드에서는 간단히 성공으로 처리
@@ -581,7 +611,7 @@ public class AuctionServiceImpl implements AuctionService {
                 // 실제 토스페이먼츠 API 호출 로직 (필요시 구현)
                 log.info("실제 토스페이먼츠 API 호출 - AuctionId: {}", auction.getId());
             }
-            
+
                     // 7. 주문 생성
         Order order = Order.builder()
                 .customer(customer)
@@ -592,9 +622,9 @@ public class AuctionServiceImpl implements AuctionService {
                 .updatedAt(LocalDateTime.now())
                 .paymentMethod("CARD") // 기본값으로 설정
                 .build();
-            
+
             Order savedOrder = orderRepository.save(order);
-            
+
             // 8. 주문 아이템 생성
             OrderItem orderItem = OrderItem.builder()
                     .order(savedOrder)
@@ -602,26 +632,26 @@ public class AuctionServiceImpl implements AuctionService {
                     .quantity(1)
                     .price(auction.getWinningBidPrice())
                     .build();
-            
+
             orderItemRepository.save(orderItem);
-            
+
             // 9. 배송 정보 생성
             OrderDelivery orderDelivery = OrderDelivery.builder()
                     .order(savedOrder)
                     .status(DeliveryStatus.DELIVERY_PREPARING)
                     .startDate(LocalDateTime.now())
                     .build();
-            
+
             orderDeliveryRepository.save(orderDelivery);
-            
+
             // 10. AuctionPayment 상태 업데이트
             auctionPayment.setStatus(PaymentStatus.COMPLETED);
             auctionPayment.setPaidAt(LocalDateTime.now());
             auctionPaymentRepository.save(auctionPayment);
-            
+
             log.info("경매 결제 처리 완료 - OrderId: {}, AuctionId: {}", savedOrder.getId(), auction.getId());
             return savedOrder.getId();
-            
+
         } catch (Exception e) {
             log.error("경매 결제 처리 실패 - AuctionId: {}", auction.getId(), e);
             throw new RuntimeException("결제 처리 중 오류가 발생했습니다: " + e.getMessage(), e);
@@ -630,7 +660,7 @@ public class AuctionServiceImpl implements AuctionService {
 
     private int getStatusPriority(AuctionStatus status, LocalDateTime startTime) {
         LocalDateTime now = LocalDateTime.now();
-        
+
         switch (status) {
             case PROCEEDING:
                 // 시작시간이 미래면 "예정", 과거면 "진행중"
@@ -645,7 +675,7 @@ public class AuctionServiceImpl implements AuctionService {
                 return 6; // 기타
         }
     }
-    
+
     /**
      * 경매 목록의 입찰 수를 계산하여 Map으로 반환
      */
@@ -653,11 +683,11 @@ public class AuctionServiceImpl implements AuctionService {
         if (auctions.isEmpty()) {
             return Collections.emptyMap();
         }
-        
+
         List<Integer> auctionIds = auctions.stream()
                 .map(Auction::getId)
                 .collect(Collectors.toList());
-        
+
         Map<Integer, Long> bidCountMap = new HashMap<>();
         try {
             for (Integer auctionId : auctionIds) {
@@ -676,7 +706,7 @@ public class AuctionServiceImpl implements AuctionService {
                 bidCountMap.put(auctionId, 0L);
             }
         }
-        
+
         return bidCountMap;
     }
 }
