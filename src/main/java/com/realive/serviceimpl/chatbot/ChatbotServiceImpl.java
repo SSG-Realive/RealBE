@@ -148,73 +148,95 @@ public class ChatbotServiceImpl implements ChatbotService {
     }
 
 
-
     // 이하 함수 호출 처리 메서드는 그대로 유지
     private String handleFunctionCall(String functionName, String argumentsJson) {
         try {
             JsonNode argsNode = objectMapper.readTree(argumentsJson);
 
             switch (functionName) {
-                case "getOrderDetail":
+
+                case "getOrderDetail": {
                     Long orderId = argsNode.get("orderId").asLong();
                     Long customerId = getCurrentCustomerId();
                     return objectMapper.writeValueAsString(orderService.getOrder(orderId, customerId));
+                }
 
-                case "getOrderList":
-                    customerId = getCurrentCustomerId();
+                case "getOrderList": {
+                    Long customerId = getCurrentCustomerId();
                     int limit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 10;
                     Pageable pageable = PageRequest.of(0, limit);
                     return objectMapper.writeValueAsString(orderService.getOrderList(pageable, customerId));
+                }
 
-                case "getReviewList":
-                    customerId = getCurrentCustomerId();
-                    limit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 10;
-                    pageable = PageRequest.of(0, limit);
-                    return objectMapper.writeValueAsString(reviewViewService.getReviewList(customerId, pageable));
+                case "getReviewList": {
+                    Long sellerId = argsNode.has("sellerId") && !argsNode.get("sellerId").isNull()
+                            ? argsNode.get("sellerId").asLong()
+                            : null;
 
-                case "getWishlistForCustomer":
-                    customerId = getCurrentCustomerId();
+                    String productName = argsNode.has("productName") && !argsNode.get("productName").isNull()
+                            ? argsNode.get("productName").asText()
+                            : null;
+
+                    int limit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 10;
+                    Pageable pageable = PageRequest.of(0, limit);
+
+                    return objectMapper.writeValueAsString(
+                            reviewViewService.getReviewList(sellerId, productName, pageable));
+                }
+
+                case "getWishlistForCustomer": {
+                    Long customerId = getCurrentCustomerId();
                     return objectMapper.writeValueAsString(wishlistService.getWishlistForCustomer(customerId));
+                }
 
-                case "getProductInfo":
+                case "getProductInfo": {
                     Long productId = argsNode.get("productId").asLong();
                     Long sellerId = argsNode.has("sellerId") && !argsNode.get("sellerId").isNull()
-                            ? argsNode.get("sellerId").asLong() : null;
+                            ? argsNode.get("sellerId").asLong()
+                            : null;
                     return objectMapper.writeValueAsString(productService.getProductDetail(productId, sellerId));
+                }
 
-                case "getPublicSellerInfoByProductId":
-                    productId = argsNode.get("productId").asLong();
+                case "getPublicSellerInfoByProductId": {
+                    Long productId = argsNode.get("productId").asLong();
                     return objectMapper.writeValueAsString(productService.getPublicSellerInfoByProductId(productId));
+                }
 
-                case "getFeaturedSellersWithProducts":
+                case "getFeaturedSellersWithProducts": {
                     int candidateSize = argsNode.get("candidateSize").asInt();
                     int sellersPick = argsNode.get("sellersPick").asInt();
                     int productsPerSeller = argsNode.get("productsPerSeller").asInt();
                     int minReviews = argsNode.get("minReviews").asInt();
                     return objectMapper.writeValueAsString(productService.getFeaturedSellersWithProducts(candidateSize, sellersPick, productsPerSeller, minReviews));
+                }
 
-                case "searchProducts":
-                    limit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 10;
+                case "searchProducts": {
+                    int limit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 10;
                     Long categoryId = argsNode.has("categoryId") && !argsNode.get("categoryId").isNull()
-                            ? argsNode.get("categoryId").asLong() : null;
+                            ? argsNode.get("categoryId").asLong()
+                            : null;
                     PageRequestDTO pageRequestDTO = new PageRequestDTO();
                     pageRequestDTO.setPage(1);
                     pageRequestDTO.setSize(limit);
                     return objectMapper.writeValueAsString(productViewService.search(pageRequestDTO, categoryId));
+                }
 
-                case "getRelatedProducts":
-                    productId = argsNode.get("productId").asLong();
+                case "getRelatedProducts": {
+                    Long productId = argsNode.get("productId").asLong();
                     return objectMapper.writeValueAsString(productViewService.getRelatedProducts(productId));
+                }
 
-                case "getPopularProducts":
+                case "getPopularProducts": {
                     return objectMapper.writeValueAsString(productViewService.getPopularProducts());
+                }
 
-                case "getRecommendedProductsByCategory":
-                    categoryId = argsNode.get("categoryId").asLong();
-                    limit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 6;
+                case "getRecommendedProductsByCategory": {
+                    Long categoryId = argsNode.get("categoryId").asLong();
+                    int limit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 6;
                     return objectMapper.writeValueAsString(productViewService.getRecommendedProductsByCategory(categoryId, limit));
+                }
 
-                case "getActiveAuctions":
+                case "getActiveAuctions": {
                     int auctionLimit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 10;
                     String categoryFilter = argsNode.has("categoryFilter") && !argsNode.get("categoryFilter").isNull()
                             ? argsNode.get("categoryFilter").asText()
@@ -224,12 +246,14 @@ public class ChatbotServiceImpl implements ChatbotService {
                             : null;
                     Pageable auctionPageable = PageRequest.of(0, auctionLimit);
                     return objectMapper.writeValueAsString(auctionService.getActiveAuctions(auctionPageable, categoryFilter, statusFilter));
+                }
 
-                case "getAuctionDetails":
+                case "getAuctionDetails": {
                     Integer auctionId = argsNode.get("auctionId").asInt();
                     return objectMapper.writeValueAsString(auctionService.getAuctionDetails(auctionId));
+                }
 
-                case "generateProductDescription":
+                case "generateProductDescription": {
                     String productName = argsNode.get("productName").asText();
 
                     List<String> features = new ArrayList<>();
@@ -245,9 +269,11 @@ public class ChatbotServiceImpl implements ChatbotService {
                     dto.setFeatures(features);
 
                     return objectMapper.writeValueAsString(productService.generateDescription(dto));
+                }
 
-                default:
+                default: {
                     return "{\"error\": \"알 수 없는 함수 호출: " + functionName + "\"}";
+                }
             }
 
         } catch (Exception e) {
@@ -255,6 +281,7 @@ public class ChatbotServiceImpl implements ChatbotService {
             return "{\"error\": \"함수 호출 처리 중 예외 발생: " + e.getMessage() + "\"}";
         }
     }
+
 
     // --- 기존 메서드들 아래에 추가 ---
     private String formatChatbotResponse(String content) {
