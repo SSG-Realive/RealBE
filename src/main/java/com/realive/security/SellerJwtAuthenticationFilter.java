@@ -67,7 +67,7 @@ public class SellerJwtAuthenticationFilter extends OncePerRequestFilter {
 protected boolean shouldNotFilter(HttpServletRequest request) {
     String path = request.getRequestURI().substring(request.getContextPath().length());
     // /api/seller/** 만 필터 “실행”, 나머지는 모두 skip
-    boolean skip = !path.startsWith("/api/seller/");
+    boolean skip = !(path.startsWith("/api/seller/") || path.equals("/api/chat"));
     log.info("[SellerJwtFilter] skip: {}", skip);   // true = 건너뜀
     return skip;
 }
