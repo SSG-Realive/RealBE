@@ -7,12 +7,14 @@ import com.realive.domain.order.OrderItem; // OrderItem 엔티티 import
 import com.realive.domain.product.Product; // Product 엔티티 import
 import com.realive.domain.review.ReviewReport;
 import com.realive.domain.review.SellerReview;
+import com.realive.domain.review.SellerReviewImage;
 import com.realive.dto.admin.review.*;
 import com.realive.repository.customer.CustomerRepository;
 import com.realive.repository.order.OrderItemRepository; // OrderItemRepository import
 import com.realive.repository.review.ReviewReportRepository;
 import com.realive.repository.review.SellerReviewRepository;
 import com.realive.repository.review.SellerReviewSpecification;
+import com.realive.repository.review.crud.SellerReviewImageRepository;
 import com.realive.service.admin.user.AdminReviewService;
 
 import jakarta.persistence.EntityNotFoundException;
@@ -38,6 +40,7 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class AdminReviewServiceImpl implements AdminReviewService {
 
+    private final SellerReviewImageRepository sellerReviewImageRepository;
     private final ReviewReportRepository reviewReportRepository;
     private final SellerReviewRepository sellerReviewRepository;
     private final CustomerRepository customerRepository;
@@ -118,7 +121,10 @@ public class AdminReviewServiceImpl implements AdminReviewService {
         Long sellerId = (review.getSeller() != null) ? review.getSeller().getId() : null;
         String customerName = (review.getCustomer() != null) ? review.getCustomer().getName() : "고객 정보 없음";
         Long customerId = (review.getCustomer() != null) ? review.getCustomer().getId() : null;
-        List<String> imageUrls = Collections.emptyList();
+        List<String> imageUrls = sellerReviewImageRepository.findByReviewId(reviewId)
+                .stream()
+                .map(SellerReviewImage::getImageUrl)
+                .collect(Collectors.toList()); // ★ 이 줄로 변경
 
         return AdminSellerReviewDetailDTO.builder()
                 .reviewId(review.getId())
