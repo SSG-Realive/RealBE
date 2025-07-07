@@ -4,6 +4,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
 
+import com.realive.repository.customer.productview.ProductViewRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,19 +34,22 @@ public class ProductViewServiceImpl implements ProductViewService {
     private final ProductRepository productRepository;
     private final ProductImageRepository productImageRepository;
     private final WishlistRepository wishlistRepository;
+    private final ProductViewRepository productViewRepository;
 
     public ProductViewServiceImpl(
             @Qualifier("productSearchImpl") ProductSearch productSearch,
             @Qualifier("productDetailImpl") ProductDetail productDetail,
             ProductRepository productRepository,
             ProductImageRepository productImageRepository,
-            WishlistRepository wishlistRepository
+            WishlistRepository wishlistRepository,
+            ProductViewRepository productViewRepository
     ) {
         this.productSearch = productSearch;
         this.productDetail = productDetail;
         this.productRepository = productRepository;
         this.productImageRepository = productImageRepository;
         this.wishlistRepository = wishlistRepository;
+        this.productViewRepository = productViewRepository;
     }
 
     @Override
@@ -109,6 +113,30 @@ public class ProductViewServiceImpl implements ProductViewService {
                         row -> (String) row[1]
                 ));
 
+        return products.stream()
+                .map(p -> ProductListDTO.from(p, imageMap.get(p.getId())))
+                .toList();
+    }
+
+    @Override
+    public List<ProductListDTO> getPopularProductsByCategory(Long categoryId) {
+        // 1. 인기 상품 조회 (카테고리별, 찜 많은 순)
+        List<Product> products = productViewRepository.findPopularProductsByCategory(categoryId);
+
+        // 2. 상품 ID 리스트 추출
+        List<Long> ids = products.stream()
+                .map(Product::getId)
+                .toList();
+
+        // 3. 썸네일 이미지 URL 맵 조회
+        List<Object[]> imageRows = productImageRepository.findThumbnailUrlsByProductIds(ids, MediaType.IMAGE);
+        Map<Long, String> imageMap = imageRows.stream()
+                .collect(Collectors.toMap(
+                        row -> (Long) row[0],
+                        row -> (String) row[1]
+                ));
+
+        // 4. DTO 변환
         return products.stream()
                 .map(p -> ProductListDTO.from(p, imageMap.get(p.getId())))
                 .toList();

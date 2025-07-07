@@ -23,5 +23,7 @@ public interface ProductViewService {
     // 찜 많은 인기 상품 조회
     List<ProductListDTO> getPopularProducts();
 
+    List<ProductListDTO> getPopularProductsByCategory(Long categoryId);
+
 }
 
