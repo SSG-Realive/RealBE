@@ -25,8 +25,13 @@ public class AdminQnaController {
     // 1. 모든 판매자의 Q&A 목록 조회 (페이징)
     @GetMapping
     public ResponseEntity<Page<SellerQnaResponseDTO>> getAllSellerQnaList(
+            @RequestParam(required = false) String search,
+            @RequestParam(required = false) Boolean isAnswered,  // ← status 제거
             @PageableDefault(size = 10, sort = "createdAt", direction = Sort.Direction.DESC) Pageable pageable) {
-        Page<SellerQnaResponseDTO> qnaList = adminQnaService.getAllSellerQnaList(pageable);
+
+        log.info("관리자 Q&A 목록 조회 - 검색어: {}, 답변상태: {}", search, isAnswered);
+
+        Page<SellerQnaResponseDTO> qnaList = adminQnaService.getAllSellerQnaList(search, isAnswered, pageable);
         return ResponseEntity.ok(qnaList);
     }
 
@@ -60,4 +65,5 @@ public class AdminQnaController {
         SellerQnaStatisticsDTO statistics = adminQnaService.getSellerQnaStatistics();
         return ResponseEntity.ok(statistics);
     }
+
 }

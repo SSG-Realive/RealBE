@@ -22,4 +22,5 @@ public class SellerQnaResponseDTO {
     private LocalDateTime createdAt;   // 질문 작성일
     private LocalDateTime updatedAt;   // 마지막 수정일
     private LocalDateTime answeredAt;  // 답변 작성일 (nullable)
+    private String sellerName;
 }
