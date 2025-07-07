@@ -90,4 +90,12 @@ public interface ProductService {
      * @return 고객에게 노출 가능한 판매자 정보 DTO (Optional<SellerPublicDto>로 반환)
      */
     Optional<SellerPublicResponseDTO> getPublicSellerInfoByProductId(Long productId);
+
+
+    /**
+     * 판매자가 등록한 or 등록할 product의 description을 챗봇이 작성해주는 메서드
+     */
+    GenerateProductDescriptionResponseDTO generateDescription(GenerateProductDescriptionRequestDTO request);
+
+
 }

@@ -5,6 +5,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.realive.dto.chatbot.ChatApiResponseDTO;
 import com.realive.dto.chatbot.ChatRequestDTO;
 import com.realive.dto.page.PageRequestDTO;
+import com.realive.dto.product.GenerateProductDescriptionRequestDTO;
 import com.realive.security.customer.CustomerPrincipal;
 import com.realive.service.admin.auction.AuctionService;
 import com.realive.service.chatbot.ChatbotService;
@@ -24,6 +25,7 @@ import org.springframework.web.reactive.function.client.WebClient;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.Authentication;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 
@@ -47,44 +49,6 @@ public class ChatbotServiceImpl implements ChatbotService {
 
     @Value("${openai.model}")
     private String model;
-
-    // ✅ 키워드 기반 카테고리 ID 매핑
-    private static final Map<String, Long> CATEGORY_KEYWORD_MAP = Map.ofEntries(
-            Map.entry("거실 가구", 10L),
-            Map.entry("침실 가구", 20L),
-            Map.entry("주방·다이닝 가구", 30L),
-            Map.entry("서재·오피스 가구", 40L),
-            Map.entry("기타 가구", 50L),
-            Map.entry("소파", 11L),
-            Map.entry("거실 테이블", 12L),
-            Map.entry("TV·미디어장", 13L),
-            Map.entry("진열장·책장", 14L),
-            Map.entry("침대", 21L),
-            Map.entry("매트리스", 22L),
-            Map.entry("화장대·거울", 23L),
-            Map.entry("옷장·행거", 24L),
-            Map.entry("수납장·서랍장", 25L),
-            Map.entry("식탁", 31L),
-            Map.entry("주방 의자", 32L),
-            Map.entry("주방 수납장", 33L),
-            Map.entry("아일랜드 식탁·홈바", 34L),
-            Map.entry("책상", 41L),
-            Map.entry("사무용 의자", 42L),
-            Map.entry("책장", 43L),
-            Map.entry("현관·중문 가구", 51L),
-            Map.entry("야외·아웃도어 가구", 52L),
-            Map.entry("리퍼·전시가구", 53L),
-            Map.entry("DIY·부속품", 54L)
-    );
-
-    private Long resolveCategoryIdFromKeyword(String userMessage) {
-        for (String keyword : CATEGORY_KEYWORD_MAP.keySet()) {
-            if (userMessage.contains(keyword)) {
-                return CATEGORY_KEYWORD_MAP.get(keyword);
-            }
-        }
-        return null;
-    }
 
     private Long getCurrentCustomerId() {
         Authentication auth = SecurityContextHolder.getContext().getAuthentication();
@@ -116,45 +80,10 @@ public class ChatbotServiceImpl implements ChatbotService {
 
     @Override
     public String getChatbotReply(String message) {
+        boolean functionCalled = false;
+
         try {
-            // ✅ 사용자 메시지에서 카테고리 ID 추출 시도
-            Long categoryId = resolveCategoryIdFromKeyword(message);
-            if (categoryId != null) {
-                log.info("사용자 메시지에서 카테고리 ID를 찾음: {}", categoryId);
-
-                // ✅ GPT 호출 없이 직접 함수 실행 (선제 실행 방식)
-                var recommendedProducts = productViewService.getRecommendedProductsByCategory(categoryId, 2); // 2개만 추천
-                String functionResult = objectMapper.writeValueAsString(recommendedProducts);
-
-                // ✅ GPT에게 함수 결과를 넘겨서 자연어 응답 받기
-                ChatRequestDTO followupRequest = new ChatRequestDTO();
-                followupRequest.setModel(model);
-                followupRequest.setMessages(List.of(
-                        new ChatRequestDTO.Message("user", message),
-                        new ChatRequestDTO.Message("function", functionResult, "getRecommendedProductsByCategory")
-                ));
-                followupRequest.setFunctions(FunctionSchemaFactory.getAllFunctions());
-
-                String followupRequestJson = objectMapper.writeValueAsString(followupRequest);
-                log.info("OpenAI 후속 요청 JSON (카테고리 인식 경로): {}", followupRequestJson);
-
-                String followupResponseJson = webClient.post()
-                        .uri("https://api.openai.com/v1/chat/completions")
-                        .header("Authorization", "Bearer " + openAiApiKey)
-                        .header("Content-Type", "application/json")
-                        .bodyValue(followupRequestJson)
-                        .retrieve()
-                        .bodyToMono(String.class)
-                        .block();
-
-                ChatApiResponseDTO followupResponse = objectMapper.readValue(followupResponseJson, ChatApiResponseDTO.class);
-                String content = followupResponse.getChoices().get(0).getMessage().getContent();
-                return formatChatbotResponse(content);
-            } else {
-                log.info("사용자 메시지에서 카테고리 ID를 찾지 못함");
-            }
-
-            // ✅ 함수 호출 가능한 일반 GPT 요청
+            // 1. 기본 GPT 요청 + Function 목록 포함
             ChatRequestDTO request = ChatRequestDTO.withFunctions(
                     model,
                     message,
@@ -177,7 +106,9 @@ public class ChatbotServiceImpl implements ChatbotService {
             JsonNode choice = root.path("choices").get(0);
             JsonNode messageNode = choice.path("message");
 
-            if (messageNode.has("function_call")) {
+            // 2. GPT가 함수 호출 요청한 경우 처리
+            if (messageNode.has("function_call") && !functionCalled) {
+                functionCalled = true;
                 String functionName = messageNode.get("function_call").get("name").asText();
                 String argumentsJson = messageNode.get("function_call").get("arguments").asText();
                 String functionResult = handleFunctionCall(functionName, argumentsJson);
@@ -205,6 +136,7 @@ public class ChatbotServiceImpl implements ChatbotService {
                 ChatApiResponseDTO followupResponse = objectMapper.readValue(followupResponseJson, ChatApiResponseDTO.class);
                 return formatChatbotResponse(followupResponse.getChoices().get(0).getMessage().getContent());
             } else {
+                // 함수 호출이 없거나 이미 처리됨 → 일반 응답 처리
                 ChatApiResponseDTO response = objectMapper.readValue(responseJson, ChatApiResponseDTO.class);
                 return formatChatbotResponse(response.getChoices().get(0).getMessage().getContent());
             }
@@ -214,6 +146,8 @@ public class ChatbotServiceImpl implements ChatbotService {
             return "⚠️ 챗봇 응답 처리 중 오류 발생";
         }
     }
+
+
 
     // 이하 함수 호출 처리 메서드는 그대로 유지
     private String handleFunctionCall(String functionName, String argumentsJson) {
@@ -294,6 +228,23 @@ public class ChatbotServiceImpl implements ChatbotService {
                 case "getAuctionDetails":
                     Integer auctionId = argsNode.get("auctionId").asInt();
                     return objectMapper.writeValueAsString(auctionService.getAuctionDetails(auctionId));
+
+                case "generateProductDescription":
+                    String productName = argsNode.get("productName").asText();
+
+                    List<String> features = new ArrayList<>();
+                    JsonNode featuresNode = argsNode.get("productFeatures");
+                    if (featuresNode != null && featuresNode.isArray()) {
+                        for (JsonNode featureNode : featuresNode) {
+                            features.add(featureNode.asText());
+                        }
+                    }
+
+                    GenerateProductDescriptionRequestDTO dto = new GenerateProductDescriptionRequestDTO();
+                    dto.setProductName(productName);
+                    dto.setFeatures(features);
+
+                    return objectMapper.writeValueAsString(productService.generateDescription(dto));
 
                 default:
                     return "{\"error\": \"알 수 없는 함수 호출: " + functionName + "\"}";

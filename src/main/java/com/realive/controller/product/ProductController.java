@@ -1,17 +1,15 @@
 package com.realive.controller.product;
 
-import com.realive.dto.product.ProductRequestDTO;
-import com.realive.dto.product.ProductResponseDTO;
-import com.realive.dto.product.ProductSearchCondition;
+import com.realive.dto.product.*;
 import com.realive.security.seller.SellerPrincipal;
 import com.realive.domain.seller.Seller;
 import com.realive.dto.page.PageResponseDTO;
 
-import com.realive.dto.product.ProductListDTO;
 import com.realive.service.product.ProductService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -77,5 +75,14 @@ public class ProductController {
         Long sellerId = principal.getId();
         ProductResponseDTO dto = productService.getProductDetail(id, sellerId);
         return ResponseEntity.ok(dto);
+    }
+
+    @PostMapping("/ai-description")
+    @PreAuthorize("hasRole('SELLER')")
+    public ResponseEntity<GenerateProductDescriptionResponseDTO> generateDescription(
+            @RequestBody GenerateProductDescriptionRequestDTO request
+    ) {
+        GenerateProductDescriptionResponseDTO response = productService.generateDescription(request);
+        return ResponseEntity.ok(response);
     }
 }

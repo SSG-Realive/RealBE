@@ -148,14 +148,46 @@ public class FunctionSchemaFactory {
     }
 
     public static ChatRequestDTO.FunctionDefinition getRecommendedProductsByCategoryFunction() {
-        Map<String, Object> parameters = buildParameters(Map.of(
-                "categoryId", prop("integer", "카테고리 ID"),
-                "limit", prop("integer", "추천 받을 상품 개수 (기본값: 6)")
-        ), List.of("categoryId"));  // limit은 선택, categoryId는 필수
+        // 카테고리 설명 정의 (GPT가 categoryId를 의미 기반으로 선택할 수 있도록)
+        String categoryIdDescription = String.join("\n", List.of(
+                "다음 중 사용자 요청과 가장 적절한 카테고리 ID를 선택하세요:",
+                "10: 거실 가구",
+                "11: 소파",
+                "12: 거실 테이블",
+                "13: TV·미디어장",
+                "14: 진열장·책장",
+                "20: 침실 가구",
+                "21: 침대",
+                "22: 매트리스",
+                "23: 화장대·거울",
+                "24: 옷장·행거",
+                "25: 수납장·서랍장",
+                "30: 주방·다이닝 가구",
+                "31: 식탁",
+                "32: 주방 의자",
+                "33: 주방 수납장",
+                "34: 아일랜드 식탁·홈바",
+                "40: 서재·오피스 가구",
+                "41: 책상",
+                "42: 사무용 의자",
+                "43: 책장",
+                "50: 기타 가구",
+                "51: 현관·중문 가구",
+                "52: 야외·아웃도어 가구",
+                "53: 리퍼·전시가구",
+                "54: DIY·부속품"
+        ));
 
+        // 파라미터 정의
+        Map<String, Object> parameters = buildParameters(Map.of(
+                "categoryId", prop("integer", categoryIdDescription),
+                "limit", prop("integer", "추천 받을 상품 개수 (기본값: 6)")
+        ), List.of("categoryId"));  // categoryId는 필수, limit은 선택
+
+        // FunctionDefinition 반환
         return new ChatRequestDTO.FunctionDefinition(
                 "getRecommendedProductsByCategory",
-                "특정 카테고리를 기반으로 추천 상품 목록을 조회합니다.",
+                "사용자의 요구와 가장 잘 맞는 가구 카테고리를 선택해 추천 상품을 제공합니다.",
                 parameters
         );
     }
@@ -186,6 +218,34 @@ public class FunctionSchemaFactory {
         );
     }
 
+    public static ChatRequestDTO.FunctionDefinition generateProductDescriptionFunction() {
+        Map<String, Object> featuresProperty = new HashMap<>();
+        featuresProperty.put("type", "array");
+        featuresProperty.put("description", "상품 특징 리스트");
+        featuresProperty.put("items", Map.of("type", "string"));
+
+        Map<String, Map<String, String>> basicProps = Map.of(
+                "productName", prop("string", "상품 이름"),
+                "productBrand", prop("string", "상품 브랜드")
+        );
+
+        // 직접 Map<String, Object> 생성
+        Map<String, Object> properties = new HashMap<>(basicProps);
+        properties.put("productFeatures", featuresProperty); // 타입 불일치 감수하고 직접 넣음
+
+        Map<String, Object> parameters = new HashMap<>();
+        parameters.put("type", "object");
+        parameters.put("properties", properties);
+        parameters.put("required", List.of("productName"));
+
+        return new ChatRequestDTO.FunctionDefinition(
+                "generateProductDescription",
+                "상품 설명을 생성합니다.",
+                parameters
+        );
+    }
+
+
 
     // 모든 조회 가능한 함수 목록 반환
     public static List<ChatRequestDTO.FunctionDefinition> getAllFunctions() {
@@ -202,7 +262,8 @@ public class FunctionSchemaFactory {
                 getRelatedProductsFunction(),
                 searchProductsFunction(),
                 getActiveAuctionsFunction(),
-                getAuctionDetailsFunction()
+                getAuctionDetailsFunction(),
+                generateProductDescriptionFunction()
         );
     }
     // ====== 공통 로직 추출 ======
