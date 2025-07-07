@@ -16,15 +16,15 @@ public interface ProductViewRepository extends JpaRepository<Product, Long>, Pro
     Optional<Product> findById(Long id);
 
     // ✅ 카테고리별 인기 상품 (찜 많은 순)
-    @Query("""
-    SELECT p
-    FROM Product p
-    JOIN p.wishlists w
-    WHERE p.category.id = :categoryId AND p.active = true
+    @Query(value = """
+    SELECT p.id, p.name, p.price, COUNT(w.id) AS wishCount
+    FROM products p
+    JOIN wishlists w ON p.id = w.product_id
+    WHERE p.category_id = :categoryId
     GROUP BY p.id
-    ORDER BY COUNT(w.id) DESC
-""")
-    List<Product> findPopularProductsByCategory(@Param("categoryId") Long categoryId);
-
+    ORDER BY wishCount DESC
+    LIMIT 15
+""", nativeQuery = true)
+    List<Object[]> findPopularProductRaw(@Param("categoryId") Long categoryId);
 
 }

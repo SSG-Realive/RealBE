@@ -120,25 +120,33 @@ public class ProductViewServiceImpl implements ProductViewService {
 
     @Override
     public List<ProductListDTO> getPopularProductsByCategory(Long categoryId) {
-        // 1. 인기 상품 조회 (카테고리별, 찜 많은 순)
-        List<Product> products = productViewRepository.findPopularProductsByCategory(categoryId);
+        List<Object[]> rawList = productViewRepository.findPopularProductRaw(categoryId);
 
-        // 2. 상품 ID 리스트 추출
-        List<Long> ids = products.stream()
-                .map(Product::getId)
+        List<Long> ids = rawList.stream()
+                .map(row -> ((Number) row[0]).longValue())
                 .toList();
 
-        // 3. 썸네일 이미지 URL 맵 조회
-        List<Object[]> imageRows = productImageRepository.findThumbnailUrlsByProductIds(ids, MediaType.IMAGE);
-        Map<Long, String> imageMap = imageRows.stream()
+        Map<Long, String> imageMap = productImageRepository
+                .findThumbnailUrlsByProductIds(ids, MediaType.IMAGE)
+                .stream()
                 .collect(Collectors.toMap(
                         row -> (Long) row[0],
                         row -> (String) row[1]
                 ));
 
-        // 4. DTO 변환
-        return products.stream()
-                .map(p -> ProductListDTO.from(p, imageMap.get(p.getId())))
+        return rawList.stream()
+                .map(row -> {
+                    Long id = ((Number) row[0]).longValue();
+                    String name = (String) row[1];
+                    int price = ((Number) row[2]).intValue();
+
+                    return ProductListDTO.builder()
+                            .id(id)
+                            .name(name)
+                            .price(price)
+                            .imageThumbnailUrl(imageMap.get(id))
+                            .build();
+                })
                 .toList();
     }
 }
