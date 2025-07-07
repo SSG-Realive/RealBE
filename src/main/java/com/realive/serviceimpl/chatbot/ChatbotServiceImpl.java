@@ -165,7 +165,7 @@ public class ChatbotServiceImpl implements ChatbotService {
                     Long customerId = getCurrentCustomerId();
                     int limit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 10;
                     Pageable pageable = PageRequest.of(0, limit);
-                    var reviews = reviewViewService.getReviewList(customerId, pageable); // ← 메서드가 있다면
+                    var reviews = reviewViewService.getMyReviewList(customerId, pageable); // ← 메서드가 있다면
                     return objectMapper.writeValueAsString(reviews);
                 }
 

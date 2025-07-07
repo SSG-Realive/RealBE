@@ -31,14 +31,14 @@ public class ReviewViewServiceImpl implements ReviewViewService {
 
     // 판매자 리뷰 목록
     @Override
-    public ReviewListResponseDTO getReviewList(Long sellerId, Pageable pageable) {
+    public ReviewListResponseDTO getReviewList(Long sellerId, String productName, Pageable pageable) {
         log.info("판매자 ID {}에 대한 리뷰 목록을 조회합니다. 페이지 번호: {}", sellerId, pageable.getPageNumber());
 
         if (sellerId == null || sellerId <= 0) {
             throw new IllegalArgumentException("유효하지 않은 판매자 ID입니다.");
         }
 
-        Page<ReviewResponseDTO> reviewsPage = reviewViewRepository.findSellerReviewsBySellerId(sellerId, pageable);
+        Page<ReviewResponseDTO> reviewsPage = reviewViewRepository.findSellerReviewsBySellerIdAndProductName(sellerId, productName, pageable);
 
         List<Long> reviewIds = reviewsPage.getContent().stream()
                 .map(ReviewResponseDTO::getReviewId)
