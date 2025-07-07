@@ -302,4 +302,5 @@ public interface SalesLogRepository extends JpaRepository<SalesLog, Integer>, Jp
     List<Object[]> getMonthlySalesBySellerId(@Param("sellerId") Long sellerId,
                                              @Param("startDate") LocalDate startDate,
                                              @Param("endDate") LocalDate endDate);
+
 }
