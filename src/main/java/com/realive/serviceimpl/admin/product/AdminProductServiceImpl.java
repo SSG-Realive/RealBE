@@ -118,10 +118,17 @@ public class AdminProductServiceImpl implements AdminProductService {
         AdminProduct savedAdminProduct = adminProductRepository.save(adminProduct);
         log.info("관리자 상품 매입 완료: adminProductId={}", savedAdminProduct.getId());
 
-        return AdminProductDTO.fromEntity(savedAdminProduct, product,
-                productImageRepository.findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
-                        .map(ProductImage::getUrl)
-                        .orElse(null));
+// 썸네일 이미지 URL
+        String thumbnailUrl = productImageRepository
+                .findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
+                .map(ProductImage::getUrl)
+                .orElse(null);
+
+// 서브 이미지 URL 리스트
+        List<String> imageUrls = productImageRepository.findSubImageUrlsByProductId(product.getId());
+
+// 4개 인자를 넣어서 fromEntity 호출
+        return AdminProductDTO.fromEntity(adminProduct, product, thumbnailUrl, imageUrls);
     }
 
     @Override
@@ -132,10 +139,17 @@ public class AdminProductServiceImpl implements AdminProductService {
         Product product = productRepository.findById(productId.longValue())
                 .orElse(null);
 
-        return AdminProductDTO.fromEntity(adminProduct, product,
-                productImageRepository.findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
-                        .map(ProductImage::getUrl)
-                        .orElse(null));
+// 썸네일 이미지 URL
+        String thumbnailUrl = productImageRepository
+                .findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
+                .map(ProductImage::getUrl)
+                .orElse(null);
+
+// 서브 이미지 URL 리스트
+        List<String> imageUrls = productImageRepository.findSubImageUrlsByProductId(product.getId());
+
+// 4개 인자를 넣어서 fromEntity 호출
+        return AdminProductDTO.fromEntity(adminProduct, product, thumbnailUrl, imageUrls);
     }
 
     @Override
@@ -178,13 +192,22 @@ public class AdminProductServiceImpl implements AdminProductService {
         return adminProductRepository.findById(adminProductId)
                 .map(adminProduct -> {
                     Product product = productRepository.findById(adminProduct.getProductId().longValue()).orElse(null);
-                    String thumbnailUrl = product != null ?
-                            productImageRepository.findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
-                                    .map(ProductImage::getUrl)
-                                    .orElse(null) : null;
-                    return AdminProductDTO.fromEntity(adminProduct, product, thumbnailUrl);
+                    String thumbnailUrl = null;
+                    List<String> imageUrls = new ArrayList<>();
+
+                    if (product != null) {
+                        thumbnailUrl = productImageRepository
+                                .findFirstByProductIdAndIsThumbnailTrueAndMediaType(product.getId(), MediaType.IMAGE)
+                                .map(ProductImage::getUrl)
+                                .orElse(null);
+
+                        imageUrls = productImageRepository.findSubImageUrlsByProductId(product.getId());
+                    }
+
+                    return AdminProductDTO.fromEntity(adminProduct, product, thumbnailUrl, imageUrls);
                 });
     }
+
 
     @Override
     public PageResponseDTO<ProductListDTO> getAdminProducts(ProductSearchCondition condition) {
@@ -302,9 +325,15 @@ public class AdminProductServiceImpl implements AdminProductService {
         return adminProducts.stream()
                 .map(adminProduct -> {
                     Product product = productMap.get(adminProduct.getProductId().longValue());
-                    String thumbnailUrl = product != null ?
-                            thumbnailUrlMap.get(product.getId()) : null;
-                    return AdminProductDTO.fromEntity(adminProduct, product, thumbnailUrl);
+                    String thumbnailUrl = null;
+                    List<String> imageUrls = new ArrayList<>();
+
+                    if (product != null) {
+                        thumbnailUrl = thumbnailUrlMap.get(product.getId());
+                        imageUrls = productImageRepository.findSubImageUrlsByProductId(product.getId());
+                    }
+
+                    return AdminProductDTO.fromEntity(adminProduct, product, thumbnailUrl, imageUrls);
                 })
                 .collect(Collectors.toList());
     }

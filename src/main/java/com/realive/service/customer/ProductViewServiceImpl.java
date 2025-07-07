@@ -5,6 +5,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 import com.realive.repository.customer.productview.ProductViewRepository;
+import com.realive.repository.product.CategoryRepository;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -35,6 +36,7 @@ public class ProductViewServiceImpl implements ProductViewService {
     private final ProductImageRepository productImageRepository;
     private final WishlistRepository wishlistRepository;
     private final ProductViewRepository productViewRepository;
+    private final CategoryRepository categoryRepository;
 
     public ProductViewServiceImpl(
             @Qualifier("productSearchImpl") ProductSearch productSearch,
@@ -42,7 +44,8 @@ public class ProductViewServiceImpl implements ProductViewService {
             ProductRepository productRepository,
             ProductImageRepository productImageRepository,
             WishlistRepository wishlistRepository,
-            ProductViewRepository productViewRepository
+            ProductViewRepository productViewRepository,
+            CategoryRepository categoryRepository
     ) {
         this.productSearch = productSearch;
         this.productDetail = productDetail;
@@ -50,6 +53,7 @@ public class ProductViewServiceImpl implements ProductViewService {
         this.productImageRepository = productImageRepository;
         this.wishlistRepository = wishlistRepository;
         this.productViewRepository = productViewRepository;
+        this.categoryRepository = categoryRepository;
     }
 
     @Override
@@ -120,7 +124,8 @@ public class ProductViewServiceImpl implements ProductViewService {
 
     @Override
     public List<ProductListDTO> getPopularProductsByCategory(Long categoryId) {
-        List<Object[]> rawList = productViewRepository.findPopularProductRaw(categoryId);
+        List<Long> categoryIds = categoryRepository.findSubCategoryIdsIncludingSelf(categoryId); // ✅ 하위 포함
+        List<Object[]> rawList = productViewRepository.findPopularProductRawByCategoryIds(categoryIds);
 
         List<Long> ids = rawList.stream()
                 .map(row -> ((Number) row[0]).longValue())
