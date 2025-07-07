@@ -18,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
 @Service
 @RequiredArgsConstructor
 @Transactional(readOnly = true)
@@ -54,10 +56,13 @@ public class AuctionServiceImpl2 implements AuctionService2 {
             .map(ProductImage::getUrl)
             .orElse(null);
 
+        List<String> imageUrls = productImageRepository.findUrlsByProductId(product.getId());
+
         AdminProductDTO productDTO = AdminProductDTO.fromEntity(
             adminProduct,
             product,
-            imageThumbnailUrl
+            imageThumbnailUrl,
+                imageUrls
         );
 
         // 4) 결제 상태 확인
