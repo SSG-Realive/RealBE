@@ -4,6 +4,7 @@ import com.realive.domain.product.Product;
 
 import jakarta.persistence.LockModeType;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -91,5 +92,9 @@ public interface ProductRepository extends JpaRepository<Product, Long>, Product
      * @return 재고가 기준값보다 큰 상품 수
      */
     long countByStockGreaterThan(int stock);
+
+
+    List<Product> findByCategoryIdIn(List<Long> categoryIds, Pageable pageable);
+
 }
 
