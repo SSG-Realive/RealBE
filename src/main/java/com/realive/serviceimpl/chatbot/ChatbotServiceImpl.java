@@ -6,6 +6,7 @@ import com.realive.dto.chatbot.ChatApiResponseDTO;
 import com.realive.dto.chatbot.ChatRequestDTO;
 import com.realive.dto.page.PageRequestDTO;
 import com.realive.security.customer.CustomerPrincipal;
+import com.realive.service.admin.auction.AuctionService;
 import com.realive.service.chatbot.ChatbotService;
 import com.realive.service.customer.ProductViewService;
 import com.realive.service.customer.WishlistService;
@@ -39,6 +40,7 @@ public class ChatbotServiceImpl implements ChatbotService {
     private final ReviewViewService reviewViewService;
     private final WishlistService wishlistService;
     private final ProductViewService productViewService;
+    private final AuctionService auctionService;
 
     @Value("${openai.api.key}")
     private String openAiApiKey;
@@ -99,7 +101,8 @@ public class ChatbotServiceImpl implements ChatbotService {
                               OrderService orderService,
                               ReviewViewService reviewViewService,
                               WishlistService wishlistService,
-                              ProductViewService productViewService) {
+                              ProductViewService productViewService,
+                              AuctionService auctionService) {
         this.webClient = webClient;
         this.objectMapper = objectMapper;
         this.productService = productService;
@@ -107,6 +110,7 @@ public class ChatbotServiceImpl implements ChatbotService {
         this.reviewViewService = reviewViewService;
         this.wishlistService = wishlistService;
         this.productViewService = productViewService;
+        this.auctionService = auctionService;
         log.info("[ChatbotServiceImpl] WebClient 빈 확인: {}", webClient);
     }
 
@@ -144,7 +148,8 @@ public class ChatbotServiceImpl implements ChatbotService {
                         .block();
 
                 ChatApiResponseDTO followupResponse = objectMapper.readValue(followupResponseJson, ChatApiResponseDTO.class);
-                return followupResponse.getChoices().get(0).getMessage().getContent();
+                String content = followupResponse.getChoices().get(0).getMessage().getContent();
+                return formatChatbotResponse(content);
             } else {
                 log.info("사용자 메시지에서 카테고리 ID를 찾지 못함");
             }
@@ -198,10 +203,10 @@ public class ChatbotServiceImpl implements ChatbotService {
                         .block();
 
                 ChatApiResponseDTO followupResponse = objectMapper.readValue(followupResponseJson, ChatApiResponseDTO.class);
-                return followupResponse.getChoices().get(0).getMessage().getContent();
+                return formatChatbotResponse(followupResponse.getChoices().get(0).getMessage().getContent());
             } else {
                 ChatApiResponseDTO response = objectMapper.readValue(responseJson, ChatApiResponseDTO.class);
-                return response.getChoices().get(0).getMessage().getContent();
+                return formatChatbotResponse(response.getChoices().get(0).getMessage().getContent());
             }
 
         } catch (Exception e) {
@@ -275,6 +280,21 @@ public class ChatbotServiceImpl implements ChatbotService {
                     limit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 6;
                     return objectMapper.writeValueAsString(productViewService.getRecommendedProductsByCategory(categoryId, limit));
 
+                case "getActiveAuctions":
+                    int auctionLimit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 10;
+                    String categoryFilter = argsNode.has("categoryFilter") && !argsNode.get("categoryFilter").isNull()
+                            ? argsNode.get("categoryFilter").asText()
+                            : null;
+                    String statusFilter = argsNode.has("statusFilter") && !argsNode.get("statusFilter").isNull()
+                            ? argsNode.get("statusFilter").asText()
+                            : null;
+                    Pageable auctionPageable = PageRequest.of(0, auctionLimit);
+                    return objectMapper.writeValueAsString(auctionService.getActiveAuctions(auctionPageable, categoryFilter, statusFilter));
+
+                case "getAuctionDetails":
+                    Integer auctionId = argsNode.get("auctionId").asInt();
+                    return objectMapper.writeValueAsString(auctionService.getAuctionDetails(auctionId));
+
                 default:
                     return "{\"error\": \"알 수 없는 함수 호출: " + functionName + "\"}";
             }
@@ -284,4 +304,45 @@ public class ChatbotServiceImpl implements ChatbotService {
             return "{\"error\": \"함수 호출 처리 중 예외 발생: " + e.getMessage() + "\"}";
         }
     }
+
+    // --- 기존 메서드들 아래에 추가 ---
+    private String formatChatbotResponse(String content) {
+        if (content == null) return "";
+
+        // 1. 이미지 마크다운 제거: ![텍스트](URL)
+        content = content.replaceAll("!\\[[^\\]]*\\]\\([^\\)]+\\)", "");
+
+        // 2. 연속 줄바꿈 정리 (2개 이상 -> 2개로 고정)
+        content = content.replaceAll("\\n{3,}", "\n\n");
+
+        // 3. "숫자. 제목" 패턴이 나오면 줄바꿈 삽입
+        content = content.replaceAll("(\\d+)\\. ", "\n$1. ");
+
+        // 4. "- 키: 값" 패턴을 줄바꿈
+        content = content.replaceAll("\\s*- ", "\n- ");
+
+        // 5. 앞뒤 공백 정리
+        content = content.trim();
+
+        // 6. 마크다운 제거
+        content = content
+                .replaceAll("\\*\\*(.*?)\\*\\*", "$1") // **굵게**
+                .replaceAll("###\\s*", "")             // ### 제목 제거
+                .replaceAll("##\\s*", "")              // ## 제목 제거
+                .replaceAll("#\\s*", "")               // # 제목 제거
+                .replaceAll("`([^`]*)`", "$1")         // `코드` 제거
+                .replaceAll("!\\[[^\\]]*\\]\\([^)]*\\)", "") // 이미지 제거
+                .replaceAll("\\[[^\\]]*\\]\\([^)]*\\)", "") // 링크 제거
+
+                // 7. 리스트 포맷 정리
+                .replaceAll("\\s*-\\s*", "\n- ")        // 하이픈 리스트 줄바꿈
+                .replaceAll("(\\d+)\\.\\s*", "\n$1. ")  // 숫자 리스트 줄바꿈
+
+                // 8. 불필요한 줄바꿈/공백 정리
+                .replaceAll("\n{3,}", "\n\n")           // 줄바꿈 3번 이상 → 2번
+                .trim();
+
+        return content;
+    }
+
 }

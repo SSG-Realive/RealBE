@@ -160,6 +160,33 @@ public class FunctionSchemaFactory {
         );
     }
 
+    public static ChatRequestDTO.FunctionDefinition getActiveAuctionsFunction() {
+        Map<String, Object> parameters = buildParameters(Map.of(
+                "categoryFilter", prop("string", "조회할 경매 상품의 카테고리명 (예: '소파', '침대')"),
+                "statusFilter", prop("string", "경매 상태 필터 (예: 'PROCEEDING', 'COMPLETED', 'SCHEDULED')"),
+                "limit", prop("integer", "조회할 최대 경매 개수 (기본값: 10)")
+        ), List.of()); // 모두 선택
+
+        return new ChatRequestDTO.FunctionDefinition(
+                "getActiveAuctions",
+                "카테고리와 상태 필터를 기반으로 진행 중인 경매 목록을 조회합니다.",
+                parameters
+        );
+    }
+
+    public static ChatRequestDTO.FunctionDefinition getAuctionDetailsFunction() {
+        Map<String, Object> parameters = buildParameters(Map.of(
+                "auctionId", prop("integer", "조회할 경매 ID")
+        ), List.of("auctionId"));
+
+        return new ChatRequestDTO.FunctionDefinition(
+                "getAuctionDetails",
+                "특정 경매 ID의 상세 정보를 조회합니다.",
+                parameters
+        );
+    }
+
+
     // 모든 조회 가능한 함수 목록 반환
     public static List<ChatRequestDTO.FunctionDefinition> getAllFunctions() {
         return List.of(
@@ -167,10 +194,15 @@ public class FunctionSchemaFactory {
                 getOrderListFunction(),
                 getReviewListFunction(),
                 getWishlistFunction(),
+                getPopularProductsFunction(),
                 getProductInfoFunction(),
                 getSellerInfoByProductFunction(),
                 getFeaturedSellersWithProductsFunction(),
-                getRecommendedProductsByCategoryFunction()
+                getRecommendedProductsByCategoryFunction(),
+                getRelatedProductsFunction(),
+                searchProductsFunction(),
+                getActiveAuctionsFunction(),
+                getAuctionDetailsFunction()
         );
     }
     // ====== 공통 로직 추출 ======
