@@ -100,4 +100,32 @@ public interface PayoutLogRepository extends JpaRepository<PayoutLog, Integer> {
     List<PayoutLog> findBySellerIdAndPeriodRange(@Param("sellerId") Integer sellerId, @Param("from") LocalDate from, @Param("to") LocalDate to);
 
     Page<PayoutLog> findBySellerId(Integer sellerId, Pageable pageable);
+
+    // 관리자용 검색 조건으로 정산 목록 조회
+    @Query("SELECT p FROM PayoutLog p " +
+            "JOIN Seller s ON p.sellerId = s.id " +
+            "WHERE (:sellerName IS NULL OR s.name LIKE %:sellerName% OR s.email LIKE %:sellerName%) " +
+            "AND (:periodStart IS NULL OR p.periodStart >= :periodStart) " +
+            "AND (:periodEnd IS NULL OR p.periodEnd <= :periodEnd) " +
+            "ORDER BY p.processedAt DESC")
+    Page<PayoutLog> findAllByAdminSearchCondition(
+            Pageable pageable,
+            @Param("sellerName") String sellerName,
+            @Param("periodStart") LocalDate periodStart,
+            @Param("periodEnd") LocalDate periodEnd);
+
+    /**
+     * 월별 정산 요약 조회 (매출 추이 그래프용)
+     */
+    @Query(value = "SELECT " +
+            "CONCAT(EXTRACT(YEAR FROM pl.processed_at), '-', LPAD(CAST(EXTRACT(MONTH FROM pl.processed_at) AS TEXT), 2, '0')) AS yearMonth, " +
+            "COUNT(pl.id), " +
+            "COALESCE(SUM(pl.payout_amount), 0) " +
+            "FROM payout_logs pl " +
+            "WHERE DATE(pl.processed_at) BETWEEN :startDate AND :endDate " +
+            "GROUP BY EXTRACT(YEAR FROM pl.processed_at), EXTRACT(MONTH FROM pl.processed_at) " +
+            "ORDER BY yearMonth",
+            nativeQuery = true)
+    List<Object[]> getMonthlyPayoutSummary(@Param("startDate") LocalDate startDate,
+                                           @Param("endDate") LocalDate endDate);
 }

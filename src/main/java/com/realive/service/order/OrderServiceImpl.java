@@ -369,11 +369,11 @@ public class OrderServiceImpl implements OrderService {
                 .orElse(null);
 
         // TODO: 재고 확인 및 감소 로직 추가
-        // if (product.getStock() < payRequestDTO.getQuantity()) {
-        //     throw new IllegalStateException("상품 재고가 부족합니다.");
-        // }
-        // product.decreaseStock(payRequestDTO.getQuantity());
-        // productRepository.save(product); // 재고 감소 후 저장
+//         if (product.getStock() < payRequestDTO.getQuantity()) {
+//             throw new IllegalStateException("상품 재고가 부족합니다.");
+//         }
+//         product.decreaseStock(payRequestDTO.getQuantity());
+//         productRepository.save(product); // 재고 감소 후 저장
 
         calculatedTotalProductPrice += product.getPrice() * payRequestDTO.getQuantity();
 

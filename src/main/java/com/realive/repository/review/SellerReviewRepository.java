@@ -130,4 +130,14 @@ Page<SellerRankingDTO> findSellerRankings(
     @Param("minReviews") long minReviews,
     Pageable pageable
 );
+
+    @Query("SELECT sr FROM SellerReview sr JOIN FETCH sr.seller s " +
+            "JOIN sr.order o JOIN o.orderItems oi JOIN oi.product p " +
+            "WHERE s.id = :sellerId " +
+            "AND (:productName IS NULL OR p.name LIKE %:productName%)")
+    Page<SellerReview> findSellerReviewsBySellerIdAndProductName(
+            @Param("sellerId") Long sellerId,
+            @Param("productName") String productName,
+            Pageable pageable
+    );
 }
