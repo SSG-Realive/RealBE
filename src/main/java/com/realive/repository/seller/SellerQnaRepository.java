@@ -54,4 +54,22 @@ public interface SellerQnaRepository extends JpaRepository<SellerQna, Long> {
 
     @Query("SELECT COUNT(sq) FROM SellerQna sq WHERE sq.isAnswered = false")
     long countUnansweredQna();
+
+    // ✅ 관리자용 검색/필터 메서드 (status 제거)
+    @Query("SELECT sq FROM SellerQna sq WHERE " +
+            "(:search IS NULL OR (sq.title LIKE %:search% OR sq.content LIKE %:search% OR sq.seller.name LIKE %:search%)) " +
+            "AND (:isAnswered IS NULL OR sq.isAnswered = :isAnswered)")
+    Page<SellerQna> findBySearchAndFilters(
+            @Param("search") String search,
+            @Param("isAnswered") Boolean isAnswered,
+            Pageable pageable
+    );
+
+    // ✅ 검색어 없이 필터만 적용하는 메서드 (status 제거)
+    @Query("SELECT sq FROM SellerQna sq WHERE " +
+            "(:isAnswered IS NULL OR sq.isAnswered = :isAnswered)")
+    Page<SellerQna> findByFilters(
+            @Param("isAnswered") Boolean isAnswered,
+            Pageable pageable
+    );
 }

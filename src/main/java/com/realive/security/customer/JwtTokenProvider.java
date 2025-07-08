@@ -21,7 +21,8 @@ public class JwtTokenProvider {
     @Value("${jwt.secret}")
     private String secretKey;
 
-    private final long expirationMs = 3600000L; // Token 만료시간: 1시간
+    // 3시간으로 설정
+    private final long expirationMs = 10800000L; // Token 만료시간: 3시간
 
     // 권한 포함하여 Token 생성
     public String generateToken(String username, String role) {
