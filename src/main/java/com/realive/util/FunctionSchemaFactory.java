@@ -105,8 +105,6 @@ public class FunctionSchemaFactory {
         );
     }
 
-
-
     // 상품 검색 (카테고리별, limit 개수)
     public static ChatRequestDTO.FunctionDefinition searchProductsFunction() {
         Map<String, Object> parameters = buildParameters(Map.of(
