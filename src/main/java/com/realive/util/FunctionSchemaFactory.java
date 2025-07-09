@@ -77,7 +77,7 @@ public class FunctionSchemaFactory {
     }
 
     // 판매자 정보 조회 (상품 기준)
-    public static ChatRequestDTO.FunctionDefinition getSellerInfoByProductFunction() {
+    public static ChatRequestDTO.FunctionDefinition getPublicSellerInfoByProductIdFunction() {
         Map<String, Object> parameters = buildParameters(Map.of(
                 "productId", prop("integer", "상품 ID")
         ), List.of("productId"));
@@ -260,7 +260,7 @@ public class FunctionSchemaFactory {
                 getWishlistFunction(),
                 getPopularProductsFunction(),
                 getProductInfoFunction(),
-                getSellerInfoByProductFunction(),
+                getPublicSellerInfoByProductIdFunction(),
                 getFeaturedSellersWithProductsFunction(),
                 getRecommendedProductsByCategoryFunction(),
                 getRelatedProductsFunction(),

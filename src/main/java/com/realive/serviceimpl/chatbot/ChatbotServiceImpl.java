@@ -20,14 +20,13 @@ import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.stereotype.Service;
 import org.springframework.web.reactive.function.client.WebClient;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.Authentication;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Map;
 
 @Service
 @Log4j2
@@ -50,15 +49,6 @@ public class ChatbotServiceImpl implements ChatbotService {
     @Value("${openai.model}")
     private String model;
 
-    private Long getCurrentCustomerId() {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth == null || !auth.isAuthenticated()) {
-            throw new RuntimeException("로그인한 사용자만 사용할 수 있는 기능입니다.");
-        }
-        CustomerPrincipal userDetails = (CustomerPrincipal) auth.getPrincipal();
-        return userDetails.getId();
-    }
-
     public ChatbotServiceImpl(@Qualifier("openAiWebClient") WebClient webClient,
                               ObjectMapper objectMapper,
                               ProductService productService,
@@ -78,17 +68,25 @@ public class ChatbotServiceImpl implements ChatbotService {
         log.info("[ChatbotServiceImpl] WebClient 빈 확인: {}", webClient);
     }
 
+    private Long getCurrentCustomerId() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth == null || !auth.isAuthenticated()) {
+            throw new RuntimeException("로그인한 사용자만 사용할 수 있는 기능입니다.");
+        }
+        CustomerPrincipal userDetails = (CustomerPrincipal) auth.getPrincipal();
+        return userDetails.getId();
+    }
+
     @Override
-    public String getChatbotReply(String message) {
+    public String getChatbotReply(List<ChatRequestDTO.Message> messages) {
         boolean functionCalled = false;
 
         try {
-            // 1. 기본 GPT 요청 + Function 목록 포함
-            ChatRequestDTO request = ChatRequestDTO.withFunctions(
-                    model,
-                    message,
-                    FunctionSchemaFactory.getAllFunctions()
-            );
+            ChatRequestDTO request = new ChatRequestDTO();
+            request.setModel(model);
+            request.setMessages(messages);
+            request.setFunctions(FunctionSchemaFactory.getAllFunctions());
+            request.setFunction_call("auto");
 
             String requestJson = objectMapper.writeValueAsString(request);
             log.info("OpenAI 요청 JSON: {}", requestJson);
@@ -106,20 +104,20 @@ public class ChatbotServiceImpl implements ChatbotService {
             JsonNode choice = root.path("choices").get(0);
             JsonNode messageNode = choice.path("message");
 
-            // 2. GPT가 함수 호출 요청한 경우 처리
             if (messageNode.has("function_call") && !functionCalled) {
                 functionCalled = true;
                 String functionName = messageNode.get("function_call").get("name").asText();
                 String argumentsJson = messageNode.get("function_call").get("arguments").asText();
                 String functionResult = handleFunctionCall(functionName, argumentsJson);
 
+                List<ChatRequestDTO.Message> followupMessages = new ArrayList<>(messages);
+                followupMessages.add(new ChatRequestDTO.Message("function", functionResult, functionName));
+
                 ChatRequestDTO followupRequest = new ChatRequestDTO();
                 followupRequest.setModel(model);
-                followupRequest.setMessages(List.of(
-                        new ChatRequestDTO.Message("user", message),
-                        new ChatRequestDTO.Message("function", functionResult, functionName)
-                ));
+                followupRequest.setMessages(followupMessages);
                 followupRequest.setFunctions(FunctionSchemaFactory.getAllFunctions());
+                followupRequest.setFunction_call("auto");
 
                 String followupRequestJson = objectMapper.writeValueAsString(followupRequest);
                 log.info("OpenAI 후속 요청 JSON: {}", followupRequestJson);
@@ -136,7 +134,6 @@ public class ChatbotServiceImpl implements ChatbotService {
                 ChatApiResponseDTO followupResponse = objectMapper.readValue(followupResponseJson, ChatApiResponseDTO.class);
                 return formatChatbotResponse(followupResponse.getChoices().get(0).getMessage().getContent());
             } else {
-                // 함수 호출이 없거나 이미 처리됨 → 일반 응답 처리
                 ChatApiResponseDTO response = objectMapper.readValue(responseJson, ChatApiResponseDTO.class);
                 return formatChatbotResponse(response.getChoices().get(0).getMessage().getContent());
             }
@@ -147,27 +144,22 @@ public class ChatbotServiceImpl implements ChatbotService {
         }
     }
 
-
-    // 이하 함수 호출 처리 메서드는 그대로 유지
     private String handleFunctionCall(String functionName, String argumentsJson) {
         try {
             JsonNode argsNode = objectMapper.readTree(argumentsJson);
 
             switch (functionName) {
-
                 case "getOrderDetail": {
                     Long orderId = argsNode.get("orderId").asLong();
                     Long customerId = getCurrentCustomerId();
                     return objectMapper.writeValueAsString(orderService.getOrder(orderId, customerId));
                 }
-
                 case "getOrderList": {
                     Long customerId = getCurrentCustomerId();
                     int limit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 10;
                     Pageable pageable = PageRequest.of(0, limit);
                     return objectMapper.writeValueAsString(orderService.getOrderList(pageable, customerId));
                 }
-
                 case "getReviewList": {
                     Long sellerId = argsNode.has("sellerId") && !argsNode.get("sellerId").isNull()
                             ? argsNode.get("sellerId").asLong()
@@ -183,12 +175,10 @@ public class ChatbotServiceImpl implements ChatbotService {
                     return objectMapper.writeValueAsString(
                             reviewViewService.getReviewList(sellerId, productName, pageable));
                 }
-
                 case "getWishlistForCustomer": {
                     Long customerId = getCurrentCustomerId();
                     return objectMapper.writeValueAsString(wishlistService.getWishlistForCustomer(customerId));
                 }
-
                 case "getProductInfo": {
                     Long productId = argsNode.get("productId").asLong();
                     Long sellerId = argsNode.has("sellerId") && !argsNode.get("sellerId").isNull()
@@ -196,12 +186,10 @@ public class ChatbotServiceImpl implements ChatbotService {
                             : null;
                     return objectMapper.writeValueAsString(productService.getProductDetail(productId, sellerId));
                 }
-
                 case "getPublicSellerInfoByProductId": {
                     Long productId = argsNode.get("productId").asLong();
                     return objectMapper.writeValueAsString(productService.getPublicSellerInfoByProductId(productId));
                 }
-
                 case "getFeaturedSellersWithProducts": {
                     int candidateSize = argsNode.get("candidateSize").asInt();
                     int sellersPick = argsNode.get("sellersPick").asInt();
@@ -209,7 +197,6 @@ public class ChatbotServiceImpl implements ChatbotService {
                     int minReviews = argsNode.get("minReviews").asInt();
                     return objectMapper.writeValueAsString(productService.getFeaturedSellersWithProducts(candidateSize, sellersPick, productsPerSeller, minReviews));
                 }
-
                 case "searchProducts": {
                     int limit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 10;
                     Long categoryId = argsNode.has("categoryId") && !argsNode.get("categoryId").isNull()
@@ -220,22 +207,18 @@ public class ChatbotServiceImpl implements ChatbotService {
                     pageRequestDTO.setSize(limit);
                     return objectMapper.writeValueAsString(productViewService.search(pageRequestDTO, categoryId));
                 }
-
                 case "getRelatedProducts": {
                     Long productId = argsNode.get("productId").asLong();
                     return objectMapper.writeValueAsString(productViewService.getRelatedProducts(productId));
                 }
-
                 case "getPopularProducts": {
                     return objectMapper.writeValueAsString(productViewService.getPopularProducts());
                 }
-
                 case "getRecommendedProductsByCategory": {
                     Long categoryId = argsNode.get("categoryId").asLong();
                     int limit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 6;
                     return objectMapper.writeValueAsString(productViewService.getRecommendedProductsByCategory(categoryId, limit));
                 }
-
                 case "getActiveAuctions": {
                     int auctionLimit = argsNode.has("limit") ? argsNode.get("limit").asInt() : 10;
                     String categoryFilter = argsNode.has("categoryFilter") && !argsNode.get("categoryFilter").isNull()
@@ -247,12 +230,10 @@ public class ChatbotServiceImpl implements ChatbotService {
                     Pageable auctionPageable = PageRequest.of(0, auctionLimit);
                     return objectMapper.writeValueAsString(auctionService.getActiveAuctions(auctionPageable, categoryFilter, statusFilter));
                 }
-
                 case "getAuctionDetails": {
                     Integer auctionId = argsNode.get("auctionId").asInt();
                     return objectMapper.writeValueAsString(auctionService.getAuctionDetails(auctionId));
                 }
-
                 case "generateProductDescription": {
                     String productName = argsNode.get("productName").asText();
 
@@ -270,7 +251,6 @@ public class ChatbotServiceImpl implements ChatbotService {
 
                     return objectMapper.writeValueAsString(productService.generateDescription(dto));
                 }
-
                 default: {
                     return "{\"error\": \"알 수 없는 함수 호출: " + functionName + "\"}";
                 }
@@ -282,45 +262,38 @@ public class ChatbotServiceImpl implements ChatbotService {
         }
     }
 
-
-    // --- 기존 메서드들 아래에 추가 ---
     private String formatChatbotResponse(String content) {
         if (content == null) return "";
 
-        // 1. 이미지 마크다운 제거: ![텍스트](URL)
+        // 이미지 마크다운 제거: ![텍스트](URL)
         content = content.replaceAll("!\\[[^\\]]*\\]\\([^\\)]+\\)", "");
 
-        // 2. 연속 줄바꿈 정리 (2개 이상 -> 2개로 고정)
+        // 연속 줄바꿈 3개 이상 → 2개로 고정
         content = content.replaceAll("\\n{3,}", "\n\n");
 
-        // 3. "숫자. 제목" 패턴이 나오면 줄바꿈 삽입
+        // "숫자. 제목" 패턴에 줄바꿈 삽입
         content = content.replaceAll("(\\d+)\\. ", "\n$1. ");
 
-        // 4. "- 키: 값" 패턴을 줄바꿈
+        // "- 키: 값" 패턴 줄바꿈
         content = content.replaceAll("\\s*- ", "\n- ");
 
-        // 5. 앞뒤 공백 정리
+        // 앞뒤 공백 정리
         content = content.trim();
 
-        // 6. 마크다운 제거
+        // 마크다운 제거
         content = content
-                .replaceAll("\\*\\*(.*?)\\*\\*", "$1") // **굵게**
-                .replaceAll("###\\s*", "")             // ### 제목 제거
-                .replaceAll("##\\s*", "")              // ## 제목 제거
-                .replaceAll("#\\s*", "")               // # 제목 제거
-                .replaceAll("`([^`]*)`", "$1")         // `코드` 제거
-                .replaceAll("!\\[[^\\]]*\\]\\([^)]*\\)", "") // 이미지 제거
-                .replaceAll("\\[[^\\]]*\\]\\([^)]*\\)", "") // 링크 제거
-
-                // 7. 리스트 포맷 정리
-                .replaceAll("\\s*-\\s*", "\n- ")        // 하이픈 리스트 줄바꿈
-                .replaceAll("(\\d+)\\.\\s*", "\n$1. ")  // 숫자 리스트 줄바꿈
-
-                // 8. 불필요한 줄바꿈/공백 정리
-                .replaceAll("\n{3,}", "\n\n")           // 줄바꿈 3번 이상 → 2번
+                .replaceAll("\\*\\*(.*?)\\*\\*", "$1")   // **굵게**
+                .replaceAll("###\\s*", "")               // ### 제목 제거
+                .replaceAll("##\\s*", "")                // ## 제목 제거
+                .replaceAll("#\\s*", "")                 // # 제목 제거
+                .replaceAll("`([^`]*)`", "$1")           // `코드` 제거
+                .replaceAll("!\\[[^\\]]*\\]\\([^)]*\\)", "")  // 이미지 제거
+                .replaceAll("\\[[^\\]]*\\]\\([^)]*\\)", "")    // 링크 제거
+                .replaceAll("\\s*-\\s*", "\n- ")         // 하이픈 리스트 줄바꿈
+                .replaceAll("(\\d+)\\.\\s*", "\n$1. ")   // 숫자 리스트 줄바꿈
+                .replaceAll("\n{3,}", "\n\n")            // 줄바꿈 3번 이상 → 2번
                 .trim();
 
         return content;
     }
-
 }
