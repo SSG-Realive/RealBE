@@ -511,34 +511,50 @@ public class ProductServiceImpl implements ProductService {
         // productId로 sellerId를 검색한 다음 id로 sellerInfo 조회
         @Override
         @Transactional(readOnly = true)
-        public Optional<SellerPublicResponseDTO> getPublicSellerInfoByProductId(Long productId) { // 메서드 이름 일치!
-                log.info("상품 ID {} 에 대한 공개 판매자 정보를 가져오려 시도 중입니다.", productId);
+        public Optional<SellerPublicResponseDTO> getPublicSellerInfoBySellerId(Long sellerId) {
+                log.info("판매자 ID {} 에 대한 공개 판매자 정보를 가져옵니다.", sellerId);
 
-                // 1. ProductRepository를 사용하여 productId로 Product 엔티티 조회
-                Optional<Product> productOptional = productRepository.findById(productId);
+                // 1. 판매자 조회
+                Optional<Seller> sellerOptional = sellerRepository.findById(sellerId);
 
-                // 상품이 존재하지 않으면 빈 Optional 반환
-                if (productOptional.isEmpty()) {
-                        log.warn("상품 ID {} 를 찾을 수 없습니다.", productId);
+                if (sellerOptional.isEmpty()) {
+                        log.warn("판매자 ID {} 를 찾을 수 없습니다.", sellerId);
                         return Optional.empty();
                 }
 
-                // Product 객체에서 Seller 객체를 가져오고, 그 Seller 객체에서 ID를 추출
-                // Product 엔티티의 seller 필드가 ManyToOne 관계이므로 안전하게 접근해야 합니다.
-                Optional<Long> sellerIdOptional = productOptional
-                        .map(Product::getSeller) // Product에서 Seller 객체를 가져옴
-                        .map(Seller::getId);     // Seller 객체에서 ID를 가져옴
+                Seller seller = sellerOptional.get();
 
-                if (sellerIdOptional.isEmpty()) {
-                        log.warn("상품 ID {} 에 대한 판매자 ID를 가져올 수 없습니다.", productId);
-                        return Optional.empty(); // Seller 객체가 null이거나 ID를 가져올 수 없는 경우
-                }
-                Long sellerId = sellerIdOptional.get();
+                // 2. 리뷰 통계 조회
+                Double averageRating = sellerReviewRepository.getAverageRatingBySellerId(sellerId);
+                Long totalReviews = sellerReviewRepository.countReviewsBySellerId(sellerId);
 
-                log.debug("상품 ID {} 에 대한 판매자 ID {} 를 찾았습니다.", productId, sellerId);
+                double finalAvg = (averageRating != null) ? averageRating : 0.0;
+                long finalCount = (totalReviews != null) ? totalReviews : 0L;
 
-                // 2. SellerRepository를 사용하여 sellerId로 Seller 엔티티 조회
-                Optional<Seller> sellerOptional = sellerRepository.findById(sellerId);
+                // 3. DTO 변환
+                return Optional.of(SellerPublicResponseDTO.builder()
+                        .id(seller.getId())
+                        .name(seller.getName())
+                        // .profileImageUrl(seller.getProfileImageUrl()) // 필요 시 활성화
+                        // .isApproved(seller.isApproved())               // 필요 시 활성화
+                        .averageRating(finalAvg)
+                        .totalReviews(finalCount)
+                        .createdAt(seller.getCreatedAt())
+                        .contactNumber(seller.getPhone())
+                        .businessNumber(seller.getBusinessNumber())
+                        .build());
+        }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Optional<SellerPublicResponseDTO> getPublicSellerInfoByProductId(Long productId) {
+        log.info("상품 ID {} 에 대한 판매자 공개 정보를 조회합니다.", productId);
+
+        return getSellerIdByProductId(productId)
+                .flatMap(this::getPublicSellerInfoBySellerId); // 이미 구현된 메서드 재사용
+    }
+
+
 
                 // 판매자가 존재하면 Seller 엔티티를 SellerPublicResponseDTO로 변환하여 반환
                 return sellerOptional.map(seller -> {
