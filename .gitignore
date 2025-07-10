@@ -40,7 +40,6 @@ replay_pid*
 
 # -------------------------------------
 # Spring Boot 설정 파일 (로컬 환경 설정)
-**/application.yml
 **/application-*.yml
 **/application.properties
 **/.env
