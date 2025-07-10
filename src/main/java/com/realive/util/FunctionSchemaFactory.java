@@ -77,7 +77,7 @@ public class FunctionSchemaFactory {
     }
 
     // 판매자 정보 조회 (상품 기준)
-    public static ChatRequestDTO.FunctionDefinition getSellerInfoByProductFunction() {
+    public static ChatRequestDTO.FunctionDefinition getPublicSellerInfoByProductIdFunction() {
         Map<String, Object> parameters = buildParameters(Map.of(
                 "productId", prop("integer", "상품 ID")
         ), List.of("productId"));
@@ -104,8 +104,6 @@ public class FunctionSchemaFactory {
                 parameters
         );
     }
-
-
 
     // 상품 검색 (카테고리별, limit 개수)
     public static ChatRequestDTO.FunctionDefinition searchProductsFunction() {
@@ -150,30 +148,34 @@ public class FunctionSchemaFactory {
     public static ChatRequestDTO.FunctionDefinition getRecommendedProductsByCategoryFunction() {
         // 카테고리 설명 정의 (GPT가 categoryId를 의미 기반으로 선택할 수 있도록)
         String categoryIdDescription = String.join("\n", List.of(
-                "다음 중 사용자 요청과 가장 적절한 카테고리 ID를 선택하세요:",
-                "10: 거실 가구",
+                "다음 중 사용자 요청에 가장 적절한 카테고리 ID를 선택하세요:",
+                "[거실 가구] (Parent: 10)",
                 "11: 소파",
                 "12: 거실 테이블",
                 "13: TV·미디어장",
                 "14: 진열장·책장",
-                "20: 침실 가구",
+                "",
+                "[침실 가구] (Parent: 20)",
                 "21: 침대",
                 "22: 매트리스",
                 "23: 화장대·거울",
                 "24: 옷장·행거",
                 "25: 수납장·서랍장",
-                "30: 주방·다이닝 가구",
+                "",
+                "[주방·다이닝 가구] (Parent: 30)",
                 "31: 식탁",
                 "32: 주방 의자",
                 "33: 주방 수납장",
                 "34: 아일랜드 식탁·홈바",
-                "40: 서재·오피스 가구",
+                "",
+                "[서재·오피스 가구] (Parent: 40)",
                 "41: 책상",
                 "42: 사무용 의자",
                 "43: 책장",
-                "50: 기타 가구",
+                "",
+                "[기타] (Parent: 50)",
                 "51: 현관·중문 가구",
-                "52: 야외·아웃도어 가구",
+                "52: 야외·아웃도어 가구 (예: 베란다, 테라스, 마당에서 사용하는 가구)",
                 "53: 리퍼·전시가구",
                 "54: DIY·부속품"
         ));
@@ -181,7 +183,7 @@ public class FunctionSchemaFactory {
         // 파라미터 정의
         Map<String, Object> parameters = buildParameters(Map.of(
                 "categoryId", prop("integer", categoryIdDescription),
-                "limit", prop("integer", "추천 받을 상품 개수 (기본값: 6)")
+                "limit", prop("integer", "추천 받을 상품 개수 (기본값: 3)")
         ), List.of("categoryId"));  // categoryId는 필수, limit은 선택
 
         // FunctionDefinition 반환
@@ -256,7 +258,7 @@ public class FunctionSchemaFactory {
                 getWishlistFunction(),
                 getPopularProductsFunction(),
                 getProductInfoFunction(),
-                getSellerInfoByProductFunction(),
+                getPublicSellerInfoByProductIdFunction(),
                 getFeaturedSellersWithProductsFunction(),
                 getRecommendedProductsByCategoryFunction(),
                 getRelatedProductsFunction(),
