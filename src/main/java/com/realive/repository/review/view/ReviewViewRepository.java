@@ -91,4 +91,21 @@ public interface    ReviewViewRepository extends JpaRepository<SellerReview, Lon
     // 페이징 없이 전체 리뷰 조회하는 메서드 추가
     List<ReviewResponseDTO> findAllSellerReviewsBySellerId(Long sellerId);
 
+    @Query(value = "SELECT new com.realive.dto.review.ReviewResponseDTO(" +
+            "sr.id, sr.order.id, sr.customer.id, sr.seller.id, " +
+            "sr.rating, sr.content, sr.createdAt, sr.isHidden) " +
+            "FROM SellerReview sr " +
+            "JOIN sr.order o JOIN o.orderItems oi JOIN oi.product p " +
+            "WHERE sr.seller.id = :sellerId " +
+            "AND (:productName IS NULL OR p.name LIKE %:productName%) " +
+            "ORDER BY sr.createdAt DESC",
+            countQuery = "SELECT count(sr.id) FROM SellerReview sr " +
+                    "JOIN sr.order o JOIN o.orderItems oi JOIN oi.product p " +
+                    "WHERE sr.seller.id = :sellerId " +
+                    "AND (:productName IS NULL OR p.name LIKE %:productName%)")
+    Page<ReviewResponseDTO> findSellerReviewsBySellerIdAndProductName(
+            @Param("sellerId") Long sellerId,
+            @Param("productName") String productName,
+            Pageable pageable
+    );
 }

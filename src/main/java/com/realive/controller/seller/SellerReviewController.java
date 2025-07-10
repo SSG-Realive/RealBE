@@ -28,13 +28,14 @@ public class SellerReviewController {
     @GetMapping
     public ResponseEntity<ReviewListResponseDTO> getMyReviews(
             @AuthenticationPrincipal SellerPrincipal sellerPrincipal,
+            @RequestParam(required = false) String productName,  // ← 추가
             Pageable pageable
     ) {
         try {
             Long sellerId = sellerPrincipal.getId();
             log.info("판매자 ID {}의 리뷰 목록 조회 요청", sellerId);
 
-            ReviewListResponseDTO result = reviewViewService.getReviewList(sellerId, pageable);
+            ReviewListResponseDTO result = reviewViewService.getReviewList(sellerId, productName, pageable);
 
             log.info("판매자 ID {}의 리뷰 {}건 조회 완료", sellerId, result.getTotalCount());
             return ResponseEntity.ok(result);
@@ -58,7 +59,7 @@ public class SellerReviewController {
 
             // Unpaged 대신 충분히 큰 페이지 사이즈 사용
             Pageable largePage = PageRequest.of(0, 10000);
-            ReviewListResponseDTO allReviews = reviewViewService.getReviewList(sellerId, largePage);
+            ReviewListResponseDTO allReviews = reviewViewService.getReviewList(sellerId, null, largePage);
 
             // 간단한 통계 계산
             Map<String, Object> statistics = new HashMap<>();

@@ -97,8 +97,11 @@ public class ProductViewController {
 
     // ✅ 판매자의 리뷰 리스트 조회
     @GetMapping("reviews/seller/{sellerId}")
-    public ResponseEntity<ReviewListResponseDTO> getReviews(@PathVariable Long sellerId, Pageable pageable) {
-        ReviewListResponseDTO result = reviewViewService.getReviewList(sellerId, pageable);
+    public ResponseEntity<ReviewListResponseDTO> getReviews(
+            @PathVariable Long sellerId,
+            @RequestParam(required = false) String productName,
+            Pageable pageable) {
+        ReviewListResponseDTO result = reviewViewService.getReviewList(sellerId, productName, pageable);
         return ResponseEntity.ok(result);
     }
 
@@ -108,6 +111,14 @@ public class ProductViewController {
 
         List<CustomerQnaListResponseDTO> qnaLists = customerQnaService.listProductQnaWithContent(productId);
         return ResponseEntity.ok(qnaLists);
+    }
 
+    // 카테고리별 인기 상품 조회
+    @GetMapping("/popular/by-category")
+    public ResponseEntity<List<ProductListDTO>> getPopularProductsByCategory(
+            @RequestParam("categoryId") Long categoryId) {
+
+        List<ProductListDTO> result = productViewService.getPopularProductsByCategory(categoryId);
+        return ResponseEntity.ok(result);
     }
 }

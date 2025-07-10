@@ -48,24 +48,22 @@ public class ChatRequestDTO {
         private Map<String, Object> parameters;
     }
 
-    // 기존 단순 메시지 생성
+    // 단순 메시지 요청 (function 미포함)
     public static ChatRequestDTO of(String model, String userMessage) {
         return new ChatRequestDTO(model,
                 List.of(new Message("user", userMessage)),
-                null,   // functions 없음
-                "auto"  // function_call 기본값
+                null,
+                "auto"
         );
     }
 
-    // 함수 리스트까지 포함하는 버전
+    // Function 포함 요청 (시스템 메시지는 별도 클래스로 관리)
     public static ChatRequestDTO withFunctions(String model, String userMessage, List<FunctionDefinition> functions) {
         return new ChatRequestDTO(model,
                 List.of(
-                        new Message("system", "당신은 Realive 플랫폼 쇼핑 고객 지원 챗봇입니다." +
-                                " 주문, 리뷰, 상품, 찜 등 플랫폼 관련 질문에만 답변하세요. " +
-                                "그 외 질문에는 '해당 서비스와 관련된 질문만 답변 가능합니다.'" +
-                                "라고 응답하세요."),
-                        new Message("user", userMessage)),
+                        SystemPromptProvider.getDefaultSystemMessage(),
+                        new Message("user", userMessage)
+                ),
                 functions,
                 "auto"
         );

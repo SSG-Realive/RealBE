@@ -14,4 +14,7 @@ public interface DeliveryPolicyRepository extends JpaRepository<DeliveryPolicy, 
     Optional<DeliveryPolicy> findByProduct(Product product);
 
     // 필요시 커스텀 메서드 추가 가능
+
+    Optional<DeliveryPolicy> findByProductId(Long productId);
+
 }

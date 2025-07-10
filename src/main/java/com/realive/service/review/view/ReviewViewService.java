@@ -10,7 +10,7 @@ import org.springframework.data.domain.Pageable;
 public interface ReviewViewService {
 
     // 판매자별 리뷰 조회
-    ReviewListResponseDTO getReviewList(Long sellerId, Pageable pageable);
+    ReviewListResponseDTO getReviewList(Long sellerId, String productName, Pageable pageable);
 
     // 상세 보기
     ReviewResponseDTO getReviewDetail(Long id);
@@ -23,5 +23,6 @@ public interface ReviewViewService {
 
     // 통계용 메서드 추가
     ReviewListResponseDTO getReviewStatistics(Long sellerId);
+
 
 }
